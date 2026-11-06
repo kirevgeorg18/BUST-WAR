@@ -12,7 +12,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="description" content="Bust War – Arena-Kampf im Browser: 1 gegen 1 oder 2 gegen 2, mit C.H.A.O.S-Modus, zwei Karten und Sound.">
 <title>Bust War</title>
-<script>window.CR_NET_CONFIG = { publicUrl: 'https://kirevgeorg18.github.io/bustwar/' };</script>
+<script>window.CR_NET_CONFIG = { publicUrl: 'https://kirevgeorg18.github.io/BUST-WAR/' };</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'%3E%3Cpath d='M2.5 6.5l5 3.6L12 2.5l4.5 7.6 5-3.6-1.9 9.6H4.4z' fill='%23ffd23f' stroke='%235a2c00' stroke-width='1.4' stroke-linejoin='round'/%3E%3Crect x='4.2' y='16.4' width='15.6' height='2.6' rx='1' fill='%23ffd23f' stroke='%235a2c00' stroke-width='1.1'/%3E%3C/svg%3E">
 <script>
   /* Collect load-time script errors so the app can report broken modules instead of failing silently.
@@ -2818,6 +2818,107 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 .mate-ex b { min-width: 12px; font-family: var(--font-display); font-weight: 400; font-size: 15px; line-height: 1; text-shadow: var(--outline); }
 .mate-bar { position: relative; width: 52px; height: 7px; border-radius: 4px; overflow: hidden; background: rgba(0, 0, 0, 0.5); }
 .mate-fill { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(0); background: linear-gradient(90deg, var(--elixir-3), var(--elixir-2) 60%, var(--elixir-1)); }
+
+/* ===================================================================== v5.1: Mit Freunden */
+
+/* ---- menu: 1 gegen 1 (mit 1 Freund) / 2 gegen 2 (mit 3 Freunden) */
+.seg-duo { padding: 5px; border-radius: 16px; }
+.seg-duo > button { min-height: 66px; padding: 6px 8px; gap: 8px; border-radius: 13px; justify-content: flex-start; text-align: left; }
+.seg-duo > button .ico { flex: 0 0 auto; width: 28px; height: 28px; }
+.seg-duo .seg-txt { min-width: 0; }
+.seg-duo .seg-label { font-size: clamp(18px, 4.8vw, 21px); }
+.seg-duo .seg-sub { white-space: normal; line-height: 1.1; font-size: 13px; }
+.seg-duo > button.on {
+  background: linear-gradient(180deg, var(--blue-1), var(--blue-2) 70%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 3px 0 var(--blue-edge), 0 0 0 2px #fff;
+}
+.btn-host { min-height: 66px; }
+
+/* ---- host lobby: invite hint, drag & drop of player chips, "Tauschen?" prompt */
+.invite-hint {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 214, 80, 0.16);
+  box-shadow: inset 0 0 0 2px rgba(255, 214, 80, 0.45);
+  color: #fff3c4;
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.25;
+  text-align: center;
+}
+.slot-row.is-drag { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.slot-row.is-drag:active { cursor: grabbing; }
+.slot-grip {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 30px;
+  margin-right: -4px;
+  opacity: 0.55;
+  background: radial-gradient(circle, #fff 1.6px, transparent 2px) 0 0 / 5px 6px repeat;
+}
+.slot-row.is-dragging { opacity: 0.35; }
+.slot-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.92;
+  animation: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55), 0 0 0 3px var(--gold-1);
+  background: rgba(20, 30, 60, 0.95);
+}
+.board-wrap.is-dragging .team-col { transition: box-shadow 0.12s; }
+.team-col.is-drop { box-shadow: 0 0 0 3px var(--gold-1); }
+.slot-row.is-drop { box-shadow: 0 0 0 3px var(--gold-1), inset 0 0 0 999px rgba(255, 230, 130, 0.12); }
+.drag-hint { margin-top: 6px; }
+.req-wrap { display: flex; flex-direction: column; gap: 8px; }
+.req-wrap:empty { display: none; }
+.req-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(40, 24, 0, 0.6);
+  box-shadow: inset 0 0 0 2px var(--gold-1);
+  animation: cr-pop 0.3s ease-out;
+}
+.req-text { font-size: 17px; font-weight: 800; line-height: 1.25; }
+.req-text b { font-family: var(--font-display); font-weight: 400; text-shadow: var(--outline); }
+.req-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.req-btns .btn { flex: 1 1 auto; min-height: 48px; font-size: 17px; }
+.req-btns .req-no { flex: 0 0 auto; }
+
+/* ---- guest join screen: the name on top, big */
+.panel-name { display: flex; flex-direction: column; gap: 6px; }
+.name-label { display: block; }
+.text-input.name-big {
+  width: 100%;
+  height: 56px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(3, 10, 30, 0.55);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 230, 130, 0.5);
+  font-size: 26px;
+}
+.text-input.name-big:focus { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45), 0 0 0 3px var(--gold-1); }
+
+/* phones: keep "Spiel erstellen" and the code row on screen */
+@media (max-height: 960px) {
+  .seg-duo > button { min-height: 58px; }
+  .btn-host { min-height: 60px; }
+  .pane-duo { gap: 8px; }
+  .pane-duo .code-inline, .pane-duo .btn-join { min-height: 54px; }
+  .pane-duo .code-inline { font-size: 28px; }
+}
+@media (max-height: 700px) {
+  .seg-duo > button { min-height: 50px; }
+  .seg-duo .seg-sub { font-size: 12px; }
+  .btn-host { min-height: 54px; }
+}
 
 </style>
 </head>
@@ -10721,10 +10822,12 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
  * V5 API (2v2, ARCHITECTURE/V5.md "Network contract"):
  *   host  hs = await hostGame({ code, name, deck, mode, teamSize: 1|2, map: 'classic'|'hill', onStatus })
  *         hs.lobby -> { phase, mode, map, teamSize, slots: [{ slot, name, team: 0 Blau|1 Rot,
- *                       kind: 'host'|'guest'|'bot'|'empty', ready, online, rematch }],
+ *                       kind: 'host'|'guest'|'bot'|'empty', ready, online, rematch, req }],
  *                       canStart: { ok, reason: 'missing'|'offline'|'teams'|'ready'|'phase', message (German) } }
  *         hs.onLobby = lobby => {}            every change (replayed on assignment)
  *         hs.setTeamSize(1|2) -> bool, hs.setMap(id), hs.setMode(m), hs.setTeam(slot, team) -> bool
+ *         hs.swapTeams(slotA, slotB) -> bool (drag & drop), hs.declineTeam(slot) (slot.req: a
+ *         guest's open team wish the host has to decide, -1 = none)
  *         hs.addBot({ team?, name?, level?, deck? }) -> slot | -1, hs.removeBot(slot) -> bool
  *         hs.canStart(), hs.lobbyPlayers() -> [{ slot, name, side, kind, bot, deck, level }]
  *         hs.startBattle({ seed, mode, speed, map, players: [{ name, side, deck, bot, slot? }] })
@@ -10737,7 +10840,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
  *         hs.localPlayer / hs.localSide, legacy hs.onGuest / hs.guest (first seated guest), hs.close()
  *   guest gs = await joinGame({ code, name, deck, team?, onStatus })
  *         gs.lobby (as above + { hostName, me: own slot | -1, team, full }), gs.onLobby = fn,
- *         gs.requestTeam(0|1) (the host decides), gs.setReady(bool)
+ *         gs.requestTeam(0|1) (the host decides), gs.setReady(bool), gs.setName(name) (live)
  *         gs.onBattleStart = info => {}: { mode, names[], seed, localPlayer, localSide, bid, speed,
  *           map, teamSize, players: [{ name, side, bot, online }], decks? } (1v1: localPlayer =
  *           localSide = 1); gs.localPlayer / gs.localSide
@@ -13986,7 +14089,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     ready: 'Noch nicht alle Spieler sind bereit.',
     phase: 'Ein Kampf läuft bereits.',
   };
-  /** Public lobby slot list (host blob, onLobby): [{slot, name, team, kind, ready, online, rematch}]. */
+  /** Public lobby slot list (host blob, onLobby): [{slot, name, team, kind, ready, online, rematch, req}]. */
   function sanitizeSlots(v) {
     if (!Array.isArray(v) || v.length < 2 || v.length > MAX_PLAYERS) return null;
     const out = [];
@@ -13997,6 +14100,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         slot: i, name: sanitizeName(s.name), team: s.team === 1 ? 1 : 0,
         kind: SLOT_KINDS.indexOf(s.kind) >= 0 ? s.kind : 'empty',
         ready: s.ready === true, online: s.online === true, rematch: s.rematch === true,
+        req: s.req === 0 || s.req === 1 ? s.req : -1,
       });
     }
     return out;
@@ -14207,7 +14311,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       pick.gone = false;
       g.slot = pick.slot;
       this._balance();
-      if (this.phase === 'lobby' && g.teamReq >= 0) this._moveTeam(g.slot, g.teamReq, false);
+      if (this.phase === 'lobby' && g.teamReq >= 0) g.reqOpen = !this._moveTeam(g.slot, g.teamReq, false);
       this._lobbyChanged();
       this._requestPublish(0);
       return true;
@@ -14224,13 +14328,17 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         const other = bots.length ? bots[bots.length - 1] : (byHost ? members[members.length - 1] : null);
         if (!other) return false;
         other.team = s.team;
+        if (byHost) this._closeReq(other);
       }
       s.team = team;
+      if (byHost) this._closeReq(s);
       this._balance();
       this._lobbyChanged();
       this._requestPublish(0);
       return true;
     }
+    /** The host decided about this slot: its guest's open team wish is settled. */
+    _closeReq(s) { const g = this._guestOf(s); if (g) g.reqOpen = false; }
     /** Forget a guest (left with a goodbye, or silent for the phase's grace period). */
     _forget(g) {
       if (this.guests.get(g.id) !== g) return;
@@ -14276,7 +14384,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         g = {
           id: b.gid, lastN: -1, lastRecv: now, blob: null, lastApplied: null, minOffered: null, pend: new Map(), ea: 0, left: false,
           rec: null, recvBy: new Map(), eps: new Map(), primary: null, slot: -1, name: b.name, deck: b.deck.slice(), ready: false,
-          teamReq: -1, rematchBid: 0, encCtx: newEncodeCtx(), lastSnap: null, lastSnapBudget: 0, dh: b.dh,
+          teamReq: -1, reqOpen: false, rematchBid: 0, encCtx: newEncodeCtx(), lastSnap: null, lastSnapBudget: 0, dh: b.dh,
         };
         this.guests.set(g.id, g);
         this._requestPublish(0);
@@ -14308,7 +14416,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const s = this.slots[g.slot];
       if (this.phase === 'lobby') { s.name = g.name; s.deck = g.deck.slice(); }
       s.ready = g.ready;
-      if (reqChanged && req >= 0 && this.phase === 'lobby') this._moveTeam(g.slot, req, false);
+      if (reqChanged) g.reqOpen = req >= 0 && this.phase === 'lobby' && !this._moveTeam(g.slot, req, false);
       // rematch request for the battle that just ended
       if (this.phase === 'result' && this.bid > 0 && b.rematch === this.bid && g.rematchBid !== this.bid) {
         g.rematchBid = this.bid;
@@ -14382,7 +14490,9 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         const g = self._guestOf(s);
         const online = s.kind === 'host' || s.kind === 'bot' || !!(g && !self._stale(g, now));
         const rm = self.phase === 'result' && (s.kind === 'host' ? self.hostRematch : !!(g && g.rematchBid === self.bid && self.bid > 0));
-        return { slot: s.slot, name: s.name, team: s.team, kind: s.kind, ready: s.kind === 'empty' ? false : !!s.ready, online: online, rematch: rm };
+        // req: the team this guest asked for that the host has not decided yet (full team, no bot)
+        const req = self.phase === 'lobby' && g && g.reqOpen && g.teamReq >= 0 && g.teamReq !== s.team ? g.teamReq : -1;
+        return { slot: s.slot, name: s.name, team: s.team, kind: s.kind, ready: s.kind === 'empty' ? false : !!s.ready, online: online, rematch: rm, req: req };
       });
     }
     /**
@@ -14451,6 +14561,29 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     setMode(m) { if (m === 'classic' || m === 'chaos') { this.mode = m; this._lobbyChanged(); } return this.mode; }
     /** Host decides the team of any slot (2v2, lobby); a full team swaps with one of its members. */
     setTeam(slot, team) { return this._moveTeam(slot, team, true); }
+    /** Host swaps the teams of two occupied slots of different teams (2v2 lobby, drag & drop). */
+    swapTeams(a, b) {
+      if (this.phase !== 'lobby' || this.teamSize < 2) return false;
+      const A = this.slots[a], B = this.slots[b];
+      if (!A || !B || A === B || A.kind === 'empty' || B.kind === 'empty') return false;
+      if (A.team === B.team) return true;
+      const t = A.team;
+      A.team = B.team;
+      B.team = t;
+      this._closeReq(A);
+      this._closeReq(B);
+      this._lobbyChanged();
+      this._requestPublish(0);
+      return true;
+    }
+    /** Host says no to the open team wish of a slot's guest (it stays where it is). */
+    declineTeam(slot) {
+      const g = this._guestOf(this.slots[slot]);
+      if (!g || !g.reqOpen) return false;
+      g.reqOpen = false;
+      this._lobbyChanged();
+      return true;
+    }
     /** Put a bot into an empty slot: o = { team?, name?, level?, deck? } -> slot index or -1. */
     addBot(o) {
       o = o || {};
@@ -15130,6 +15263,13 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const v = !!b;
       if (v === this.ready) return;
       this.ready = v;
+      this._requestPublish(0);
+    }
+    /** Change the own name (lobby: the host shows it at once; battles use the seat's name). */
+    setName(n) {
+      const v = sanitizeName(n);
+      if (v === this.name || this.closed) return;
+      this.name = v;
       this._requestPublish(0);
     }
     /** Ask the host for a team (0 = Blau, 1 = Rot; 2v2 lobby). The host decides (see lobby.slots). */
@@ -19129,7 +19269,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   // v2: only the C.H.A.O.S rules remain; the menu switches between two play types.
   const PLAY_TYPES = [
     { id: 'single', label: 'Single-Modus', sub: 'gegen KI', icon: 'bot' },
-    { id: 'duo', label: 'Mit Kollege', sub: 'per Code', icon: 'people' },
+    { id: 'duo', label: 'Mit Freunden', sub: 'per Code', icon: 'people' },
   ];
   const SPEEDS = [
     { id: 1, label: 'Original', sub: '1×' },
@@ -19153,6 +19293,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   const TEAM_SIZES = [
     { id: 1, label: '1 gegen 1', short: '1v1' },
     { id: 2, label: '2 gegen 2', short: '2v2' },
+  ];
+  // "Mit Freunden" in the menu: the two big mode options
+  const DUO_MODES = [
+    { id: 1, label: '1 gegen 1', sub: 'mit 1 Freund', icon: 'swords' },
+    { id: 2, label: '2 gegen 2', sub: 'mit 3 Freunden (4 Spieler)', icon: 'people' },
   ];
   const TEAMS = [
     { id: 0, label: 'Blau', cls: 'team-blue' },
@@ -19294,6 +19439,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   UI.MAPS = MAPS;
   UI.TEAM_SIZES = TEAM_SIZES;
   UI.TEAMS = TEAMS;
+  UI.DUO_MODES = DUO_MODES;
   UI.APP_NAME = APP_NAME;
 
   function vol01(v, d) { return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, Math.round(v * 100) / 100)) : d; }
@@ -19319,6 +19465,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       sfxVol: vol01(r.sfxVol, DEFAULT_SFX),
       map: UI.normMap(r.map),
       teamSize: UI.normTeamSize(r.teamSize),
+      // "Mit Freunden": the mode chosen in the menu (default 2 gegen 2 = four phones)
+      duoTeamSize: r.duoTeamSize == null ? 2 : UI.normTeamSize(r.duoTeamSize),
     };
   };
 
@@ -19401,7 +19549,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const list = slots || EMPTY;
     for (let i = 0; i < n; i++) {
       const s = list[i];
-      if (!s || s.kind === 'empty') return { ok: false, reason: ts === 2 ? 'Fülle alle vier Plätze – mit Kollegen oder Bots.' : 'Warte auf deinen Kollegen – oder nimm einen Bot.' };
+      if (!s || s.kind === 'empty') return { ok: false, reason: ts === 2 ? 'Fülle alle vier Plätze – mit Freunden oder Bots.' : 'Warte auf deinen Freund – oder nimm einen Bot.' };
     }
     for (let i = 0; i < n; i++) {
       const s = list[i];
@@ -19427,6 +19575,53 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         slot: s.slot != null ? s.slot : i,
       });
     }
+    return out;
+  };
+
+  /** A name nobody chose ('', 'Spieler', 'Gast', 'Kollege'): shown as "Spieler <slot+1>". */
+  UI.isDefaultName = function (n) {
+    const v = UI.sanitizeName(n);
+    return !v || /^(spieler|gast|kollege|player|guest)$/i.test(v);
+  };
+  /** Display name of a lobby slot / battle player: own name, else "Spieler 1..4" by slot
+   *  (host = Spieler 1); bots keep their name ("Bot"). */
+  UI.playerName = function (name, slot, kind) {
+    const v = UI.sanitizeName(name);
+    if (kind === 'bot') return v || 'Bot';
+    if (!UI.isDefaultName(v)) return v;
+    return 'Spieler ' + ((slot | 0) + 1);
+  };
+  /**
+   * Drag & drop in the host lobby (2v2): what dropping slot `from` on a target means.
+   * target = { slot } (another player's chip) or { team } (a team column / free place).
+   * -> { type: 'swap', a, b } (two players of different teams trade places),
+   *    { type: 'move', slot, team } (onto the other team; a full team swaps, the host decides)
+   *    or null (same team, empty or 1v1).
+   */
+  UI.lobbyDropAction = function (slots, teamSize, from, target) {
+    if (UI.normTeamSize(teamSize) !== 2 || !target) return null;
+    const list = slots || EMPTY;
+    const a = list[from];
+    if (!a || a.kind === 'empty') return null;
+    const ta = a.team === 1 ? 1 : 0;
+    if (typeof target.slot === 'number' && target.slot !== from) {
+      const b = list[target.slot];
+      if (b && b.kind !== 'empty') {
+        if ((b.team === 1 ? 1 : 0) === ta) return null;
+        return { type: 'swap', a: from, b: target.slot };
+      }
+      if (b) return (b.team === 1 ? 1 : 0) === ta ? null : { type: 'move', slot: from, team: b.team === 1 ? 1 : 0 };
+    }
+    if (target.team === 0 || target.team === 1) return target.team === ta ? null : { type: 'move', slot: from, team: target.team };
+    return null;
+  };
+  /** Swap the teams of two lobby slots (pure; app-owned lobby of older net modules). */
+  UI.lobbySwapTeams = function (slots, a, b) {
+    const out = (slots || EMPTY).map(function (sl) { return Object.assign({}, sl); });
+    if (!out[a] || !out[b]) return out;
+    const t = out[a].team;
+    out[a].team = out[b].team;
+    out[b].team = t;
     return out;
   };
 
@@ -20651,13 +20846,13 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const notes = f.notes || NONE;
 
     const nameInput = h('input', {
-      class: 'text-input', type: 'text', maxlength: '16', value: s.name, placeholder: DEFAULT_NAME,
+      class: 'text-input', type: 'text', maxlength: '16', value: UI.isDefaultName(s.name) ? '' : s.name, placeholder: 'Dein Name',
       autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', enterkeyhint: 'done',
       'aria-label': 'Dein Name',
     });
     const commitName = function () {
       app.setName(nameInput.value);
-      nameInput.value = app.settings.name;
+      nameInput.value = UI.isDefaultName(app.settings.name) ? '' : app.settings.name;
     };
     nameInput.addEventListener('change', commitName);
     nameInput.addEventListener('blur', commitName);
@@ -20697,7 +20892,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const can2 = !!f.team2;
     const teamSeg = segmented(TEAM_SIZES.map(function (t) { return { id: t.id, label: t.label, disabled: t.id === 2 && !can2 }; }),
       can2 ? s.teamSize : 1, function (id) { app.setTeamSize(id); refreshFight(); }, 'seg seg-sm seg-team');
-    const mapPick = mapPicker(f.hill ? s.map : 'classic', function (id) { app.setMap(id); }, { compact: true, disabled: function (id) { return id === 'hill' && !f.hill; } });
+    const mapPick = mapPicker(f.hill ? s.map : 'classic', function (id) { app.setMap(id); if (duoMap) duoMap.set(id); }, { compact: true, disabled: function (id) { return id === 'hill' && !f.hill; } });
     const fightSub = h('span', { class: 'btn-sub' }, '');
     const fightBtn = h('button', { class: 'btn btn-gold btn-xl btn-block btn-fight', type: 'button', disabled: !f.ai },
       [icon('swords', 'ico-lg'), h('span', { class: 'btn-stack' }, ['Kampf!', fightSub])]);
@@ -20720,16 +20915,31 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.'),
     ]);
 
-    // ---- Mit Kollege
-    const hostBtn = h('button', { class: 'btn btn-blue btn-xl btn-block', type: 'button', disabled: !f.net }, [
+    // ---- Mit Freunden: mode (1v1 with one friend / 2v2 with three friends) + map right here,
+    // "Spiel erstellen" opens the lobby in that mode; joining with a code stays below.
+    const duoTs = can2 ? UI.normTeamSize(s.duoTeamSize) : 1;
+    const duoSeg = segmented(DUO_MODES.map(function (m) {
+      return { id: m.id, label: m.label, sub: m.sub, icon: m.icon, cls: 'dm-' + m.id, disabled: m.id === 2 && !can2 };
+    }), duoTs, function (id) { app.setDuoTeamSize(id); refreshHost(); }, 'seg seg-duo');
+    const duoMap = mapPicker(f.hill ? s.map : 'classic', function (id) { app.setMap(id); mapPick.set(id); },
+      { compact: true, disabled: function (id) { return id === 'hill' && !f.hill; } });
+    const hostSub = h('span', { class: 'btn-sub' }, '');
+    const hostBtn = h('button', { class: 'btn btn-blue btn-xl btn-block btn-host', type: 'button', disabled: !f.net }, [
       icon('people', 'ico-lg'),
-      h('span', { class: 'btn-stack' }, ['Spiel erstellen', h('span', { class: 'btn-sub' }, 'Code an deinen Kollegen schicken')]),
+      h('span', { class: 'btn-stack' }, ['Spiel erstellen', hostSub]),
     ]);
-    hostBtn.addEventListener('click', function () { app.startHost(); });
+    function refreshHost() {
+      const two = can2 && UI.normTeamSize(app.settings.duoTeamSize) === 2;
+      hostSub.textContent = two ? 'Link an 3 Freunde schicken' : 'Link an 1 Freund schicken';
+    }
+    refreshHost();
+    hostBtn.addEventListener('click', function () {
+      app.startHost({ teamSize: can2 ? UI.normTeamSize(app.settings.duoTeamSize) : 1, map: f.hill ? app.settings.map : 'classic' });
+    });
     const codeInput = h('input', {
       class: 'code-input code-inline', type: 'text', inputmode: 'text', maxlength: '120', placeholder: 'CODE',
       autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'go',
-      'aria-label': 'Spiel-Code deines Kollegen', disabled: !f.net,
+      'aria-label': 'Spiel-Code eines Freundes', disabled: !f.net,
     });
     const codeErr = h('div', { class: 'hint err', hidden: true }, 'Ungültiger Code – bitte prüfen.');
     const joinBtn = h('button', { class: 'btn btn-green btn-join', type: 'button', disabled: !f.net }, 'Beitreten');
@@ -20748,17 +20958,25 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doJoin(); });
     joinBtn.addEventListener('click', doJoin);
     const duoPane = h('div', { class: 'play-pane pane-duo' }, [
+      h('div', { class: 'menu-label' }, 'Wie viele spielen?'),
+      duoSeg.el,
+      can2 ? null : hint(notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.', 'info'),
+      h('div', { class: 'menu-label' }, 'Karte'),
+      duoMap.el,
       hostBtn,
       h('div', { class: 'or-line' }, h('span', null, 'oder Code eingeben')),
       h('div', { class: 'join-row' }, [codeInput, joinBtn]),
       codeErr,
-      f.net ? null : hint(notes.net || 'Spielen mit Kollegen ist gerade nicht möglich.'),
+      f.net ? null : hint(notes.net || 'Spielen mit Freunden ist gerade nicht möglich.'),
     ]);
 
     function showPane(id) {
       singlePane.hidden = id !== 'single';
       duoPane.hidden = id !== 'duo';
       panel.classList.toggle('is-duo', id === 'duo');
+      const m = f.hill ? app.settings.map : 'classic';
+      mapPick.set(m);
+      duoMap.set(m);
     }
 
     // ---- rules badge (Spieltempo lives in the settings screen since v5)
@@ -20878,7 +21096,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       can3d ? '2D spart Akku auf älteren Handys.' : ((f.notes && f.notes.gfx3d) || '3D-Grafik ist auf diesem Gerät nicht verfügbar.'));
     row('forward', 'Spieltempo', segmented(SPEEDS.map(function (sp) { return { id: sp.id, label: sp.label, sub: sp.sub }; }),
       s.speed, function (id) { app.setSpeed(id); mark(); }, 'seg seg-sm').el,
-      (o.inBattle ? 'Gilt ab dem nächsten Kampf. ' : '') + 'Schnell = alles läuft 1,5-mal so schnell. Mit Kollege gilt das Tempo des Gastgebers.');
+      (o.inBattle ? 'Gilt ab dem nächsten Kampf. ' : '') + 'Schnell = alles läuft 1,5-mal so schnell. Mit Freunden gilt das Tempo des Gastgebers.');
     const closeBtn = h('button', { class: 'btn btn-blue btn-block', type: 'button' }, 'Fertig');
     const sheet = h('div', { class: 'sheet sheet-settings scroll', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Einstellungen' }, [
       h('div', { class: 'sheet-grip', 'aria-hidden': 'true' }),
@@ -20905,7 +21123,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   const TIPS = [
     'Ziehe eine Karte in die Arena – oder tippe erst die Karte und dann das Feld.',
     'Im C.H.A.O.S-Modus wählst du mitten im Kampf Upgrades für deine Karten.',
-    'Mit Kollege: Spiel erstellen, Code verschicken – dein Kollege tippt ihn ein und los geht’s.',
+    'Mit Freunden: 1 gegen 1 oder 2 gegen 2 wählen, Spiel erstellen, Link verschicken – deine Freunde öffnen ihn und los geht’s.',
     'In der letzten Minute fließt das Elixier doppelt so schnell.',
     'Der König-Turm wacht auf, sobald er getroffen wird oder ein Prinzessinnen-Turm fällt.',
     'Upgrades erkennst du an der farbigen Aura um die Einheit.',
@@ -21245,7 +21463,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       'Im <b>2 gegen 2</b> kämpft ihr zu zweit gegen zwei. Jeder hat sein <b>eigenes Deck</b>, eigene Handkarten, eigenes <b>Elixier</b> und eigene C.H.A.O.S-Upgrades.',
       'Die Türme und eure Hälfte der Arena teilt ihr euch mit dem Teampartner – die Kronen zählen für das ganze Team.',
       'Das Elixier deines Partners siehst du klein über deiner Elixierleiste. Seine Einheiten tragen einen helleren Ring als deine.',
-      '<b>Single-Modus</b>: du und ein Bot gegen zwei Bots. <b>Mit Kollege</b>: bis zu vier Spieler mit einem Code – jeder wählt sein Team (<b>Blau</b> oder <b>Rot</b>), freie Plätze füllt der Gastgeber mit Bots.',
+      '<b>Single-Modus</b>: du und ein Bot gegen zwei Bots. <b>Mit Freunden</b>: bis zu vier Spieler mit einem Code – jeder wählt sein Team (<b>Blau</b> oder <b>Rot</b>), freie Plätze füllt der Gastgeber mit Bots.',
     ];
   };
 
@@ -21311,18 +21529,18 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       ],
     });
     secs.push({
-      title: 'Mit Kollege spielen',
+      title: 'Mit Freunden spielen',
       items: [
-        'Tippe im Menü auf <b>Mit Kollege</b> und dann auf <b>Spiel erstellen</b>. Du bekommst einen <b>Code</b> und einen <b>Link</b> – schick ihn deinem Kollegen.',
-        'Dein Kollege öffnet den Link oder tippt den Code unter <b>Mit Kollege</b> ein und drückt <b>Beitreten</b>. Sobald er bereit ist, startest du den Kampf.',
-        'Als Gastgeber wählst du <b>1 gegen 1</b> oder <b>2 gegen 2</b> und die <b>Karte</b>. Im 2 gegen 2 können bis zu drei Kollegen mit demselben Code beitreten.',
+        'Tippe im Menü auf <b>Mit Freunden</b>, wähle <b>1 gegen 1</b> (mit 1 Freund) oder <b>2 gegen 2</b> (mit 3 Freunden) und tippe auf <b>Spiel erstellen</b>. Du bekommst einen <b>Code</b> und einen <b>Link</b> – schick ihn deinen Freunden.',
+        'Jeder Freund öffnet den Link auf seinem Handy (oder tippt den Code unter <b>Mit Freunden</b> ein) und drückt <b>Beitreten</b>. Sobald alle bereit sind, startest du den Kampf.',
+        'Als Gastgeber kannst du Modus und <b>Karte</b> in der Lobby noch ändern und die Spieler per <b>Ziehen</b> (oder mit dem Pfeil) zwischen den Teams verschieben. Freie Plätze füllst du mit Bots.',
       ],
     });
     secs.push({
       title: 'Tempo',
       items: [
         'Im Tempo <b>Schnell (1,5×)</b> läuft der ganze Kampf 1,5-mal so schnell – auch die Uhr und das Elixier. <b>Original (1×)</b> entspricht dem echten Spiel.',
-        'Mit Kollege gilt das Tempo des Gastgebers. Umstellen kannst du es im Menü oder in den Einstellungen.',
+        'Mit Freunden gilt das Tempo des Gastgebers. Umstellen kannst du es in den Einstellungen.',
       ],
     });
     return secs;
@@ -21361,12 +21579,12 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     ]);
   }
 
-  /** One lobby slot row (host + guest lobby). o = { me, onSwitch, onRemove } */
+  /** One lobby slot row (host + guest lobby). o = { me, onSwitch, onRemove, drag } */
   function slotRow(sl, o) {
     const opt = o || NONE;
     const kind = sl.kind || 'empty';
     const ic = kind === 'host' ? 'swords' : (kind === 'bot' ? 'bot' : (kind === 'guest' ? 'shield' : 'question'));
-    const name = kind === 'empty' ? 'Frei' : (UI.sanitizeName(sl.name) || (kind === 'bot' ? 'Bot' : 'Gast'));
+    const name = kind === 'empty' ? 'Frei' : UI.playerName(sl.name, sl.slot, kind);
     const state = kind === 'host' ? 'Gastgeber' : (kind === 'bot' ? 'Bot' : (kind === 'guest' ? (sl.ready ? 'Bereit!' : 'Noch nicht bereit') : 'Wartet auf Spieler'));
     const acts = h('div', { class: 'slot-acts' });
     if (opt.onSwitch) {
@@ -21380,7 +21598,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       acts.appendChild(b);
     }
     const gd = kind === 'guest' && Array.isArray(sl.deck) ? UI.sanitizeDeck(sl.deck, EMPTY) : EMPTY;
-    return h('div', { class: 'slot-row is-' + kind + (opt.me ? ' is-me' : '') + (kind === 'guest' && sl.ready ? ' is-ready' : '') }, [
+    return h('div', {
+      class: 'slot-row is-' + kind + (opt.me ? ' is-me' : '') + (kind === 'guest' && sl.ready ? ' is-ready' : '') + (opt.drag ? ' is-drag' : ''),
+      'data-slot': String(sl.slot), 'data-team': String(sl.team === 1 ? 1 : 0),
+    }, [
+      opt.drag ? h('div', { class: 'slot-grip', 'aria-hidden': 'true' }) : null,
       h('div', { class: 'slot-ava' }, icon(ic)),
       h('div', { class: 'slot-info' }, [
         h('div', { class: 'slot-name' }, [name, opt.me ? h('span', { class: 'res-you-tag' }, 'Du') : null]),
@@ -21392,7 +21614,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   }
 
   /** Team columns: members of each team + free places (with "+ Bot" for the host).
-   *  o = { teamSize, mySlot, host: bool, onAddBot(team), onSwitch(sl), onRemove(sl) } */
+   *  o = { teamSize, mySlot, host: bool, drag: bool, onAddBot(team), onSwitch(sl), onRemove(sl) }
+   *  drag: player chips can be dragged onto the other team (see hostLobbyDrag). */
   function teamBoard(slots, o) {
     const ts = UI.normTeamSize(o.teamSize);
     const n = UI.lobbyUsedSlots(ts);
@@ -21402,17 +21625,18 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       if (sl && sl.kind !== 'empty') cols[sl.team === 1 ? 1 : 0].push(sl);
     }
     return h('div', { class: 'team-board' + (ts === 2 ? ' is-2v2' : '') }, TEAMS.map(function (t) {
-      const col = h('div', { class: 'team-col ' + t.cls }, h('div', { class: 'team-head' }, 'Team ' + t.label + ' · ' + cols[t.id].length + '/' + ts));
+      const col = h('div', { class: 'team-col ' + t.cls, 'data-team': String(t.id) }, h('div', { class: 'team-head' }, 'Team ' + t.label + ' · ' + cols[t.id].length + '/' + ts));
       cols[t.id].forEach(function (sl) {
         const isMe = sl.slot === o.mySlot;
         col.appendChild(slotRow(sl, {
           me: isMe,
-          onSwitch: o.host && o.onSwitch ? o.onSwitch : null,
-          onRemove: o.host && o.onRemove && sl.kind !== 'host' ? o.onRemove : null,
+          drag: !!(o.host && o.drag && ts === 2),
+          onSwitch: o.host && o.onSwitch && ts === 2 ? o.onSwitch : null,
+          onRemove: o.host && o.onRemove && sl.kind === 'bot' ? o.onRemove : null,   // guests keep their seat (the network owns it)
         }));
       });
       for (let k = cols[t.id].length; k < ts; k++) {
-        const free = h('div', { class: 'slot-row is-empty' }, [h('div', { class: 'slot-ava' }, icon('question')), h('div', { class: 'slot-info' }, [h('div', { class: 'slot-name' }, 'Frei'), h('div', { class: 'slot-state' }, 'Wartet auf Spieler')])]);
+        const free = h('div', { class: 'slot-row is-empty', 'data-team': String(t.id) }, [h('div', { class: 'slot-ava' }, icon('question')), h('div', { class: 'slot-info' }, [h('div', { class: 'slot-name' }, 'Frei'), h('div', { class: 'slot-state' }, 'Wartet auf Spieler')])]);
         if (o.host && o.onAddBot) {
           const b = h('button', { class: 'btn btn-blue btn-sm slot-bot', type: 'button', 'aria-label': 'Bot in Team ' + t.label }, [icon('bot'), h('span', null, '+ Bot')]);
           b.addEventListener('click', function () { o.onAddBot(t.id); });
@@ -21430,15 +21654,100 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const list = slots || EMPTY;
     for (let i = 0; i < list.length; i++) {
       const sl = list[i] || NONE;
-      sg += sl.kind + ':' + (sl.team | 0) + ':' + (sl.ready ? 1 : 0) + ':' + UI.sanitizeName(sl.name) + ':' + (Array.isArray(sl.deck) ? sl.deck.join('.') : '') + ';';
+      sg += sl.kind + ':' + (sl.team | 0) + ':' + (sl.ready ? 1 : 0) + ':' + UI.sanitizeName(sl.name) + ':' + (Array.isArray(sl.deck) ? sl.deck.join('.') : '') + ':' + (sl.req === 0 || sl.req === 1 ? sl.req : '') + ';';
     }
     return sg;
   };
 
   /**
+   * Drag & drop of player chips in the host lobby (pointer events: mouse, touch, pen). Event
+   * delegation on `wrap` (the board inside is rebuilt on every lobby change; listeners on the
+   * window follow the pointer). A press on a '.slot-row.is-drag' that moves more than
+   * DRAG_START_PX becomes a drag: a floating copy follows the finger, the target (another
+   * chip / free place / team column) lights up, the drop calls onDrop(fromSlot, target) with
+   * target = { slot } or { team }. o.onActive(bool) while a drag runs (the host lobby defers
+   * re-renders until the drop).
+   */
+  function lobbyDrag(wrap, o) {
+    let d = null;
+    function targetAt(x, y) {
+      const doc = G.document;
+      let el = doc && doc.elementFromPoint ? doc.elementFromPoint(x, y) : null;
+      if (!el || !wrap.contains(el)) return null;
+      const row = el.closest ? el.closest('.slot-row') : null;
+      if (row && row.getAttribute('data-slot') != null) return { el: row, t: { slot: +row.getAttribute('data-slot') } };
+      if (row && row.getAttribute('data-team') != null) return { el: row, t: { team: +row.getAttribute('data-team') } };
+      const col = el.closest ? el.closest('.team-col') : null;
+      if (col && col.getAttribute('data-team') != null) return { el: col, t: { team: +col.getAttribute('data-team') } };
+      return null;
+    }
+    function mark(tg) {
+      const el = tg && o.accept(d.from, tg.t) ? tg.el : null;
+      if (d.over === el) return;
+      if (d.over) d.over.classList.remove('is-drop');
+      d.over = el;
+      if (el) el.classList.add('is-drop');
+    }
+    function move(e) {
+      if (!d || e.pointerId !== d.id) return;
+      const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+      if (!d.on) {
+        if (dx * dx + dy * dy < DRAG_START_PX * DRAG_START_PX) return;
+        d.on = true;
+        const r = d.row.getBoundingClientRect();
+        d.ox = d.x0 - r.left; d.oy = d.y0 - r.top;
+        const ghost = d.row.cloneNode(true);
+        ghost.classList.add('slot-ghost');
+        ghost.style.width = r.width + 'px';
+        ghost.removeAttribute('data-slot');
+        G.document.body.appendChild(ghost);
+        d.ghost = ghost;
+        d.row.classList.add('is-dragging');
+        wrap.classList.add('is-dragging');
+        if (o.onActive) o.onActive(true);
+        vibrate(12);
+      }
+      if (e.cancelable) e.preventDefault();
+      d.ghost.style.transform = 'translate(' + Math.round(e.clientX - d.ox) + 'px,' + Math.round(e.clientY - d.oy) + 'px)';
+      mark(targetAt(e.clientX, e.clientY));
+    }
+    function end(e, cancel) {
+      if (!d || (e && e.pointerId !== d.id)) return;
+      const cur = d;
+      d = null;
+      G.removeEventListener('pointermove', move, { passive: false });
+      G.removeEventListener('pointerup', up);
+      G.removeEventListener('pointercancel', cancelFn);
+      if (!cur.on) return;
+      if (cur.ghost && cur.ghost.parentNode) cur.ghost.parentNode.removeChild(cur.ghost);
+      if (cur.over) cur.over.classList.remove('is-drop');
+      cur.row.classList.remove('is-dragging');
+      wrap.classList.remove('is-dragging');
+      const tg = !cancel && e ? targetAt(e.clientX, e.clientY) : null;
+      if (o.onActive) o.onActive(false);
+      if (tg && o.accept(cur.from, tg.t)) o.onDrop(cur.from, tg.t);
+    }
+    function up(e) { end(e, false); }
+    function cancelFn(e) { end(e, true); }
+    wrap.addEventListener('pointerdown', function (e) {
+      if (d || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const t = e.target;
+      if (!t || !t.closest || t.closest('button')) return;
+      const row = t.closest('.slot-row.is-drag');
+      if (!row || !wrap.contains(row)) return;
+      d = { id: e.pointerId, row: row, from: +row.getAttribute('data-slot'), x0: e.clientX, y0: e.clientY, on: false, ghost: null, over: null, ox: 0, oy: 0 };
+      G.addEventListener('pointermove', move, { passive: false });
+      G.addEventListener('pointerup', up);
+      G.addEventListener('pointercancel', cancelFn);
+    });
+    return { get active() { return !!(d && d.on); }, cancel: function () { if (d) end(null, true); } };
+  }
+
+  /**
    * ctl: { code, link, linkKnown, mode, speed, teamSize, map, can2v2, canHill, canBots, note2v2,
    *        onStart(), onCancel(), onRetry(), onTeamSize(n), onMap(id), onAddBot(team),
-   *        onSwitch(slot), onRemove(slot) }
+   *        onSwitch(slot), onRemove(slot), onDrop(fromSlot, {slot}|{team}),
+   *        onSwapReq(slot, withSlot), onDeclineReq(slot) }
    * api: setStatus(s), setSlots(slots, teamSize), setCanStart({ok, reason}), setGuest(g) (legacy 1v1)
    */
   UI.HostLobbyScreen = function (app, ctl) {
@@ -21449,7 +21758,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const linkOk = ctl.linkKnown !== false && !!ctl.link;
     const shareText = linkOk
       ? 'Spiel mit mir ' + APP_NAME + '! Code: ' + ctl.code
-      : 'Spiel mit mir ' + APP_NAME + '! Öffne die Seite, tippe auf „Mit Kollege“ und gib den Code ' + ctl.code + ' ein.';
+      : 'Spiel mit mir ' + APP_NAME + '! Öffne die Seite, tippe auf „Mit Freunden“ und gib den Code ' + ctl.code + ' ein.';
     const linkInput = h('input', { class: 'link-input', type: 'text', readonly: true, value: linkOk ? ctl.link : shareText, 'aria-label': linkOk ? 'Einladungslink' : 'Einladung' });
     linkInput.addEventListener('focus', function () { try { linkInput.select(); } catch (e) { /* ignore */ } });
     const copyLabel = 'Kopieren';
@@ -21491,12 +21800,27 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const mapPick = mapPicker(ctl.canHill ? UI.normMap(ctl.map) : 'classic', function (id) { if (ctl.onMap) ctl.onMap(id); },
       { compact: true, disabled: function (id) { return id === 'hill' && !ctl.canHill; } });
     const boardWrap = h('div', { class: 'board-wrap' });
+    const reqWrap = h('div', { class: 'req-wrap' });
+    const dragHint = h('div', { class: 'hint info drag-hint' }, 'Tipp: Ziehe einen Spieler ins andere Team (oder auf einen Spieler dort, um zu tauschen).');
     let boardSig = '';
+    let boardDirty = false;
     let slots = UI.newLobbySlots(app.settings && app.settings.name, null);
+    const declined = Object.create(null);   // 'slot:team:name' wishes the host said no to
+    const drag = lobbyDrag(boardWrap, {
+      accept: function (from, t) { return !!UI.lobbyDropAction(slots, teamSize, from, t); },
+      onDrop: function (from, t) { if (ctl.onDrop) ctl.onDrop(from, t); Sound.play('select'); },
+      onActive: function (on) { if (!on && boardDirty) { boardDirty = false; renderBoard(); } },
+    });
 
     const startBtn = h('button', { class: 'btn btn-green btn-xl btn-block btn-fight', type: 'button', disabled: true }, [icon('swords', 'ico-lg'), h('span', null, 'Kampf starten')]);
     startBtn.addEventListener('click', function () { if (!startBtn.disabled) ctl.onStart(); });
-    const startHint = h('div', { class: 'hint' }, 'Starten ist möglich, sobald dein Kollege bereit ist.');
+    const startHint = h('div', { class: 'hint' }, 'Starten ist möglich, sobald alle bereit sind.');
+    const inviteHint = h('div', { class: 'invite-hint' }, '');
+    function paintInvite() {
+      inviteHint.textContent = teamSize === 2
+        ? 'Schick den Link an 3 Freunde – jeder öffnet ihn auf seinem Handy.'
+        : 'Schick den Link an 1 Freund – er öffnet ihn auf seinem Handy.';
+    }
     const retryBtn = h('button', { class: 'btn btn-gold btn-block', type: 'button', hidden: true }, 'Neuen Code erstellen');
     retryBtn.addEventListener('click', function () { if (ctl.onRetry) ctl.onRetry(); });
 
@@ -21515,15 +21839,16 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     });
 
     const el = h('div', { class: 'screen screen-lobby' }, [
-      h('div', { class: 'hdr' }, [backButton(function () { ctl.onCancel(); }), h('div', { class: 'hdr-title' }, 'Mit Kollege spielen')]),
+      h('div', { class: 'hdr' }, [backButton(function () { ctl.onCancel(); }), h('div', { class: 'hdr-title' }, 'Mit Freunden spielen')]),
       h('div', { class: 'lobby-body scroll' }, [
         h('div', { class: 'panel panel-code' }, [
+          inviteHint,
           h('div', { class: 'lobby-label' }, 'Dein Spiel-Code'),
           codeBtn,
           shareBtn,
           h('div', { class: 'hint', style: 'margin-top:8px' }, linkOk
-            ? 'Deine Kollegen öffnen den Link und sind sofort im Spiel – oder sie tippen auf „Mit Kollege“ und geben den Code ein.'
-            : 'Schick deinen Kollegen die Adresse dieser Seite und den Code. Sie tippen auf „Mit Kollege“ und geben den Code ein.'),
+            ? 'Wer den Link öffnet, ist sofort in deiner Lobby – oder er tippt auf „Mit Freunden“ und gibt den Code ein.'
+            : 'Schick deinen Freunden die Adresse dieser Seite und den Code. Sie tippen auf „Mit Freunden“ und geben den Code ein.'),
           h('div', { class: 'link-row' }, [linkInput, copyBtn]),
         ]),
         status.el,
@@ -21534,7 +21859,9 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
           h('div', { class: 'lobby-label' }, 'Karte'),
           mapPick.el,
         ]),
+        reqWrap,
         boardWrap,
+        dragHint,
         infoChips(ctl.mode, ctl.speed),
       ]),
       h('div', { class: 'lobby-actions' }, [retryBtn, startBtn, startHint]),
@@ -21542,7 +21869,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 
     let lastState = 'connecting';
     let wasReady = false;
-    let canStart = { ok: false, reason: 'Starten ist möglich, sobald dein Kollege bereit ist.' };
+    let canStart = { ok: false, reason: 'Starten ist möglich, sobald alle bereit sind.' };
     function refreshStart() {
       const humans = slots.some(function (sl, i) { return i < UI.lobbyUsedSlots(teamSize) && sl.kind === 'guest'; });
       // with guests the connection must be up; a lobby of host + bots can start any time
@@ -21554,22 +21881,60 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       wasReady = ok;
       startHint.textContent = ok ? 'Alles bereit – los geht’s!' : (canStart.ok ? 'Warte auf Verbindung …' : canStart.reason);
     }
+    /** Open team wishes of guests whose team is full of humans: one-tap "Tauschen?" prompt. */
+    function renderReqs() {
+      reqWrap.textContent = '';
+      if (teamSize !== 2) return;
+      const n = UI.lobbyUsedSlots(teamSize);
+      let any = false;
+      for (let i = 0; i < n && i < slots.length; i++) {
+        const sl = slots[i];
+        if (!sl || sl.kind !== 'guest' || (sl.req !== 0 && sl.req !== 1) || sl.req === sl.team) continue;
+        const key = i + ':' + sl.req + ':' + UI.sanitizeName(sl.name);
+        if (declined[key]) continue;
+        const to = sl.req;
+        const who = UI.playerName(sl.name, i, sl.kind);
+        const btns = [];
+        for (let j = 0; j < n && j < slots.length; j++) {
+          const o = slots[j];
+          if (!o || j === i || o.kind === 'empty' || (o.team === 1 ? 1 : 0) !== to) continue;
+          const b = h('button', { class: 'btn btn-gold btn-sm req-swap', type: 'button' }, 'Mit ' + UI.playerName(o.name, j, o.kind) + ' tauschen');
+          b.addEventListener('click', (function (a, w) { return function () { if (ctl.onSwapReq) ctl.onSwapReq(a, w); Sound.play('select'); }; })(i, j));
+          btns.push(b);
+        }
+        const no = h('button', { class: 'btn btn-grey btn-sm req-no', type: 'button' }, 'Nein');
+        no.addEventListener('click', (function (k, a) { return function () { declined[k] = true; if (ctl.onDeclineReq) ctl.onDeclineReq(a); renderReqs(); }; })(key, i));
+        btns.push(no);
+        reqWrap.appendChild(h('div', { class: 'req-card', role: 'alert' }, [
+          h('div', { class: 'req-text' }, [h('b', null, who), ' möchte zu Team ' + TEAMS[to].label + '. Tauschen?']),
+          h('div', { class: 'req-btns' }, btns),
+        ]));
+        any = true;
+      }
+      if (any && !reqWrap.dataset.alerted) { reqWrap.dataset.alerted = '1'; Sound.play('ready'); vibrate(30); }
+      if (!any) delete reqWrap.dataset.alerted;
+    }
     function renderBoard() {
       const sig = UI.lobbySig(slots, teamSize);
       if (sig === boardSig) return;
+      if (drag.active) { boardDirty = true; return; }   // the drop re-renders
       boardSig = sig;
       boardWrap.textContent = '';
       boardWrap.appendChild(teamBoard(slots, {
-        teamSize: teamSize, mySlot: 0, host: true,
+        teamSize: teamSize, mySlot: 0, host: true, drag: !!ctl.onDrop,
         onAddBot: ctl.canBots === false ? null : function (team) { if (ctl.onAddBot) ctl.onAddBot(team); },
         onSwitch: function (sl) { if (ctl.onSwitch) ctl.onSwitch(sl.slot); },
         onRemove: function (sl) { if (ctl.onRemove) ctl.onRemove(sl.slot); },
       }));
+      dragHint.hidden = teamSize !== 2 || !ctl.onDrop;
+      paintInvite();
+      renderReqs();
     }
     function setSlots(list, ts) {
       if (Array.isArray(list)) slots = list;
       if (ts != null) { teamSize = UI.normTeamSize(ts); teamSeg.set(teamSize); }
       renderBoard();
+      paintInvite();
       refreshStart();
     }
     function setStatus(s) {
@@ -21593,7 +21958,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         next[1] = g ? { slot: 1, name: g.name, team: 1, kind: 'guest', ready: !!g.ready, deck: g.deck || null } : { slot: 1, name: '', team: 1, kind: 'empty', ready: false, deck: null };
         setSlots(next, null);
       },
-      destroy: function () {},
+      destroy: function () { drag.cancel(); },
     };
   };
 
@@ -21602,16 +21967,27 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   /** ctl: { code, name, auto, onName(name), onJoin(code), onReady(bool), onTeam(team), onCancel() }
    *  api: setStatus(s), setFailed(msg), setReady(b), setLobby({slots, teamSize, map, mySlot}) */
   UI.GuestLobbyScreen = function (app, ctl) {
+    // v5.1: the name sits on top and stays editable in the lobby - every change goes to the
+    // host at once (ctl.onName -> gs.setName); no name = "Spieler <slot>".
     const nameInput = h('input', {
-      class: 'text-input', type: 'text', maxlength: '16', value: ctl.name || '', placeholder: DEFAULT_NAME,
+      class: 'text-input name-big', type: 'text', maxlength: '16', value: UI.isDefaultName(ctl.name) ? '' : (ctl.name || ''), placeholder: 'z. B. Max',
       autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', enterkeyhint: 'done',
       'aria-label': 'Dein Name',
     });
+    let sentName = UI.sanitizeName(nameInput.value);
+    let nameTimer = 0;
     const commitName = function () {
-      const v = UI.sanitizeName(nameInput.value) || DEFAULT_NAME;
-      nameInput.value = v;
+      if (nameTimer) { G.clearTimeout(nameTimer); nameTimer = 0; }
+      const v = UI.sanitizeName(nameInput.value);
+      if (v !== nameInput.value.trim()) nameInput.value = v;
+      if (v === sentName) return;
+      sentName = v;
       if (ctl.onName) ctl.onName(v);
     };
+    nameInput.addEventListener('input', function () {
+      if (nameTimer) G.clearTimeout(nameTimer);
+      nameTimer = G.setTimeout(function () { nameTimer = 0; commitName(); }, 450);
+    });
     nameInput.addEventListener('change', commitName);
     nameInput.addEventListener('blur', commitName);
     nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') nameInput.blur(); });
@@ -21648,8 +22024,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const teamBtns = TEAMS.map(function (t) {
       const b = h('button', { class: 'btn btn-team ' + t.cls, type: 'button', 'aria-pressed': 'false' }, 'Team ' + t.label);
       b.addEventListener('click', function () {
+        if (t.id === myTeam && wantTeam < 0) return;
         if (ctl.onTeam) ctl.onTeam(t.id);
-        wantTeam = t.id;
+        wantTeam = t.id === myTeam ? -1 : t.id;
+        reqSeen = false;
+        declinedNote = false;
         paintTeam();
         Sound.play('select');
       });
@@ -21665,6 +22044,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     lobbyPanel.appendChild(boardWrap);
     let wantTeam = -1;
     let myTeam = -1;
+    let reqSeen = false;     // the host showed our wish as open (so its end = a decision)
+    let declinedNote = false;
     let lobbySig = '';
     function paintTeam() {
       for (let i = 0; i < teamBtns.length; i++) {
@@ -21673,8 +22054,10 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         teamBtns[i].classList.toggle('is-wanted', wantTeam === i && !on);
         teamBtns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
       }
-      teamHint.textContent = wantTeam >= 0 && wantTeam !== myTeam ? 'Wechsel angefragt – der Gastgeber entscheidet …'
-        : (myTeam >= 0 ? 'Du spielst in Team ' + TEAMS[myTeam].label + '.' : 'Wähle dein Team – der Gastgeber entscheidet.');
+      teamHint.textContent = wantTeam >= 0 && wantTeam !== myTeam
+        ? (reqSeen ? 'Team ' + TEAMS[wantTeam].label + ' ist voll – der Gastgeber fragt, ob getauscht wird …' : 'Wechsel angefragt – der Gastgeber entscheidet …')
+        : declinedNote ? 'Der Gastgeber hat nicht getauscht. Du bleibst in Team ' + (myTeam >= 0 ? TEAMS[myTeam].label : '') + '.'
+          : (myTeam >= 0 ? 'Du spielst in Team ' + TEAMS[myTeam].label + '. Tippe auf das andere Team, um zu wechseln.' : 'Wähle dein Team – der Gastgeber entscheidet.');
     }
     function setLobby(lb) {
       if (!lb || !Array.isArray(lb.slots)) return;
@@ -21682,7 +22065,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const mySlot = typeof lb.mySlot === 'number' ? lb.mySlot : -1;
       const me = mySlot >= 0 ? lb.slots[mySlot] : null;
       myTeam = me && me.kind !== 'empty' ? (me.team === 1 ? 1 : 0) : -1;
-      if (wantTeam === myTeam) wantTeam = -1;
+      if (wantTeam === myTeam) { wantTeam = -1; reqSeen = false; }
+      if (wantTeam >= 0 && me) {
+        if (me.req === wantTeam) reqSeen = true;
+        else if (reqSeen && me.req !== wantTeam) { wantTeam = -1; reqSeen = false; declinedNote = true; }
+      }
       const sig = UI.lobbySig(lb.slots, ts, String(mySlot) + UI.normMap(lb.map));
       if (sig !== lobbySig) {
         lobbySig = sig;
@@ -21717,7 +22104,6 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       commitName();
       joined = true;
       input.disabled = true;
-      nameInput.disabled = true;
       joinBtn.disabled = true;
       joinBtn.textContent = 'Verbinde …';
       status.el.hidden = false;
@@ -21728,12 +22114,16 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const el = h('div', { class: 'screen screen-lobby' }, [
       h('div', { class: 'hdr' }, [backButton(function () { ctl.onCancel(); }), h('div', { class: 'hdr-title' }, 'Beitreten')]),
       h('div', { class: 'lobby-body scroll' }, [
+        h('div', { class: 'panel panel-name' }, [
+          h('label', { class: 'lobby-label name-label' }, 'Dein Name'),
+          nameInput,
+          h('div', { class: 'hint' }, 'So sehen dich deine Freunde in der Lobby. Du kannst ihn jederzeit ändern.'),
+        ]),
         h('div', { class: 'panel' }, [
-          h('div', { class: 'lobby-label' }, 'Code deines Kollegen'),
+          h('div', { class: 'lobby-label' }, 'Spiel-Code'),
           input,
           errHint,
           h('div', { class: 'hint', style: 'margin:8px 0 12px' }, 'Gib den Code vom Gastgeber ein – oder öffne einfach seinen Link.'),
-          h('div', { class: 'name-chip', style: 'margin-bottom:12px' }, [h('label', null, 'Name'), nameInput]),
           joinBtn,
         ]),
         status.el,
@@ -21761,7 +22151,6 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       setFailed: function (message) {
         joined = false;
         input.disabled = false;
-        nameInput.disabled = false;
         joinBtn.disabled = false;
         joinBtn.textContent = 'Erneut versuchen';
         readyBtn.hidden = true;
@@ -23119,7 +23508,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 <script>
 /* src/11-main.js */
 /* 11-main.js – CR.App: bootstrap (loading screen with 3D portrait pre-render), screen
- * routing, game loop and wiring of the play types (Single-Modus vs bot, Mit Kollege as host
+ * routing, game loop and wiring of the play types (Single-Modus vs bot, Mit Freunden as host
  * or guest). Battles always use the C.H.A.O.S rules (basic rules only when that module is
  * missing or broken).
  *
@@ -23411,7 +23800,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     return {
       slots: slots.map(function (sl, i) {
         const s = sl || NONE_OBJ;
-        return { slot: typeof s.slot === 'number' ? s.slot : i, name: String(s.name || ''), team: s.team === 1 ? 1 : 0, kind: ['host', 'guest', 'bot', 'empty'].indexOf(s.kind) >= 0 ? s.kind : 'empty', ready: !!s.ready, deck: Array.isArray(s.deck) ? s.deck : null };
+        return { slot: typeof s.slot === 'number' ? s.slot : i, name: String(s.name || ''), team: s.team === 1 ? 1 : 0, kind: ['host', 'guest', 'bot', 'empty'].indexOf(s.kind) >= 0 ? s.kind : 'empty', ready: !!s.ready, req: s.req === 0 || s.req === 1 ? s.req : -1, deck: Array.isArray(s.deck) ? s.deck : null };
       }),
       teamSize: ts,
       map: lb.map === 'hill' ? 'hill' : 'classic',
@@ -24333,6 +24722,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       sfxVol: store.get('sfxVol', null),
       map: store.get('map', 'classic'),
       teamSize: store.get('teamSize', 1),
+      duoTeamSize: store.get('duoTeamSize', null),
     });
     UI.Sound.muted = settings.muted;
     UI.Sound.setVolume(settings.sfxVol);
@@ -24427,7 +24817,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       if (CR.Net && typeof CR.Net.hostGame === 'function' && typeof CR.Net.joinGame === 'function' && typeof CR.Net.newCode === 'function') {
         f.net = true;
       } else {
-        f.notes.net = 'Das Netzwerkmodul wurde nicht geladen – Spielen mit Kollegen ist deaktiviert.';
+        f.notes.net = 'Das Netzwerkmodul wurde nicht geladen – Spielen mit Freunden ist deaktiviert.';
       }
       return f;
     }
@@ -24569,6 +24959,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     app.setTeamSize = function (n) {
       settings.teamSize = UI.normTeamSize(n);
       store.set('teamSize', settings.teamSize);
+    };
+    /** "Mit Freunden": 1 gegen 1 / 2 gegen 2 chosen in the menu (remembered). */
+    app.setDuoTeamSize = function (n) {
+      settings.duoTeamSize = UI.normTeamSize(n);
+      store.set('duoTeamSize', settings.duoTeamSize);
     };
     app.setHaptics = function (b) {
       settings.haptics = !!b;
@@ -24789,12 +25184,13 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       });
     };
 
-    // Mit Kollege: host ------------------------------------------------------
+    // Mit Freunden: host ------------------------------------------------------
     /** v5: the host lobby keeps four slots (App.mergeGuests); mode 1v1 / 2v2 and the map are
      *  chosen here; empty slots can take bots. Older net modules (one guest, onGuest) work
      *  in 1v1. */
-    app.startHost = function () {
+    app.startHost = function (opts) {
       if (featureBlocked('net')) return;
+      const o = opts && typeof opts === 'object' ? opts : {};
       app.goFullscreen();
       endBattle();
       leaveOnline();
@@ -24811,8 +25207,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const online = {
         role: 'host', code: code, mode: mode, speed: settings.speed, hs: null, status: null,
         lobby: null, result: null, match: null, rematch: { host: false, guest: false },
-        teamSize: can2 && settings.teamSize === 2 ? 2 : 1,
-        map: app.features.hill ? settings.map : 'classic',
+        teamSize: can2 && UI.normTeamSize(o.teamSize != null ? o.teamSize : settings.duoTeamSize) === 2 ? 2 : 1,
+        map: app.features.hill ? UI.normMap(o.map || settings.map) : 'classic',
         slots: UI.newLobbySlots(settings.name, app.getDeck()),
         guests: [], botNo: 0, can2: can2,
       };
@@ -24832,14 +25228,15 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         note2v2: !app.features.team2 ? app.features.notes.team2 : (net2 ? null : '2 gegen 2 online braucht ein neueres Netzwerkmodul.'),
         onStart: function () { hostStart(online, false); },
         onCancel: function () { app.leaveToMenu(); },
-        onRetry: function () { app.startHost(); },
+        onRetry: function () { app.startHost({ teamSize: online.teamSize, map: online.map }); },
         onTeamSize: function (n) {
           const ts = can2 ? UI.normTeamSize(n) : 1;
+          app.setDuoTeamSize(ts);
           if (online.netLobby) {
             let ok = false;
             try { ok = online.hs.setTeamSize(ts) !== false; } catch (e) { logError('setTeamSize', e); }
             if (!ok) {
-              UI.toast(stage, 'Für 1 gegen 1 darf nur ein Kollege in der Lobby sein.');
+              UI.toast(stage, 'Für 1 gegen 1 darf nur ein Freund in der Lobby sein.');
               if (online.lobby) online.lobby.setSlots(null, online.teamSize);
             }
             return;
@@ -24858,6 +25255,18 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         onAddBot: function (team) { hostAddBot(online, team); },
         onSwitch: function (slot) { hostSwitchTeam(online, slot); },
         onRemove: function (slot) { hostRemove(online, slot); },
+        // drag & drop: onto a player of the other team = swap, onto the other team = move
+        onDrop: function (from, target) {
+          const act = UI.lobbyDropAction(online.slots, online.teamSize, from, target);
+          if (!act) return;
+          if (act.type === 'swap') hostSwapSlots(online, act.a, act.b);
+          else hostMoveTeam(online, act.slot, act.team);
+        },
+        // a guest's wish for a full team: the host taps "Mit X tauschen" or "Nein"
+        onSwapReq: function (slot, withSlot) { hostSwapSlots(online, slot, withSlot); },
+        onDeclineReq: function (slot) {
+          if (online.netLobby && typeof online.hs.declineTeam === 'function') { try { online.hs.declineTeam(slot); } catch (e) { logError('declineTeam', e); } }
+        },
       });
       online.lobby = lobby;
       app.show(lobby);
@@ -24947,7 +25356,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const slots = [];
       for (let i = 0; i < 4; i++) {
         const sl = lb.slots[i];
-        slots.push(sl ? { slot: i, name: sl.name || '', team: sl.team === 1 ? 1 : 0, kind: sl.kind || 'empty', ready: !!sl.ready, online: sl.online !== false, deck: null, id: null }
+        slots.push(sl ? { slot: i, name: sl.name || '', team: sl.team === 1 ? 1 : 0, kind: sl.kind || 'empty', ready: !!sl.ready, online: sl.online !== false, req: sl.req === 0 || sl.req === 1 ? sl.req : -1, deck: null, id: null }
           : { slot: i, name: '', team: i % 2, kind: 'empty', ready: false, deck: null, id: null });
       }
       online.slots = slots;
@@ -24981,10 +25390,31 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       }
     }
     function hostSwitchTeam(online, slot) {
+      const sl = online.slots[slot];
+      if (!sl || sl.kind === 'empty') return;
+      hostMoveTeam(online, slot, sl.team === 1 ? 0 : 1);
+    }
+    /** Two players of different teams trade places (drag & drop, "Tauschen?" prompt). */
+    function hostSwapSlots(online, a, b) {
+      if (online.teamSize !== 2 || a === b) return;
+      const A = online.slots[a], B = online.slots[b];
+      if (!A || !B || A.kind === 'empty' || B.kind === 'empty') return;
+      if (online.netLobby) {
+        const hs = online.hs;
+        try {
+          if (typeof hs.swapTeams === 'function') hs.swapTeams(a, b);
+          else hs.setTeam(a, B.team === 1 ? 1 : 0);
+        } catch (e) { logError('swapTeams', e); }
+        return;
+      }
+      online.slots = UI.lobbySwapTeams(online.slots, a, b);
+      lobbyChanged(online);
+    }
+    function hostMoveTeam(online, slot, to) {
       if (online.teamSize !== 2) return;
       const sl = online.slots[slot];
       if (!sl || sl.kind === 'empty') return;
-      const to = sl.team === 1 ? 0 : 1;
+      if ((sl.team === 1 ? 1 : 0) === to) return;
       if (online.netLobby) {
         try { online.hs.setTeam(slot, to); } catch (e) { logError('setTeam', e); }
         return;
@@ -25053,6 +25483,11 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         }
         players[0].deck = app.getDeck();
       }
+      // nobody picked a name: "Spieler 1..4" by lobby slot (host = Spieler 1), not "Spieler" x 4
+      for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        if (!p.bot) p.name = UI.playerName(p.name, typeof p.slot === 'number' ? p.slot : i, i === 0 ? 'host' : 'guest');
+      }
       const seed = randomSeed();
       const speed = online.speed;
       const map = online.map;
@@ -25077,7 +25512,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         });
       } catch (e) {
         logError('startBattle', e);
-        app.dialog({ title: 'Start nicht möglich', text: 'Das Spiel konnte nicht an deine Kollegen gesendet werden.\n(' + errMsg(e) + ')', buttons: [{ label: 'OK', value: true }] });
+        app.dialog({ title: 'Start nicht möglich', text: 'Das Spiel konnte nicht an deine Freunde gesendet werden.\n(' + errMsg(e) + ')', buttons: [{ label: 'OK', value: true }] });
         return;
       }
       online.match = { players: players };
@@ -25137,7 +25572,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       else scr.setRematchState('none');
     }
 
-    // Mit Kollege: guest -----------------------------------------------------
+    // Mit Freunden: guest -----------------------------------------------------
     /** o.auto: join at once (code typed in the menu, or a link opened by a returning player). */
     app.showJoin = function (code, o) {
       if (featureBlocked('net')) return;
@@ -25146,7 +25581,12 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
       const lobby = UI.GuestLobbyScreen(app, {
         code: code || '',
         name: settings.name,
-        onName: function (n) { app.setName(n); },
+        onName: function (n) {
+          app.setName(n);
+          const on = app.online;
+          // live: the host shows the new name at once (older net modules: on the next join)
+          if (on && on.gs && typeof on.gs.setName === 'function') { try { on.gs.setName(UI.isDefaultName(n) ? '' : settings.name); } catch (e) { logError('setName', e); } }
+        },
         onJoin: function (c) { guestJoin(c, lobby); },
         onReady: function (b) {
           const on = app.online;
@@ -25155,12 +25595,19 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         onTeam: function (team) {
           const on = app.online;
           if (!on || !on.gs) return;
+          const again = on.team === team;
           on.team = team;
           const gs = on.gs;
           try {
             if (typeof gs.setTeam === 'function') gs.setTeam(team);
-            else if (typeof gs.requestTeam === 'function') gs.requestTeam(team);
-            else if (typeof gs.setRequest === 'function') gs.setRequest({ team: team });
+            else if (typeof gs.requestTeam === 'function') {
+              // the same wish again (the host said no before): withdraw it first so the host
+              // sees a new request
+              if (again && gs.teamReq === team) {
+                gs.requestTeam(-1);
+                G.setTimeout(function () { if (app.online === on && on.team === team) { try { gs.requestTeam(team); } catch (e) { logError('requestTeam', e); } } }, 400);
+              } else gs.requestTeam(team);
+            } else if (typeof gs.setRequest === 'function') gs.setRequest({ team: team });
           } catch (e) { logError('setTeam', e); }
         },
         onCancel: function () { app.leaveToMenu(); },
