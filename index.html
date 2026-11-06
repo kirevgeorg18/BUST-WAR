@@ -8,10 +8,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Chaos Royale">
+<meta name="apple-mobile-web-app-title" content="Bust Royal">
 <meta name="format-detection" content="telephone=no">
-<meta name="description" content="Chaos Royale – Arena-Duell für zwei Spieler im Browser, mit C.H.A.O.S-Modus.">
-<title>Chaos Royale</title>
+<meta name="description" content="Bust Royal – Arena-Duell für zwei Spieler im Browser, mit C.H.A.O.S-Modus.">
+<title>Bust Royal</title>
+<script>window.CR_NET_CONFIG = { publicUrl: 'https://kirevgeorg18.github.io/BUSTroyal/' };</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'%3E%3Cpath d='M2.5 6.5l5 3.6L12 2.5l4.5 7.6 5-3.6-1.9 9.6H4.4z' fill='%23ffd23f' stroke='%235a2c00' stroke-width='1.4' stroke-linejoin='round'/%3E%3Crect x='4.2' y='16.4' width='15.6' height='2.6' rx='1' fill='%23ffd23f' stroke='%235a2c00' stroke-width='1.1'/%3E%3C/svg%3E">
 <script>
   /* Collect load-time script errors so the app can report broken modules instead of failing silently.
@@ -65,7 +66,7 @@
       } catch (e) { icon = ''; }
       var scope = base.replace(/[?].*$/, '').replace(/[^\/]*$/, '');
       var m = {
-        name: 'Chaos Royale', short_name: 'Chaos Royale', lang: 'de',
+        name: 'Bust Royal', short_name: 'Bust Royal', lang: 'de',
         start_url: base, scope: scope, id: base,
         display: 'fullscreen', display_override: ['fullscreen', 'standalone'], orientation: 'portrait',
         background_color: '#0d1e45', theme_color: '#0d1e45',
@@ -2548,7 +2549,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 </head>
 <body>
 <div id="app" class="cr-root"></div>
-<noscript><p style="color:#fff;font-family:sans-serif;padding:24px">Chaos Royale braucht JavaScript.</p></noscript>
+<noscript><p style="color:#fff;font-family:sans-serif;padding:24px">Bust Royal braucht JavaScript.</p></noscript>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
@@ -19231,7 +19232,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
         muteBtn,
       ]),
       h('div', { class: 'logo-wrap' }, [
-        h('div', { class: 'logo' }, ['Chaos', h('span', { class: 'logo-2' }, 'Royale')]),
+        h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'Royal')]),
         rulesBadge,
       ]),
       f.data ? heroFan(deck) : null,
@@ -19321,7 +19322,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const el = h('div', { class: 'screen screen-loading' }, [
       h('div', { class: 'load-center' }, [
         h('div', { class: 'load-crest', 'aria-hidden': 'true', html: CROWN_SVG }),
-        h('div', { class: 'logo' }, ['Chaos', h('span', { class: 'logo-2' }, 'Royale')]),
+        h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'Royal')]),
         showcase,
       ]),
       h('div', { class: 'load-foot' }, [
@@ -19709,8 +19710,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     // instead of a link that would lead the other player to a sandbox address.
     const linkOk = ctl.linkKnown !== false && !!ctl.link;
     const shareText = linkOk
-      ? 'Spiel mit mir Chaos Royale! Code: ' + ctl.code
-      : 'Spiel mit mir Chaos Royale! Öffne die Seite, tippe auf „Mit Kollege“ und gib den Code ' + ctl.code + ' ein.';
+      ? 'Spiel mit mir Bust Royal! Code: ' + ctl.code
+      : 'Spiel mit mir Bust Royal! Öffne die Seite, tippe auf „Mit Kollege“ und gib den Code ' + ctl.code + ' ein.';
     const linkInput = h('input', { class: 'link-input', type: 'text', readonly: true, value: linkOk ? ctl.link : shareText, 'aria-label': linkOk ? 'Einladungslink' : 'Einladung' });
     linkInput.addEventListener('focus', function () { try { linkInput.select(); } catch (e) { /* ignore */ } });
     const copyLabel = 'Kopieren';
@@ -19735,7 +19736,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     shareBtn.addEventListener('click', function () {
       if (UI.canShare()) {
         try {
-          const data = linkOk ? { title: 'Chaos Royale', text: shareText, url: ctl.link } : { title: 'Chaos Royale', text: shareText };
+          const data = linkOk ? { title: 'Bust Royal', text: shareText, url: ctl.link } : { title: 'Bust Royal', text: shareText };
           const p = G.navigator.share(data);
           if (p && p.catch) p.catch(function (e) { if (e && e.name !== 'AbortError') doCopy(shareTxt, shareLabel, 'Link kopiert!'); });
           return;
@@ -22167,7 +22168,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     const doc = G.document;
     const root = rootEl || doc.body;
     if (!UI || typeof UI.MenuScreen !== 'function') {
-      root.textContent = 'Chaos Royale konnte nicht geladen werden (UI-Modul fehlt).';
+      root.textContent = 'Bust Royal konnte nicht geladen werden (UI-Modul fehlt).';
       return null;
     }
     const h = UI.h;
@@ -41810,7 +41811,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
     if (window.CR && CR.App && typeof CR.App.start === 'function') {
       CR.App.start(document.getElementById('app'));
     } else {
-      root.textContent = 'Chaos Royale konnte nicht geladen werden. Bitte Seite neu laden.';
+      root.textContent = 'Bust Royal konnte nicht geladen werden. Bitte Seite neu laden.';
     }
   })();
 </script>
