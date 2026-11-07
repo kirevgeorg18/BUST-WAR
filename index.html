@@ -1817,7 +1817,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   left: calc(var(--safe-l) + 6px);
   bottom: 6px;
   display: grid;
-  grid-template-columns: repeat(4, 64px);
+  grid-template-columns: repeat(5, 56px);   /* v13: ten emoji emotes, 2 rows of 5 */
   gap: 6px;
   padding: 8px;
   border-radius: 16px;
@@ -1830,8 +1830,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 .emote-pop button {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -1854,10 +1854,20 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   border: 3px solid var(--ink);
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 6px 12px rgba(0, 0, 0, 0.35);
   transform: translate(-50%, -100%);
-  animation: cr-bubble 2.4s ease-out forwards;
+  animation: cr-bubble 2s ease-out forwards;   /* = UI.EMOTE_SHOW_MS */
 }
 .bubble-face { width: 52px; height: 52px; }
 .bubble-face svg { filter: none; }
+/* v13: emoji emotes (the only place with emoji glyphs) */
+.emote-emoji, .bubble-emoji {
+  display: grid;
+  place-items: center;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+  line-height: 1;
+  text-shadow: none;
+}
+.emote-emoji { width: 44px; height: 44px; font-size: 36px; }
+.bubble-emoji { width: 48px; height: 48px; font-size: 40px; }
 .bubble.opp { background: #ffe3e0; }
 .bubble::after {
   content: "";
@@ -2623,8 +2633,9 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   .seg > button { font-size: 15px; }
   .seg-play > button { font-size: 16px; }
   .seg-play > button .ico { width: 24px; height: 24px; }
-  .emote-pop { grid-template-columns: repeat(4, 56px); }
-  .emote-pop button { width: 56px; height: 56px; }
+  .emote-pop { grid-template-columns: repeat(5, 50px); gap: 5px; }
+  .emote-pop button { width: 50px; height: 50px; }
+  .emote-emoji { font-size: 32px; }
 }
 
 
@@ -7175,7 +7186,11 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  *   -> true when handled, summon(side, card, x, y, tier) -> units | null, validate(side, cmd), view(side).
  *
  * Options (tests/app): { startElixir, clockScale, shuffle: false, infiniteElixir,
- *   kingsActive, regulation, overtime, speed, bots: [playerIndex...] }
+ *   kingsActive, regulation, overtime, speed, bots: [playerIndex...], elixirBoost }
+ *   v13 elixirBoost ("Schnelles Elixier", menu / host lobby): elixir regenerates that many times
+ *   faster in every phase (number 1..3, default 1; the app sends 1.5). sim.elixirBoost; it
+ *   multiplies the phase rate (sim.elixirMult: 1x / 2x / 3x) and the C.H.A.O.S +50 %
+ *   (06-chaos.js scales its extra by sim.elixirBoost), so all three combine multiplicatively.
  *
  * v6 TOUCHDOWN (docs/TOUCHDOWN.md, CR.RULES.touchdown in 02-arena.js): mode 'touchdown' (1v1 / 2v2,
  *   maps 'classic' = Touchdown field, 'hill' = field + v5 ridge). No crown towers (sim.towers = [],
@@ -7327,6 +7342,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       this.overtime = false;
       this.phase = this.clockCfg.segments[0].phase;
       this.elixirMult = this.clockCfg.segments[0].mult;
+      this.elixirBoost = Sim.elixirBoostOf(opt.elixirBoost);   // v13 Schnelles Elixier
 
       // Touchdown state (null in the tower modes).
       this.touchdown = isTd ? {
@@ -7421,6 +7437,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     static cardById(id) { return cardIndex().get(id) || null; }
     static cards() { return cardsList(); }
     static enabledCards(mode) { return cardsList().filter(function (c) { return c && c.id && !c.disabled && Sim.cardAllowed(c.id, mode); }); }
+    /** v13: valid elixir boost factor (finite 1..3, else 1). */
+    static elixirBoostOf(v) { return typeof v === 'number' && v >= 1 && v <= 3 ? v : 1; }
     static reasonText(code) { return REASONS[code] || 'Hier nicht möglich'; }
 
     /**
@@ -7965,7 +7983,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
 
     _elixir() {
       const RE = CR.RULES.elixir;
-      const inc = this.dt * this.elixirMult / RE.regenSeconds;
+      const inc = this.dt * this.elixirMult * this.elixirBoost / RE.regenSeconds;
       for (let i = 0; i < this.players.length; i++) {
         const p = this.players[i], st = this.stats[p.side];
         if (p.elixir >= RE.max - 1e-9) { p.elixir = RE.max; st.elixirLeaked += inc; continue; }
@@ -11744,7 +11762,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     const sim = st.sim, dt = sim.dt;
     // 50 % faster elixir: the engine adds the base rate, the mode adds the rest.
     if (st.elixirMult !== 1 && !sim.options.infiniteElixir) {
-      const extra = dt * sim.elixirMult * (st.elixirMult - 1) / CR.RULES.elixir.regenSeconds;
+      // v13: times the "Schnelles Elixier" boost, so chaos x boost x phase multiply
+      const extra = dt * sim.elixirMult * (sim.elixirBoost || 1) * (st.elixirMult - 1) / CR.RULES.elixir.regenSeconds;
       for (let s = 0; s < sim.players.length; s++) if (sim.players[s].elixir < CR.RULES.elixir.max - 1e-9) sim.addElixir(s, extra);
     }
     // timers (game time)
@@ -14824,6 +14843,11 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  * the start info. view.mode and view.touchdown ({score, target, lastScore, resetIn}) travel as
  * view extras and survive even the last-resort degradation; 'touchdown' events and the new
  * ability kinds ('chain', 'dash', 'combo', 'one-inch') have compact schemas / table strings.
+ *
+ * v13: options may carry { elixirBoost: 1.5 } ("Schnelles Elixier") in EVERY mode (non-Touchdown
+ * modes: options = { elixirBoost } instead of null only while it is on); it travels in `opt` /
+ * `options` like the Touchdown flags (older phones ignore the extra key) and the guest's elixir
+ * extrapolation multiplies by it. Emote ids stay plain string ids (v13: ten emoji emotes in the UI).
  *
  * v12: mode 'classic' (Klassisch, ohne C.H.A.O.S) is a regular menu choice and travels like the
  * others; map 'tunnel' joins 'classic' | 'hill' (lobby, host blob, start info). The unit flag
@@ -18061,8 +18085,17 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   // v6: game modes + mode options (Touchdown: { chaos } = with C.H.A.O.S upgrades)
   const MODES = ['classic', 'chaos', 'touchdown'];
   function sanitizeMode(v, fallback) { return MODES.indexOf(v) >= 0 ? v : (fallback === undefined ? 'classic' : fallback); }
-  // v6 Touchdown { chaos }; v7 + { draft } ("Touchdown mit Draft", default on)
-  function sanitizeOptions(mode, v) { return mode === 'touchdown' ? { chaos: isObj(v) && v.chaos === true, draft: !(isObj(v) && v.draft === false) } : null; }
+  // v6 Touchdown { chaos }; v7 + { draft } ("Touchdown mit Draft", default on);
+  // v13 + { elixirBoost: 1.5 } ("Schnelles Elixier", every mode; absent = off). Without a boost
+  // the non-Touchdown modes keep options null, so older phones see the same shapes as before.
+  const ELIXIR_BOOSTS = [1.5];
+  function sanitizeBoost(v) { return isObj(v) && ELIXIR_BOOSTS.indexOf(v.elixirBoost) >= 0 ? v.elixirBoost : 0; }
+  function sanitizeOptions(mode, v) {
+    const eb = sanitizeBoost(v);
+    const o = mode === 'touchdown' ? { chaos: isObj(v) && v.chaos === true, draft: !(isObj(v) && v.draft === false) } : (eb ? {} : null);
+    if (eb) o.elixirBoost = eb;
+    return o;
+  }
   /** v7: validated draft snapshot (CR.Draft.readSnapshot when the module is loaded). */
   function sanitizeDraft(v) {
     if (!isObj(v)) return null;
@@ -18894,7 +18927,10 @@ body { font-weight: 600; letter-spacing: 0.1px; }
         gid: g ? g.id : null, bid: this.bid, ack: g && g.lastApplied !== null ? g.lastApplied : 0,
         rematch: !!(g && this.bid > 0 && g.rematchBid === this.bid), dh: this.dh, tm: this.teamSize, map: this.map,
       };
-      if (this.options && (this.options.chaos || this.options.draft === false)) b.opt = { chaos: !!this.options.chaos, draft: this.options.draft !== false };
+      if (this.options && (this.options.chaos || this.options.draft === false || this.options.elixirBoost)) {
+        b.opt = { chaos: !!this.options.chaos, draft: this.options.draft !== false };
+        if (this.options.elixirBoost) b.opt.elixirBoost = this.options.elixirBoost;   // v13
+      }
       if (g) { b.me = g.slot; if (g.slot < 0) b.full = true; }
       if (this.phase !== 'battle') b.slots = this._publicSlots(now === undefined ? this.env.now() : now);
       if (this.phase !== 'lobby') {
@@ -19478,7 +19514,9 @@ body { font-weight: 600; letter-spacing: 0.1px; }
         secs *= clamp((v.time - pe.view.time) / ((e.tick - pe.tick) * dt()), 0, 1);
       }
       secs = clamp(secs, 0, 1);
-      const mult = v.clock && finite(v.clock.elixirMult) && v.clock.elixirMult > 0 ? v.clock.elixirMult : 1;
+      let mult = v.clock && finite(v.clock.elixirMult) && v.clock.elixirMult > 0 ? v.clock.elixirMult : 1;
+      const eb = this.info && this.info.options ? sanitizeBoost(this.info.options) : 0;   // v13 Schnelles Elixier
+      if (eb) mult *= eb;
       for (let i = 0; i < v.players.length && i < base.length; i++) {
         const p = v.players[i];
         if (!p) continue;
@@ -23431,6 +23469,14 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  * gated per feature (UI.allowedMap: f.hill / f.tunnel); default Spieltempo "Original 1x"
  * (UI.migrateSettings switches a never-chosen stored 1,5x once to 1x; "Schnell" stays).
  *
+ * v13: (1) Touchdown needs a BUILDING in every deck: UI.deckForMode -> UI.ensureBuilding puts
+ * one in the last slot for the battle only (German hint in the menu panes and both lobbies via
+ * UI.buildingSwap; with the draft CR.Draft guarantees it). (2) Ten emoji emotes (UI.EMOTES with
+ * .emoji - the explicit user wish, the ONLY emoji in the UI, written as \u escapes); the bubble
+ * shows the emoji above the player's king tower for UI.EMOTE_SHOW_MS (~2 s). (3) Switch
+ * "Schnelles Elixier (1,5×)" (UI.boostToggle) in both menu panes and the host lobby ->
+ * settings.elixirBoost (per device) -> options.elixirBoost = 1.5 (UI.elixirBoostOn, chips).
+ *
  * v4 (user feedback): the battle screen is sized like Clash Royale on the phone (arena fills
  * the screen above a compact CR card panel, top info + crowns float on the arena) and shows NO
  * words or names during the fight - card art + cost, numbers and icons only (German text stays
@@ -23459,13 +23505,25 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   };
   const TIER_RARITY = ['common', 'rare', 'epic', 'legendary', 'champion'];
   const TYPE_LABEL = { troop: 'Truppe', spell: 'Zauber', building: 'Gebäude' };
-  // Emotes are drawn faces (SVG, see FACE) plus a short German text - never emoji glyphs.
+  // v13 emotes: ten meme emoji (the user's explicit wish - emoji are allowed ONLY here, written
+  // as \u escapes so the shipped files stay free of literal emoji) plus a German label (aria /
+  // title). The id travels as the emote command / event (sim 'emote', net codec: string id).
+  // No real people. 'gg', 'haha' and 'grr' keep their pre-v13 ids; EMOTE_LEGACY shows the
+  // bubble of an older phone's 'wow'.
   const EMOTES = [
-    { id: 'gg', face: 'gg', text: 'Gut gespielt!' },
-    { id: 'haha', face: 'haha', text: 'Haha!' },
-    { id: 'wow', face: 'wow', text: 'Wow!' },
-    { id: 'grr', face: 'grr', text: 'Grrr!' },
+    { id: 'haha', emoji: '\u{1F602}', text: 'Tränen lachen' },
+    { id: 'tot', emoji: '\u{1F480}', text: 'Ich bin tot' },
+    { id: 'clown', emoji: '\u{1F921}', text: 'Clown' },
+    { id: 'facepalm', emoji: '\u{1F926}', text: 'Facepalm' },
+    { id: 'cool', emoji: '\u{1F60E}', text: 'Sonnenbrille' },
+    { id: 'grr', emoji: '\u{1F621}', text: 'Wütend' },
+    { id: 'hmm', emoji: '\u{1F914}', text: 'Nachdenklich' },
+    { id: 'gg', emoji: '\u{1F451}', text: 'GG – König!' },
+    { id: 'feuer', emoji: '\u{1F525}', text: 'Feuer' },
+    { id: 'heul', emoji: '\u{1F62D}', text: 'Heulen' },
   ];
+  const EMOTE_LEGACY = [{ id: 'wow', emoji: '\u{1F62E}', text: 'Wow!' }];
+  const EMOTE_SHOW_MS = 2000;   // bubble above the king tower
   // v2: only the C.H.A.O.S rules remain; the menu switches between two play types.
   const PLAY_TYPES = [
     { id: 'single', label: 'Single-Modus', sub: 'gegen KI', icon: 'bot' },
@@ -23475,6 +23533,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     { id: 1, label: 'Original', sub: '1×' },
     { id: 1.5, label: 'Schnell', sub: '1,5×' },
   ];
+  const ELIXIR_BOOST = 1.5;           // v13 "Schnelles Elixier (1,5×)" (options.elixirBoost)
   const DEFAULT_SPEED = 1;            // v12: Original 1x (CR movement); "Schnell" stays selectable
   const SETTINGS_VERSION = 12;        // UI.migrateSettings: one-time migrations of stored settings
   const GFX_MODES = [
@@ -23577,6 +23636,9 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       '<rect x="4" y="7" width="16" height="13" rx="4" fill="currentColor" stroke="' + INK + '" stroke-width="1.5"/>' +
       '<circle cx="9" cy="13" r="2.2" fill="' + INK + '"/><circle cx="15" cy="13" r="2.2" fill="' + INK + '"/><circle cx="9.6" cy="12.4" r=".7" fill="#fff"/><circle cx="15.6" cy="12.4" r=".7" fill="#fff"/>' +
       '<rect x="9" y="16.6" width="6" height="1.6" rx=".8" fill="' + INK + '"/>'),
+    // v13 "Schnelles Elixier": an elixir drop
+    drop: svg('0 0 24 24', '<path d="M12 2.6C9.2 6.9 5.4 10.5 5.4 14.6a6.6 6.6 0 0 0 13.2 0C18.6 10.5 14.8 6.9 12 2.6z" fill="#e45cff" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M9 13.6a3.2 3.2 0 0 0 2 3.6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".75"/>'),
     bolt: svg('0 0 24 24', '<path d="M13.6 2L4.6 13.6H11L9.6 22l9-12H12z" fill="currentColor" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round"/>'),
     cube: svg('0 0 24 24', '<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z" fill="currentColor" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round"/>' +
       '<path d="M12 12l8.5-4.7M12 12L3.5 7.3" stroke="' + INK + '" stroke-width="1.4" fill="none"/><path d="M12 12v9.5" stroke="' + INK + '" stroke-width="1.4"/><path d="M12 12L3.5 7.3 12 2.5l8.5 4.8z" fill="#fff" opacity=".35"/>'),
@@ -23609,44 +23671,13 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   };
   UI.ICON = ICON;
 
-  // Emote faces, 48x48: chunky round heads with a dark outline (CR-style readability).
-  const FACE_OL = '#3a1a00';
-  function faceBase(fill, shade) {
-    return '<circle cx="24" cy="26" r="20" fill="' + shade + '"/><circle cx="24" cy="24.5" r="19" fill="' + fill + '"/>' +
-      '<circle cx="24" cy="25" r="20" fill="none" stroke="' + FACE_OL + '" stroke-width="3"/>' +
-      '<ellipse cx="17" cy="13.5" rx="7" ry="3.6" fill="#fff" opacity=".5" transform="rotate(-18 17 13.5)"/>';
-  }
-  const FACE = {
-    gg: svg('0 0 48 48', faceBase('#ffd23f', '#e59a12') +
-      '<ellipse cx="17" cy="22" rx="2.8" ry="3.6" fill="' + FACE_OL + '"/><ellipse cx="31" cy="22" rx="2.8" ry="3.6" fill="' + FACE_OL + '"/>' +
-      '<circle cx="11.5" cy="29" r="3" fill="#ff7a6e" opacity=".55"/><circle cx="36.5" cy="29" r="3" fill="#ff7a6e" opacity=".55"/>' +
-      '<path d="M14.5 29.5c2.8 6.5 16.2 6.5 19 0z" fill="#7a1a10" stroke="' + FACE_OL + '" stroke-width="2.6" stroke-linejoin="round"/>' +
-      '<path d="M18.5 33.6c3 1.6 8 1.6 11 0" fill="none" stroke="#ff7a6e" stroke-width="2.2" stroke-linecap="round"/>'),
-    haha: svg('0 0 48 48', faceBase('#ffd23f', '#e59a12') +
-      '<path d="M12.5 21.5l5-3 5 3M25.5 21.5l5-3 5 3" fill="none" stroke="' + FACE_OL + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M12 26.5h24c0 9-5.4 13.5-12 13.5S12 35.5 12 26.5z" fill="#7a1a10" stroke="' + FACE_OL + '" stroke-width="2.6" stroke-linejoin="round"/>' +
-      '<path d="M15 27.5h18v2.2H15z" fill="#fff"/><ellipse cx="24" cy="35.8" rx="6" ry="3" fill="#ff7a6e"/>' +
-      '<path d="M7 23c-2.5 3-2.5 6 0 7 2.5-1 2.5-4 0-7zM41 23c-2.5 3-2.5 6 0 7 2.5-1 2.5-4 0-7z" fill="#6fd2ff" stroke="#14507a" stroke-width="1.4"/>'),
-    wow: svg('0 0 48 48', faceBase('#ffd23f', '#e59a12') +
-      '<path d="M11.5 13.5c2-2 5-2.6 7.5-1.6M36.5 13.5c-2-2-5-2.6-7.5-1.6" fill="none" stroke="' + FACE_OL + '" stroke-width="2.6" stroke-linecap="round"/>' +
-      '<circle cx="17" cy="21.5" r="5.2" fill="#fff" stroke="' + FACE_OL + '" stroke-width="2.4"/><circle cx="31" cy="21.5" r="5.2" fill="#fff" stroke="' + FACE_OL + '" stroke-width="2.4"/>' +
-      '<circle cx="17.6" cy="22.2" r="2.4" fill="' + FACE_OL + '"/><circle cx="30.4" cy="22.2" r="2.4" fill="' + FACE_OL + '"/>' +
-      '<ellipse cx="24" cy="34.5" rx="4.6" ry="5.6" fill="#7a1a10" stroke="' + FACE_OL + '" stroke-width="2.6"/>'),
-    grr: svg('0 0 48 48', faceBase('#ff8a3d', '#d0461c') +
-      '<path d="M11 16.5l9 4.5M37 16.5l-9 4.5" stroke="' + FACE_OL + '" stroke-width="3.4" stroke-linecap="round"/>' +
-      '<ellipse cx="17.5" cy="24" rx="2.6" ry="2.8" fill="' + FACE_OL + '"/><ellipse cx="30.5" cy="24" rx="2.6" ry="2.8" fill="' + FACE_OL + '"/>' +
-      '<rect x="14" y="30" width="20" height="8" rx="3" fill="#fff" stroke="' + FACE_OL + '" stroke-width="2.6"/>' +
-      '<path d="M20.5 30.5v7M27.5 30.5v7M14.5 34h19" stroke="' + FACE_OL + '" stroke-width="1.6"/>' +
-      '<path d="M5 9c1.6-2.6 4.6-2.6 5.4 0M38.6 9c.8-2.6 3.8-2.6 5.4 0" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>'),
-  };
-  UI.FACE = FACE;
 
   /** <span> holding one of the static icons above. */
   function icon(name, cls) {
     const el = G.document.createElement('span');
     el.className = 'ico' + (cls ? ' ' + cls : '');
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = ICON[name] || FACE[name] || '';
+    el.innerHTML = ICON[name] || '';
     return el;
   }
 
@@ -23657,6 +23688,13 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   for (let i = 0; i <= 100; i++) SCALE_Y.push('scaleY(' + (i / 100).toFixed(2) + ')');
 
   UI.EMOTES = EMOTES;
+  UI.EMOTE_SHOW_MS = EMOTE_SHOW_MS;
+  /** v13: emote entry of an id (EMOTES, then the legacy ids) or null. */
+  UI.emoteById = function (id) {
+    for (let i = 0; i < EMOTES.length; i++) if (EMOTES[i].id === id) return EMOTES[i];
+    for (let i = 0; i < EMOTE_LEGACY.length; i++) if (EMOTE_LEGACY[i].id === id) return EMOTE_LEGACY[i];
+    return null;
+  };
   UI.PLAY_TYPES = PLAY_TYPES;
   UI.SPEEDS = SPEEDS;
   UI.DEFAULT_SPEED = DEFAULT_SPEED;
@@ -23727,6 +23765,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       tdChaos: r.tdChaos === true,
       // v7: "Touchdown mit Draft" (default on)
       tdDraft: r.tdDraft !== false,
+      // v13: "Schnelles Elixier (1,5×)" (default off, every mode)
+      elixirBoost: r.elixirBoost === true,
     };
   };
 
@@ -23750,6 +23790,9 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     return done;
   };
   UI.SETTINGS_VERSION = SETTINGS_VERSION;
+  UI.ELIXIR_BOOST = ELIXIR_BOOST;
+  /** v13: is "Schnelles Elixier" on in these battle options? */
+  UI.elixirBoostOn = function (options) { return !!(options && typeof options.elixirBoost === 'number' && options.elixirBoost > 1); };
 
   // ------------------------------------------------------------------- v5: teams + lobby
 
@@ -23847,8 +23890,12 @@ body { font-weight: 600; letter-spacing: 0.1px; }
    * The deck a player takes into a battle of this mode: cards the mode does not allow are
    * replaced in place by allowed cards (closest elixir cost first, same type preferred), so the
    * own deck stays untouched for C.H.A.O.S. Pure (given the catalogue); 8 cards when possible.
+   * v13: then UI.ensureBuilding (Touchdown: at least one building, it replaces the last card).
    */
   UI.deckForMode = function (deck, mode) {
+    return UI.ensureBuilding(swapBanned(deck, mode), mode);
+  };
+  function swapBanned(deck, mode) {
     const src = Array.isArray(deck) ? deck.slice(0, 8) : [];
     if (mode !== 'touchdown') return src;
     const bad = UI.bannedCards(src, mode);
@@ -23870,6 +23917,47 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       pool.splice(best, 1);
     }
     return out;
+  }
+  /** v13: does the deck hold a building card? */
+  UI.deckHasBuilding = function (deck) {
+    for (let i = 0; i < (deck || EMPTY).length; i++) if (UI.cardInfo(deck[i]).type === 'building') return true;
+    return false;
+  };
+  /**
+   * v13 Touchdown rule: every deck needs at least one BUILDING. A Touchdown deck without one gets
+   * a building for the battle only: it replaces the LAST card (slot 8; the own deck stays as it
+   * is). The building is the allowed one (CR.Sim.cardAllowed via UI.cardAllowed) closest in elixir
+   * to the replaced card, ties in catalogue order. Other modes / decks with a building: unchanged
+   * (a copy). Pure (given the catalogue). The menu shows the German hint (UI.buildingSwap).
+   */
+  UI.ensureBuilding = function (deck, mode) {
+    const out = Array.isArray(deck) ? deck.slice(0, 8) : [];
+    if (mode !== 'touchdown' || !out.length || UI.deckHasBuilding(out)) return out;
+    const last = out.length - 1;
+    const want = UI.cardInfo(out[last]);
+    const we = want.elixir == null ? 4 : want.elixir;
+    const ids = UI.sortedCardIds();
+    let best = null, bestScore = Infinity;
+    for (let k = 0; k < ids.length; k++) {
+      const id = ids[k];
+      if (out.indexOf(id) >= 0 || !UI.cardAllowed(id, mode).ok) continue;
+      const c = UI.cardInfo(id);
+      if (c.type !== 'building') continue;
+      const sc = Math.abs((c.elixir == null ? 4 : c.elixir) - we) + k * 1e-4;
+      if (sc < bestScore) { bestScore = sc; best = id; }
+    }
+    if (best) out[last] = best;
+    return out;
+  };
+  /** v13: { out: replaced card id, in: building id } when UI.deckForMode adds a building to this
+   *  deck for a Touchdown battle, else null (menu hint). */
+  UI.buildingSwap = function (deck, mode) {
+    if (mode !== 'touchdown') return null;
+    const pre = swapBanned(deck, mode);
+    if (!pre.length || UI.deckHasBuilding(pre)) return null;
+    const post = UI.ensureBuilding(pre, mode);
+    const last = pre.length - 1;
+    return post[last] !== pre[last] ? { out: pre[last], in: post[last] } : null;
   };
 
   /**
@@ -25369,6 +25457,36 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     };
   }
   UI.modePicker = modePicker;
+
+  /**
+   * v13: the switch "Schnelles Elixier (1,5×)" (menu panes + host lobby; keeps the toggle look of
+   * the Touchdown switches). onChange(on). -> { el, set(on) }
+   */
+  function boostToggle(on, onChange, opts) {
+    const o = opts || NONE;
+    let cur = !!on;
+    const knob = h('span', { class: 'tg-knob', 'aria-hidden': 'true' });
+    const el = h('button', { class: 'toggle tg-boost', type: 'button', role: 'switch', 'aria-checked': cur ? 'true' : 'false', disabled: !!o.disabled },
+      [h('span', { class: 'tg-track', 'aria-hidden': 'true' }, knob), icon('drop', 'tg-ico'), h('span', { class: 'tg-label' }, 'Schnelles Elixier (1,5×)')]);
+    function paint() { el.classList.toggle('on', cur); el.setAttribute('aria-checked', cur ? 'true' : 'false'); }
+    el.addEventListener('click', function () {
+      if (el.disabled) return;
+      cur = !cur;
+      paint();
+      Sound.play('select');
+      if (onChange) onChange(cur);
+    });
+    paint();
+    return { el: el, set: function (v) { cur = !!v; paint(); } };
+  }
+  UI.boostToggle = boostToggle;
+  /** v13: German lobby hint when the own deck gets a building for a Touchdown battle ('' = none). */
+  function buildingHintText(app, mode, options) {
+    if (mode !== 'touchdown' || UI.draftOn(mode, options) || !app || typeof app.getDeck !== 'function') return '';
+    const bs = UI.buildingSwap(app.getDeck(), 'touchdown');
+    return bs ? 'Touchdown: Jedes Deck braucht ein Gebäude – für den Kampf ersetzt „' + UI.cardInfo(bs.in).name + '“ deine letzte Karte „' + UI.cardInfo(bs.out).name + '“.' : '';
+  }
+  function boostChip() { return h('span', { class: 'info-chip is-boost' }, [icon('drop'), 'Elixier 1,5×']); }
   UI.mapPicker = mapPicker;
 
   /** Volume slider 0..100 %. onInput(v 0..1) while dragging, onChange(v) at the end. */
@@ -25610,6 +25728,13 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       if (duoMap) duoMap.setMode(gm);
       refreshModeUi();
     }
+    // v13: "Schnelles Elixier (1,5×)" - one setting, a switch in each pane (kept in sync)
+    const boosts = [];
+    function onBoost(on) {
+      app.setElixirBoost(on);
+      for (let i = 0; i < boosts.length; i++) boosts[i].set(app.settings.elixirBoost);
+    }
+    boosts.push(boostToggle(s.elixirBoost, onBoost), boostToggle(s.elixirBoost, onBoost));
     const singleMode = modePicker(gmNow(), s.tdChaos, onGameMode, modeOpts);
     const duoMode = modePicker(gmNow(), s.tdChaos, onGameMode, modeOpts);
     pickers.push(singleMode, duoMode);
@@ -25618,11 +25743,16 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     function refreshModeUi() {
       const td = gmNow() === 'touchdown';
       const bad = td ? UI.bannedCards(app.getDeck(), 'touchdown') : EMPTY;
+      // v13: Touchdown needs a building in every deck (with the draft the draft guarantees it)
+      const drafted = app.settings.tdDraft !== false && f.draft !== false;
+      const bs = td && !drafted ? UI.buildingSwap(app.getDeck(), 'touchdown') : null;
+      const parts = [];
+      if (bad.length === 1) parts.push('„' + UI.cardInfo(bad[0]).name + '“ ist im Touchdown nicht erlaubt – für den Kampf kommt eine andere Karte ins Deck.');
+      else if (bad.length) parts.push(bad.length + ' Karten deines Decks sind im Touchdown nicht erlaubt – für den Kampf kommen andere Karten ins Deck.');
+      if (bs) parts.push('Im Touchdown braucht jedes Deck ein Gebäude – für den Kampf ersetzt „' + UI.cardInfo(bs.in).name + '“ deine letzte Karte „' + UI.cardInfo(bs.out).name + '“.');
       for (let i = 0; i < tdDeckHints.length; i++) {
-        tdDeckHints[i].hidden = !bad.length;
-        tdDeckHints[i].textContent = bad.length === 1
-          ? '„' + UI.cardInfo(bad[0]).name + '“ ist im Touchdown nicht erlaubt – für den Kampf kommt eine andere Karte ins Deck.'
-          : bad.length + ' Karten deines Decks sind im Touchdown nicht erlaubt – für den Kampf kommen andere Karten ins Deck.';
+        tdDeckHints[i].hidden = !parts.length;
+        tdDeckHints[i].textContent = parts.join(' ');
       }
       if (rulesBadge) {
         const gm = gmNow();
@@ -25653,6 +25783,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       h('div', { class: 'menu-label' }, 'Spielmodus'),
       singleMode.el,
       tdDeckHints[0],
+      boosts[0].el,
       h('div', { class: 'menu-label' }, 'KI-Stufe'),
       diffSeg.el,
       h('div', { class: 'menu-label' }, 'Modus'),
@@ -25685,7 +25816,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     }
     refreshHost();
     hostBtn.addEventListener('click', function () {
-      app.startHost({ teamSize: can2 ? UI.normTeamSize(app.settings.duoTeamSize) : 1, map: UI.allowedMap(app.settings.map, f), gameMode: gmNow(), tdChaos: !!app.settings.tdChaos, tdDraft: app.settings.tdDraft !== false });
+      app.startHost({ teamSize: can2 ? UI.normTeamSize(app.settings.duoTeamSize) : 1, map: UI.allowedMap(app.settings.map, f), gameMode: gmNow(), tdChaos: !!app.settings.tdChaos, tdDraft: app.settings.tdDraft !== false, elixirBoost: !!app.settings.elixirBoost });
     });
     const codeInput = h('input', {
       class: 'code-input code-inline', type: 'text', inputmode: 'text', maxlength: '120', placeholder: 'CODE',
@@ -25712,6 +25843,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       h('div', { class: 'menu-label' }, 'Spielmodus'),
       duoMode.el,
       tdDeckHints[1],
+      boosts[1].el,
       h('div', { class: 'menu-label' }, 'Wie viele spielen?'),
       duoSeg.el,
       can2 ? null : hint(notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.', 'info'),
@@ -26216,6 +26348,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       'Du startest mit <b>' + UI.formatDecimal(start, start % 1 ? 1 : 0) + ' Elixier</b>, maximal sind <b>' + UI.formatDecimal(max, max % 1 ? 1 : 0) +
         '</b> möglich. Normal lädt alle ' + UI.formatDecimal(regen, regen % 1 ? 1 : 0) + ' Sekunden ein Elixier nach. Jede Karte kostet so viel Elixier, wie der Tropfen zeigt.',
       'Dein Deck hat <b>' + deck + ' Karten</b>, ' + hand + ' davon hast du auf der Hand. Eine gespielte Karte wandert ans Ende der Reihe – „Nächste“ zeigt, was nachkommt.',
+      'Mit dem Schalter <b>„Schnelles Elixier (1,5×)“</b> im Menü (und in der Lobby des Gastgebers) lädt das Elixier in allen Phasen <b>1,5-mal so schnell</b> – auch zusammen mit doppeltem Elixier und C.H.A.O.S.',
     ];
   };
 
@@ -26298,6 +26431,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       'Truppen, die nur Gebäude angreifen, laufen ohne Gebäude in Sicht <b>direkt zur Endzone</b>. Verteidige deine eigene Endzone!',
       (banned.length ? 'Im Touchdown <b>nicht erlaubt</b>: ' + join(banned) + '. ' : 'Manche Karten sind im Touchdown nicht erlaubt. ') +
         'Im Deck-Editor sind sie ausgegraut, wenn Touchdown gewählt ist – für den Kampf kommen dann andere Karten ins Deck.',
+      'Jedes Deck braucht im Touchdown <b>mindestens ein Gebäude</b>. Der Draft sorgt dafür (eine Gebäude-Runde, in der beide ein Gebäude bekommen); fehlt deinem eigenen Deck eins, ersetzt für den Kampf ein Gebäude deine <b>letzte Karte</b>.',
       'Wähle im Menü unter <b>Spielmodus</b> „Touchdown“ – im Single-Modus oder mit Freunden, im 1 gegen 1 oder 2 gegen 2 (gleiche Regeln, gleiches Elixier), auf der Karte <b>Klassisch</b>, <b>Hügel</b> oder <b>Tunnel</b>. Mit dem Schalter <b>„Touchdown mit C.H.A.O.S-Upgrades“</b> gibt es zusätzlich Upgrade-Angebote.',
     ];
     return out;
@@ -26427,6 +26561,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     return h('div', { class: 'info-chips' }, [
       modeChip(mode, options),
       UI.draftOn(mode, options) ? draftChip() : null,
+      UI.elixirBoostOn(options) ? boostChip() : null,
       speed ? h('span', { class: 'info-chip is-tempo' }, [icon('bolt'), 'Tempo ' + UI.speedLabel(speed)]) : null,
     ]);
   }
@@ -26654,14 +26789,24 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     let gMode = UI.allowedGameMode(ctl.gameMode, lobbyFeat);
     let gChaos = !!ctl.tdChaos;
     let gDraft = ctl.tdDraft !== false;
+    let gBoost = !!ctl.elixirBoost;   // v13 Schnelles Elixier
+    const boostTog = boostToggle(gBoost, function (on) {
+      gBoost = on;
+      paintChips();
+      if (ctl.onElixirBoost) ctl.onElixirBoost(on);
+    });
     const mapPick = mapPicker(UI.allowedMap(ctl.map, lobbyFeat), function (id) { if (ctl.onMap) ctl.onMap(id); },
       { compact: true, mode: gMode, disabled: function (id) { return !UI.mapEnabled(id, lobbyFeat); } });
     const chipsWrap = h('div', { class: 'chips-wrap' });
+    const bHint = h('div', { class: 'hint info td-deck-hint', hidden: true });
     function paintChips() {
+      const bt = buildingHintText(app, gMode, { draft: gDraft && ctl.canDraft !== false });
+      bHint.hidden = !bt;
+      bHint.textContent = bt;
       chipsWrap.textContent = '';
       // classic: chosen, or the fallback when the C.H.A.O.S module is missing (ctl.mode)
       const bm = gMode === 'touchdown' ? 'touchdown' : (gMode === 'classic' || ctl.mode === 'classic' ? 'classic' : 'chaos');
-      chipsWrap.appendChild(infoChips(bm, ctl.speed, { chaos: gMode === 'touchdown' && gChaos && ctl.canChaos !== false, draft: gDraft && ctl.canDraft !== false }));
+      chipsWrap.appendChild(infoChips(bm, ctl.speed, { chaos: gMode === 'touchdown' && gChaos && ctl.canChaos !== false, draft: gDraft && ctl.canDraft !== false, elixirBoost: gBoost ? ELIXIR_BOOST : 0 }));
     }
     const modePick = modePicker(gMode, gChaos, function (m, c, d) {
       gMode = m; gChaos = c; gDraft = d !== false;
@@ -26726,6 +26871,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
         h('div', { class: 'panel panel-setup' }, [
           h('div', { class: 'lobby-label' }, 'Spielmodus'),
           modePick.el,
+          bHint,
+          boostTog.el,
           h('div', { class: 'lobby-label' }, 'Modus'),
           teamSeg.el,
           can2 ? null : h('div', { class: 'hint info' }, ctl.note2v2 || '2 gegen 2 ist gerade nicht verfügbar.'),
@@ -26922,6 +27069,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     const boardWrap = h('div', { class: 'board-wrap' });
     lobbyPanel.appendChild(h('div', { class: 'lobby-label' }, 'Lobby'));
     lobbyPanel.appendChild(lobbyChips);
+    const bHint = h('div', { class: 'hint info td-deck-hint', hidden: true });
+    lobbyPanel.appendChild(bHint);
     lobbyPanel.appendChild(teamRow);
     lobbyPanel.appendChild(teamHint);
     lobbyPanel.appendChild(boardWrap);
@@ -26956,12 +27105,16 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       // v6: the host's game mode (lb.gameMode: 'chaos' | 'touchdown' | 'classic', lb.options)
       const gm = lb.gameMode === 'touchdown' ? 'touchdown' : (lb.gameMode === 'classic' ? 'classic' : 'chaos');
       const gopt = lb.options && typeof lb.options === 'object' ? lb.options : NONE;
-      const sig = UI.lobbySig(lb.slots, ts, String(mySlot) + UI.normMap(lb.map) + gm + (gopt.chaos ? 'c' : '') + (UI.draftOn(gm, gopt) ? 'd' : ''));
+      const sig = UI.lobbySig(lb.slots, ts, String(mySlot) + UI.normMap(lb.map) + gm + (gopt.chaos ? 'c' : '') + (UI.draftOn(gm, gopt) ? 'd' : '') + (UI.elixirBoostOn(gopt) ? 'e' : ''));
       if (sig !== lobbySig) {
         lobbySig = sig;
         lobbyChips.textContent = '';
         lobbyChips.appendChild(modeChip(gm, gopt));
         if (UI.draftOn(gm, gopt)) lobbyChips.appendChild(draftChip());
+        if (UI.elixirBoostOn(gopt)) lobbyChips.appendChild(boostChip());
+        const bt = buildingHintText(app, gm, gopt);
+        bHint.hidden = !bt;
+        bHint.textContent = bt;
         lobbyChips.appendChild(h('span', { class: 'info-chip' }, ts === 2 ? '2 gegen 2' : '1 gegen 1'));
         lobbyChips.appendChild(h('span', { class: 'info-chip is-map' }, [h('span', { class: 'map-prev mini', html: UI.mapPreviewSvg(lb.map, gm) }), 'Karte: ' + UI.mapLabel(lb.map)]));
         boardWrap.textContent = '';
@@ -27564,8 +27717,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     const emotePop = h('div', { class: 'emote-pop', hidden: true });
     let emoteCooldownUntil = 0;
     EMOTES.forEach(function (em) {
-      // wordless like CR: the drawn face is the whole emote (the text is only the label)
-      const b = h('button', { type: 'button', 'aria-label': em.text, title: em.text }, icon(em.face, 'emote-face'));
+      // wordless like CR: the emoji is the whole emote (the text is only the label)
+      const b = h('button', { type: 'button', 'aria-label': em.text, title: em.text }, h('span', { class: 'emote-face emote-emoji', 'aria-hidden': 'true' }, em.emoji));
       b.addEventListener('click', function () { sendEmote(em.id); });
       emotePop.appendChild(b);
     });
@@ -27928,6 +28081,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       const chips = [];
       if (opts.mode === 'touchdown') chips.push(h('span', { class: 'info-chip is-td is-ico' }, icon('football')));
       if (chaosMode) chips.push(h('span', { class: 'info-chip is-chaos is-ico' }, icon('bolt')));
+      if (UI.elixirBoostOn(opts.options)) chips.push(h('span', { class: 'info-chip is-boost' }, [icon('drop'), '1,5×']));
       if (opts.speed) chips.push(h('span', { class: 'info-chip is-tempo' }, [icon('bolt'), UI.speedLabel(opts.speed).replace(/^[^0-9]*/, '') || '1×']));
       introEl = h('div', { class: 'vs-intro', 'aria-hidden': 'true' }, [
         h('div', { class: 'vs-half vs-top' }, h('div', { class: 'vs-plate' }, icon(opts.role === 'local' ? 'bot' : 'people', 'vs-who'))),
@@ -28173,8 +28327,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
 
     function showEmote(s, id) {
       if (destroyed) return;
-      let em = null;
-      for (let i = 0; i < EMOTES.length; i++) if (EMOTES[i].id === id) em = EMOTES[i];
+      const em = UI.emoteById(id);
       const tw = towerPos(s);
       let px; let py;
       const tp = tilePx();
@@ -28192,13 +28345,16 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       }
       px = Math.max(44, Math.min((r.width || 360) - 44, px));
       py = Math.max(90, Math.min((r.height || 640) - 10, py));
-      const b = h('div', { class: 'bubble' + (s === side ? '' : ' opp'), 'aria-label': em ? em.text : 'Emote' },
-        em ? icon(em.face, 'bubble-face') : icon('chat', 'bubble-face'));
+      // one bubble per side: a new emote replaces the old one
+      const old = arenaWrap.querySelector('.bubble.s' + s);
+      if (old) remove(old);
+      const b = h('div', { class: 'bubble s' + s + (s === side ? '' : ' opp'), role: 'img', 'aria-label': em ? em.text : 'Emote' },
+        em ? h('span', { class: 'bubble-face bubble-emoji', 'aria-hidden': 'true' }, em.emoji) : icon('chat', 'bubble-face'));
       b.style.left = Math.round(px) + 'px';
       b.style.top = Math.round(py) + 'px';
       arenaWrap.appendChild(b);
       Sound.play('emote');
-      G.setTimeout(function () { remove(b); }, 2500);
+      G.setTimeout(function () { remove(b); }, EMOTE_SHOW_MS);
     }
 
     // ---- fallback C.H.A.O.S picker
@@ -28829,6 +28985,12 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  * "Original 1x": UI.migrateSettings runs once at boot before the settings are read, and
  * app.setSpeed marks 'speedChosen' so a tempo the player picks is never migrated.
  *
+ * v13: "Schnelles Elixier (1,5×)": settings.elixirBoost (stored 'elixirBoost', default off) ->
+ * battleOptions(..., boost) -> App.modeOptions adds { elixirBoost: 1.5 } in every mode (sim
+ * option, see 03-sim.js); the host lobby switch (ctl.onElixirBoost) updates online.options and
+ * hs.setMode, so it travels through the lobby / startBattle to the guests. Touchdown decks get
+ * a building through UI.deckForMode (UI.ensureBuilding); drafted decks via CR.Draft.
+ *
  * Nothing touches the DOM at load time (the pure helpers are tested under jsc).
  */
 (function (CR) {
@@ -29104,10 +29266,15 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   /** v6: 'classic' | 'chaos' | 'touchdown' (anything else: null) */
   function gameModeOf(m) { return m === 'touchdown' || m === 'chaos' || m === 'classic' ? m : null; }
   App.gameModeOf = gameModeOf;
-  /** v6: battle options of a mode: Touchdown -> {chaos: bool, draft: bool (v7)}; other modes none. */
+  /** v6: battle options of a mode: Touchdown -> {chaos: bool, draft: bool (v7)}; other modes none.
+   *  v13: + elixirBoost (1.5 = "Schnelles Elixier", every mode; only present while on - a mode
+   *  without other options then gets { elixirBoost } instead of null). */
   App.modeOptions = function (mode, options) {
     // v7: + draft ("Touchdown mit Draft", default on)
-    return mode === 'touchdown' ? { chaos: !!(options && options.chaos === true), draft: !(options && options.draft === false) } : null;
+    const eb = options && options.elixirBoost === CR.UI.ELIXIR_BOOST ? options.elixirBoost : 0;
+    const o = mode === 'touchdown' ? { chaos: !!(options && options.chaos === true), draft: !(options && options.draft === false) } : (eb ? {} : null);
+    if (eb) o.elixirBoost = eb;
+    return o;
   };
   /** Public lobby blob for the network: {teamSize, mode ('1v1'|'2v2'), gameMode, options, map,
    *  slots:[{slot,name,team,kind,ready,id}]} */
@@ -29144,12 +29311,18 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       map: normMap(lb.map),
       // v6: the game mode (app blob: gameMode; V5 net lobby: mode = the game mode)
       gameMode: gameModeOf(lb.gameMode) || gameModeOf(lb.mode) || 'chaos',
-      options: lb.options && typeof lb.options === 'object' ? { chaos: lb.options.chaos === true, draft: lb.options.draft !== false } : null,
+      options: lb.options && typeof lb.options === 'object' ? App.lobbyOptions(lb.options) : null,
       mySlot: mySlot,
       full: !!lb.full,
     };
   };
   const NONE_OBJ = Object.freeze({});
+  /** Lobby options from the network: {chaos, draft} (+ elixirBoost, v13, while on). */
+  App.lobbyOptions = function (o) {
+    const out = { chaos: o.chaos === true, draft: o.draft !== false };
+    if (o.elixirBoost === CR.UI.ELIXIR_BOOST) out.elixirBoost = o.elixirBoost;
+    return out;
+  };
 
   // ============================================================================ drivers
 
@@ -30180,6 +30353,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       gameMode: store.get('gameMode', 'chaos'),
       tdChaos: store.get('tdChaos', false),
       tdDraft: store.get('tdDraft', true),
+      elixirBoost: store.get('elixirBoost', false),
     });
     UI.Sound.muted = settings.muted;
     UI.Sound.setVolume(settings.sfxVol);
@@ -30416,8 +30590,10 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     function battleMap(m) { return UI.allowedMap(m, app.features); }
     app.battleMap = battleMap;
     /** v6: options of the battle mode (Touchdown: {chaos} = with C.H.A.O.S upgrades). */
-    function battleOptions(mode, tdChaos, tdDraft) {
-      return App.modeOptions(mode, { chaos: !!(tdChaos && app.features.chaos), draft: tdDraft !== false && !!app.features.draft });
+    function battleOptions(mode, tdChaos, tdDraft, boost) {
+      // v13: + "Schnelles Elixier" (boost: bool; default = the menu setting)
+      const eb = boost != null ? !!boost : !!settings.elixirBoost;
+      return App.modeOptions(mode, { chaos: !!(tdChaos && app.features.chaos), draft: tdDraft !== false && !!app.features.draft, elixirBoost: eb ? UI.ELIXIR_BOOST : 0 });
     }
     app.battleMode = battleMode;
     function wantGfx() { return settings.gfx === '2d' || !app.features.gfx3d ? '2d' : '3d'; }
@@ -30492,6 +30668,11 @@ body { font-weight: 600; letter-spacing: 0.1px; }
         settings.tdDraft = !!tdDraft;
         store.set('tdDraft', settings.tdDraft);
       }
+    };
+    /** v13: "Schnelles Elixier (1,5×)" (remembered per device, default off). */
+    app.setElixirBoost = function (b) {
+      settings.elixirBoost = !!b;
+      store.set('elixirBoost', settings.elixirBoost);
     };
     app.setTeamSize = function (n) {
       settings.teamSize = UI.normTeamSize(n);
@@ -30817,11 +30998,12 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       const gameMode = UI.allowedGameMode(o.gameMode != null ? o.gameMode : settings.gameMode, app.features);
       const tdChaos = o.tdChaos != null ? !!o.tdChaos : !!settings.tdChaos;
       const tdDraft = o.tdDraft != null ? o.tdDraft !== false : settings.tdDraft !== false;
+      const elixirBoost = o.elixirBoost != null ? !!o.elixirBoost : !!settings.elixirBoost;
       const mode = battleMode(gameMode);
       const net2 = App.netSupports2v2();
       const can2 = !!(app.features.team2 && net2);
       const online = {
-        role: 'host', code: code, mode: mode, options: battleOptions(mode, tdChaos, tdDraft), gameMode: gameMode, tdChaos: tdChaos, tdDraft: tdDraft,
+        role: 'host', code: code, mode: mode, options: battleOptions(mode, tdChaos, tdDraft, elixirBoost), gameMode: gameMode, tdChaos: tdChaos, tdDraft: tdDraft, elixirBoost: elixirBoost,
         speed: settings.speed, hs: null, status: null,
         lobby: null, result: null, match: null, rematch: { host: false, guest: false },
         teamSize: can2 && UI.normTeamSize(o.teamSize != null ? o.teamSize : settings.duoTeamSize) === 2 ? 2 : 1,
@@ -30846,6 +31028,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
         gameMode: gameMode,
         tdChaos: tdChaos,
         tdDraft: tdDraft,
+        elixirBoost: elixirBoost,
         canTouchdown: !!app.features.touchdown,
         canChaos: !!app.features.chaos,
         canDraft: !!app.features.draft,
@@ -30856,14 +31039,22 @@ body { font-weight: 600; letter-spacing: 0.1px; }
           online.tdChaos = !!c;
           if (d != null) online.tdDraft = d !== false;
           online.mode = battleMode(online.gameMode);
-          online.options = battleOptions(online.mode, online.tdChaos, online.tdDraft);
+          online.options = battleOptions(online.mode, online.tdChaos, online.tdDraft, online.elixirBoost);
+          if (online.netLobby) { try { online.hs.setMode(online.mode, online.options); } catch (e) { logError('setMode', e); } return; }
+          lobbyChanged(online);
+        },
+        // v13: "Schnelles Elixier" in the host lobby (remembered like the menu switch)
+        onElixirBoost: function (on) {
+          app.setElixirBoost(on);
+          online.elixirBoost = !!on;
+          online.options = battleOptions(online.mode, online.tdChaos, online.tdDraft, online.elixirBoost);
           if (online.netLobby) { try { online.hs.setMode(online.mode, online.options); } catch (e) { logError('setMode', e); } return; }
           lobbyChanged(online);
         },
         note2v2: !app.features.team2 ? app.features.notes.team2 : (net2 ? null : '2 gegen 2 online braucht ein neueres Netzwerkmodul.'),
         onStart: function () { hostStart(online, false); },
         onCancel: function () { app.leaveToMenu(); },
-        onRetry: function () { app.startHost({ teamSize: online.teamSize, map: online.map, gameMode: online.gameMode, tdChaos: online.tdChaos, tdDraft: online.tdDraft }); },
+        onRetry: function () { app.startHost({ teamSize: online.teamSize, map: online.map, gameMode: online.gameMode, tdChaos: online.tdChaos, tdDraft: online.tdDraft, elixirBoost: online.elixirBoost }); },
         onTeamSize: function (n) {
           const ts = can2 ? UI.normTeamSize(n) : 1;
           app.setDuoTeamSize(ts);
@@ -33930,8 +34121,14 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  *    ('touchdown'), or an explicit pool). A card is offered at most once per pair, so no deck
  *    holds a card twice.
  *  - Offers are fair pairs: both cards of a round have the same kind (round plan per pair:
- *    5 troop rounds, 2 spell rounds, 1 free round - shuffled) and a similar elixir cost
- *    (difference <= 1 whenever the pool allows it).
+ *    4 troop rounds, 2 spell rounds, 1 building round, 1 free round - shuffled) and a similar
+ *    elixir cost (difference <= 1 whenever the pool allows it).
+ *  - Buildings (v13): every drafted deck holds at least one BUILDING. The plan of every pair
+ *    has a building round (also with fewer rounds: a troop / free round becomes the building
+ *    round) where both offered cards are buildings, so the picker and the opponent each get
+ *    one. Safety net: when a player of the pair still has no building in the pair's last
+ *    round, that round is forced to be a building round. (Only a pool with fewer than two
+ *    buildings can break the guarantee.)
  *  - Champions: at most one per deck (only one champion per player can be on the field, v7).
  *    An offer never holds two champions, and no champion is offered once either player of the
  *    pair already owns one.
@@ -33956,6 +34153,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
  *   d.current(p) -> { round, cards, chooser, mine } | null (done)   (both players of the pair)
  *   d.pick(p, choice 0|1) -> { ok, reason?, card, gift, to, round, pair }  (the other card goes to the paired opponent)
  *   d.autoPick(p) -> pick result (CR.Draft.botChoice)
+ *   CR.Draft.hasBuilding(deck) -> bool (v13: every drafted deck has >= 1 building)
  *   d.done(), d.pairDone(i), d.decks() -> [[8 ids] per player], d.deck(p), d.opponentOf(p), d.pairOf(p)
  *   d.snapshot() -> compact JSON-safe public state (also the network format)
  *   CR.Draft.readSnapshot(raw) -> validated snapshot | null (untrusted input)
@@ -33971,8 +34169,8 @@ body { font-weight: 600; letter-spacing: 0.1px; }
   const ROUNDS = 8;
   const PICK_MS = 10000;
   const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/i;
-  // round plan per pair (shuffled per pair): 5 troops, 2 spells, 1 free round
-  const PLAN = ['troop', 'troop', 'troop', 'troop', 'troop', 'spell', 'spell', 'any'];
+  // round plan per pair (shuffled per pair): 4 troops, 2 spells, 1 building (v13), 1 free round
+  const PLAN = ['troop', 'troop', 'troop', 'troop', 'spell', 'spell', 'building', 'any'];
   const RARITY_VALUE = { common: 0, rare: 0.15, epic: 0.3, legendary: 0.45, champion: 0.55 };
 
   // ------------------------------------------------------------------------------ card data
@@ -34075,6 +34273,22 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     return src.map(function (p, i) { return { side: sideOf(p, i) }; });
   }
 
+  /** v13: a round plan without a building round gets one (last troop round, else the last free
+   *  round, else the last round) - no rng call, so the seed stream stays the same. */
+  function ensureBuildingRound(plan) {
+    if (!plan.length || plan.indexOf('building') >= 0) return plan;
+    let i = plan.lastIndexOf('troop');
+    if (i < 0) i = plan.lastIndexOf('any');
+    if (i < 0) i = plan.length - 1;
+    plan[i] = 'building';
+    return plan;
+  }
+  function hasBuilding(deck) {
+    for (let i = 0; i < deck.length; i++) if (meta(deck[i]).type === 'building') return true;
+    return false;
+  }
+  Draft.hasBuilding = function (deck) { return hasBuilding(Array.isArray(deck) ? deck : EMPTY); };
+
   /** Draft pairs: the k-th player of team 0 against the k-th player of team 1. */
   Draft.pairsOf = function (players) {
     const ps = normPlayers(players);
@@ -34168,6 +34382,7 @@ body { font-weight: 600; letter-spacing: 0.1px; }
       const plan = [];
       for (let r = 0; r < self.rounds; r++) plan.push(PLAN[r % PLAN.length]);
       shuffle(plan, self.rand);
+      ensureBuildingRound(plan);
       return { round: 0, first: self.rand() < 0.5 ? 0 : 1, plan: plan, pool: shuffle(pool0.slice(), self.rand), offer: null };
     });
     for (let k = 0; k < this.st.length; k++) this._deal(k);
@@ -34183,7 +34398,9 @@ body { font-weight: 600; letter-spacing: 0.1px; }
     if (s.round >= this.rounds) return;
     const pr = this.pairs[k];
     const hasChamp = this.decksL[pr[0]].some(function (id) { return meta(id).champion; }) || this.decksL[pr[1]].some(function (id) { return meta(id).champion; });
-    const kind = s.plan[s.round];
+    let kind = s.plan[s.round];
+    // v13 safety net: the last round of the pair brings the missing building
+    if (s.round === this.rounds - 1 && (!hasBuilding(this.decksL[pr[0]]) || !hasBuilding(this.decksL[pr[1]]))) kind = 'building';
     const okChamp = function (id) { return !hasChamp || !meta(id).champion; };
     let cand = s.pool.filter(function (id) { return okChamp(id) && (kind === 'any' || meta(id).type === kind); });
     if (cand.length < 2) cand = s.pool.filter(okChamp);
