@@ -8260,6 +8260,18 @@ body { font-weight: 700; letter-spacing: 0; }
  *   CR.Arena.towerLayout(mapId?) -> per-map layout (mapId optional: that map's layout without
  *   switching, for menu previews); on 'fortress' two entries {id 1 | 4, kind: 'king', fortress: true,
  *   lane -1, size 8, depth 2.5, guns: [{x, y, lane}] (absolute)}. CR.Arena.FORTRESS = that block | null.
+ *
+ * v22 (user request, docs/V22-PYRAMID.md): new map 'pyramid' ("Pyramide", touchdown: the plain field):
+ *   classic towers (drawn as pyramids), a WALL instead of the river (river machinery: hasRiver, WATER
+ *   rects) with three crossings in BRIDGES: two tunnels (flag `tunnel`, classic bridge x) and the
+ *   ladder (flag `ladder`, x 8.4..9.6, lane -1) up to the walkable wall top (x 5..13).
+ *   CR.Arena.WALL = null | { y0, y1, height, face, sep, top {x0, x1, wx0, wx1, wy0, wy1}, ladder {x0, x1,
+ *     cx, foot, index}, tunnels [{x0, x1, lane, index}], ladderMult, rangeBonus, rangedMin, ladderCost }
+ *   CR.Arena.onWallTop(x, y), onLadder(x, y) (rung rows y 14..15 / 17..18), wallLevel(x, y) (0 / 1 / 2),
+ *   ladderTile(cx, cy); heightAt / uphillMult cover the wall (top height, slow rungs); isWater = the
+ *   wall rects; waypoint: nobody jumps the wall, troops on / heading for the top use the ladder
+ *   (wallWaypoint), nav.lad (0 never - buildings-only, 1 melee, 2 ranged) prices the ladder route.
+ *   Deploy: never on the wall band or the ladder rung tiles (reason 'zone' / 'blocked').
  */
 (function (CR) {
   'use strict';
@@ -8399,6 +8411,46 @@ body { font-weight: 700; letter-spacing: 0; }
       T.fortress = { hp: 4800, damage: 109, hitSpeed: 0.8, firstHit: 0.5, range: 7.8, projectileSpeed: 10.0, crewRadius: 0.75 };
     }
   })();
+  // ---------------------------------------------------------------------------
+  // v22 map 'pyramid' / "Pyramide" (user request: "Mach eine Pyramide ... In der Mitte machst du
+  // eine chinesische Mauer. Links und rechts ... einen Tunneldurchgang ..., und in der Mitte ...
+  // eine Leiter. Man kann auf der Mauer Positionen halten oder auch schießen", docs/V22-PYRAMID.md).
+  // Classic towers (drawn as pyramids: `pyramid: true` is a renderer flag only). Instead of the
+  // river a stone WALL fills the middle band y 15..17 over the whole width. It reuses the river
+  // machinery (river: true): the wall is "water" for ground troops except the three "bridges":
+  //   - two TUNNEL gates through the wall at the classic bridge x ranges (2..5 / 13..16), walked
+  //     straight through at ground level like bridges;
+  //   - one LADDER in the middle (x 8.4..9.6): it climbs onto the WALL TOP, a walkway between the
+  //     tunnels (x 5..13, height `height`) that is only reachable over the ladder (its faces and
+  //     the strips beside the tunnels are water rects). The ladder rungs stand on the ground in
+  //     front of each face (one row, y 14..15 / 17..18): climbing them is slow (ladderMult).
+  // Ranged troops (range >= rangedMin) on the wall top get +rangeBonus tiles of range / sight;
+  // melee ground troops only fight troops on the same level (ground <-> wall top; the ladder rungs
+  // reach both). River jumpers (Hog Rider ...) do not jump the wall. Buildings-only troops never
+  // take the ladder. Touchdown on 'pyramid' = the plain touchdown field.
+  // ---------------------------------------------------------------------------
+  (function () {
+    const A = CR.RULES.arena, maps = A.maps || (A.maps = {});
+    if (!maps.pyramid) {
+      maps.pyramid = {
+        id: 'pyramid', name: 'Pyramide', river: true, pyramid: true,
+        bridges: [{ x0: 2, x1: 5, tunnel: true }, { x0: 8.4, x1: 9.6, ladder: true }, { x0: 13, x1: 16, tunnel: true }],
+        wall: {
+          height: 1.4,          // wall top above the ground (world tiles; renderers lift troops on it)
+          face: 0.4,            // thickness of each face strip (water) - the walkway is y 15.4..16.6
+          sep: 0.3,             // strip between a tunnel and the wall top (x 5..5.3 / 12.7..13)
+          top: { x0: 5, x1: 13 },
+          foot: 1,              // ladder rungs: one row in front of each face (y 14..15 / 17..18)
+          ladderMult: 0.5,      // speed factor while climbing the rungs (both directions)
+          rangeBonus: 1,        // ranged troops on the wall top: +1 tile range / sight
+          rangedMin: 2,         // "ranged" = attack range >= 2 tiles (melee rule below that)
+          // Router: extra path cost (tiles) of the ladder route - melee troops avoid the slow climb,
+          // ranged troops like the high ground (they take it from the middle, not from a lane).
+          ladderCost: { melee: 2.5, ranged: -1.5 },
+        },
+      };
+    }
+  })();
   // Touchdown field variants of the maps ('classic' = flat field, 'hill' = field + v5 ridge).
   (function () {
     const A = CR.RULES.arena, maps = A.maps || (A.maps = {});
@@ -8417,6 +8469,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (maps.flat && !A.tdMaps.flat) A.tdMaps.flat = { id: 'flat', name: 'Touchdown-Flach', river: false, touchdown: true };
     // v21: the fortress map in touchdown = the plain touchdown field (Touchdown has no towers).
     if (maps.fortress && !A.tdMaps.fortress) A.tdMaps.fortress = { id: 'fortress', name: 'Touchdown-Feld', river: false, touchdown: true };
+    // v22: the pyramid map in touchdown = the plain touchdown field (no wall, no towers).
+    if (maps.pyramid && !A.tdMaps.pyramid) A.tdMaps.pyramid = { id: 'pyramid', name: 'Touchdown-Feld', river: false, touchdown: true };
   })();
   Arena.mode = 'standard';
   Arena.touchdown = false;
@@ -8454,8 +8508,12 @@ body { font-weight: 700; letter-spacing: 0; }
     for (let y = ez; y <= H - ez + 1e-9; y += TD.lineSpacing) lines.push(y);
     Arena.FIELD_LINES = lines;
     Arena.LANE_X = A.laneSplitX;
-    Arena.BRIDGES = (Arena.hasRiver ? A.bridges : []).map(function (b, i) {
-      return { x0: b.x0, x1: b.x1, y0: A.river.y0, y1: A.river.y1, lane: (b.x0 + b.x1) / 2 < A.laneSplitX ? 0 : 1, index: i, cx: (b.x0 + b.x1) / 2 };
+    // v22: a map may bring its own crossings (pyramid: tunnel, ladder, tunnel); flags copied.
+    Arena.BRIDGES = (Arena.hasRiver ? (M.bridges || A.bridges) : []).map(function (b, i) {
+      const o = { x0: b.x0, x1: b.x1, y0: A.river.y0, y1: A.river.y1, lane: (b.x0 + b.x1) / 2 < A.laneSplitX ? 0 : 1, index: i, cx: (b.x0 + b.x1) / 2 };
+      if (b.tunnel) o.tunnel = true;
+      if (b.ladder) { o.ladder = true; o.lane = -1; }
+      return o;
     });
     // Water = river band minus bridges, as rects (ground units cannot enter).
     const sorted = Arena.BRIDGES.slice().sort(function (a, b) { return a.x0 - b.x0; });
@@ -8467,6 +8525,42 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     if (cur < W) water.push({ x0: cur, y0: A.river.y0, x1: W, y1: A.river.y1, water: true });
     Arena.WATER = Arena.hasRiver ? water : [];
+    // v22 pyramid wall: the wall top between the tunnels is walkable, cut off from the ground by
+    // its two faces and the strips beside the tunnels (water rects); the ladder gap in the faces is
+    // its only way up / down. Arena.WALL = null on every other map and in touchdown.
+    const WL = !td && Arena.hasRiver && M.wall ? M.wall : null;
+    Arena.WALL = null;
+    if (WL) {
+      const y0 = A.river.y0, y1 = A.river.y1;
+      let lad = null;
+      for (let i = 0; i < Arena.BRIDGES.length; i++) if (Arena.BRIDGES[i].ladder) lad = Arena.BRIDGES[i];
+      const tx0 = WL.top.x0, tx1 = WL.top.x1, f = WL.face, sp = WL.sep;
+      const ww = [];
+      for (let i = 0; i < water.length; i++) {
+        const w = water[i];
+        // the plain water pieces outside the wall top stay; the piece(s) under the top are replaced
+        if (w.x1 <= tx0 + 1e-9 || w.x0 >= tx1 - 1e-9) ww.push(w);
+      }
+      ww.push({ x0: tx0, y0: y0, x1: tx0 + sp, y1: y1, water: true, wall: 'sep' });
+      ww.push({ x0: tx1 - sp, y0: y0, x1: tx1, y1: y1, water: true, wall: 'sep' });
+      const lx0 = lad ? lad.x0 : 9, lx1 = lad ? lad.x1 : 9;
+      ww.push({ x0: tx0 + sp, y0: y0, x1: lx0, y1: y0 + f, water: true, wall: 'face' });
+      ww.push({ x0: lx1, y0: y0, x1: tx1 - sp, y1: y0 + f, water: true, wall: 'face' });
+      ww.push({ x0: tx0 + sp, y0: y1 - f, x1: lx0, y1: y1, water: true, wall: 'face' });
+      ww.push({ x0: lx1, y0: y1 - f, x1: tx1 - sp, y1: y1, water: true, wall: 'face' });
+      Arena.WATER = ww;
+      const foot = WL.foot > 0 ? WL.foot : 1;
+      Arena.WALL = {
+        y0: y0, y1: y1, height: WL.height > 0 ? WL.height : 1.4, face: f, sep: sp,
+        top: { x0: tx0, x1: tx1, wx0: tx0 + sp, wx1: tx1 - sp, wy0: y0 + f, wy1: y1 - f },
+        ladder: { x0: lx0, x1: lx1, cx: (lx0 + lx1) / 2, foot: foot, index: lad ? lad.index : -1 },
+        tunnels: Arena.BRIDGES.filter(function (b) { return b.tunnel; }).map(function (b) { return { x0: b.x0, x1: b.x1, lane: b.lane, index: b.index }; }),
+        ladderMult: WL.ladderMult > 0 ? WL.ladderMult : 0.5,
+        rangeBonus: typeof WL.rangeBonus === 'number' ? WL.rangeBonus : 1,
+        rangedMin: typeof WL.rangedMin === 'number' ? WL.rangedMin : 2,
+        ladderCost: WL.ladderCost || { melee: 2.5, ranged: -1.5 },
+      };
+    }
     // Static obstacles (side-0 coords, optionally mirrored).
     const obs = [];
     for (const o of A.obstacles || []) {
@@ -8643,6 +8737,7 @@ body { font-weight: 700; letter-spacing: 0; }
    * straight on the same half or for river jumpers, else over the cheaper bridge.
    */
   Arena.walkLen = function (px, py, r, gx, gy, jumps) {
+    if (Arena.WALL) jumps = false;   // v22: nobody jumps the pyramid wall
     if (jumps || !Arena.hasRiver) return CR.dist(px, py, gx, gy);
     const hp = Arena.halfOf(py), hg = Arena.halfOf(gy);
     if (hp === hg || hp === -1 || hg === -1) return CR.dist(px, py, gx, gy);
@@ -8670,6 +8765,13 @@ body { font-weight: 700; letter-spacing: 0; }
       'Die Festung ist doppelt so lang wie ein Königsturm, schmaler und steht ganz hinten an der Grundlinie. An beiden Enden schießt je ein Schütze – so sind beide Seiten der Arena verteidigt.',
       'Die Festung ist von Anfang an wach. Fällt sie, gibt es sofort 3 Kronen und den Sieg. Steht nach der Verlängerung noch keine, gewinnt die Festung mit mehr Trefferpunkten.',
       'Deine Hälfte ist wie auf „Flach“: Der Streifen in der Mitte gehört keinem – dort kann niemand Truppen oder Gebäude setzen (Zauber gehen überall).',
+    ],
+    pyramid: [
+      'Pyramide: Eine Wüstenarena – die Türme sind Pyramiden (eine große Königs-Pyramide, zwei kleine Prinzessinnen-Pyramiden), sonst gelten die klassischen Turm-Regeln.',
+      'Statt des Flusses steht in der Mitte eine große Mauer über die ganze Breite. Bodentruppen kommen nur durch die zwei Tunnel links und rechts hindurch – oder über die Leiter in der Mitte.',
+      'Über die Leiter klettern Bodentruppen langsam auf die Mauer. Oben können sie stehen bleiben, die Stellung halten, nach links und rechts laufen und auf der anderen Seite wieder hinunterklettern.',
+      'Fernkämpfer auf der Mauer schießen 1 Feld weiter. Nahkämpfer kämpfen nur mit Truppen auf derselben Höhe – wer oben steht, ist für sie nur über die Leiter erreichbar. Fernkämpfer, Lufteinheiten, Türme und Zauber treffen auch Truppen auf der Mauer.',
+      'Schweinereiter und Co. springen nicht über die Mauer. Truppen, die nur Gebäude angreifen, nehmen immer die Tunnel. Auf die Mauer und die Leiter kann niemand etwas setzen.',
     ],
     flat: [
       'Flach: Die ganze Arena ist eine flache, offene Wiese – kein Fluss, keine Brücken, kein Hügel, keine Löcher. Jede Seite hat ihre Türme wie gewohnt.',
@@ -8752,6 +8854,14 @@ body { font-weight: 700; letter-spacing: 0; }
 
   /** World height of the ground at (x, y): 0 on flat ground, RIDGE.height on the plateau. */
   Arena.heightAt = function (x, y) {
+    const WL = Arena.WALL;
+    if (WL) {
+      // v22 pyramid: wall top = WL.height, the ladder rungs ramp up to it, everything else 0.
+      if (Arena.onWallTop(x, y)) return WL.height;
+      if (!Arena.onLadder(x, y)) return 0;
+      const t = y < WL.y0 ? 1 - (WL.y0 - y) / WL.ladder.foot : 1 - (y - WL.y1) / WL.ladder.foot;
+      return WL.height * CR.clamp(t, 0, 1);
+    }
     const R = Arena.RIDGE;
     if (!R || !(y > R.y0) || !(y < R.y1)) return 0;
     if (y >= R.top0 && y <= R.top1) return R.height;
@@ -8779,6 +8889,13 @@ body { font-weight: 700; letter-spacing: 0; }
    * uphill share of the step is slowed to UPHILL (x0.65 straight up), everything else is 1.
    */
   Arena.uphillMult = function (x, y, dx, dy) {
+    const WL = Arena.WALL;
+    if (WL) {
+      // v22 pyramid: climbing the ladder rungs (up or down) is slow for the along-y share of a step.
+      if (!Arena.onLadder(x, y)) return 1;
+      const share = Math.min(1, Math.abs(dy));
+      return 1 - (1 - WL.ladderMult) * share;
+    }
     const R = Arena.RIDGE;
     if (!R || Arena.UPHILL === 1) return 1;
     let share = 0;
@@ -8804,7 +8921,48 @@ body { font-weight: 700; letter-spacing: 0; }
     return null;
   };
   Arena.onBridge = function (x, y) { return Arena.hasRiver && Arena.inRiverBand(y) && Arena.bridgeAt(x) !== null; };
-  Arena.isWater = function (x, y) { return Arena.hasRiver && Arena.inRiverBand(y) && Arena.bridgeAt(x) === null; };
+  Arena.isWater = function (x, y) {
+    if (Arena.WALL) {
+      // v22 pyramid: the wall pieces (WATER rects); tunnels and the wall top are walkable.
+      if (!Arena.inRiverBand(y)) return false;
+      const ws = Arena.WATER;
+      for (let i = 0; i < ws.length; i++) { const w = ws[i]; if (x >= w.x0 && x < w.x1 && y >= w.y0 && y < w.y1) return true; }
+      return false;
+    }
+    return Arena.hasRiver && Arena.inRiverBand(y) && Arena.bridgeAt(x) === null;
+  };
+
+  // ---------------------------------------------------------------------------
+  // v22 pyramid wall helpers (all false / 0 on every other map)
+  // ---------------------------------------------------------------------------
+  /** Is (x, y) on the wall top (the walkway between the tunnels, incl. the ladder gap)? */
+  Arena.onWallTop = function (x, y) {
+    const W = Arena.WALL;
+    return !!W && y >= W.y0 && y < W.y1 && x > W.top.x0 && x < W.top.x1;
+  };
+  /** Is (x, y) on the ladder rungs (the row in front of either face, inside the ladder's x range)? */
+  Arena.onLadder = function (x, y) {
+    const W = Arena.WALL;
+    if (!W) return false;
+    const L = W.ladder;
+    if (x < L.x0 || x > L.x1) return false;
+    return (y >= W.y0 - L.foot && y < W.y0) || (y >= W.y1 && y < W.y1 + L.foot);
+  };
+  /** Level for the melee rule: 0 ground, 1 ladder rungs (reach both), 2 wall top. */
+  Arena.wallLevel = function (x, y) {
+    if (!Arena.WALL) return 0;
+    return Arena.onWallTop(x, y) ? 2 : (Arena.onLadder(x, y) ? 1 : 0);
+  };
+  /** Tiles nobody may deploy on besides the band: the ladder rung tiles (tile centre inside the
+   *  ladder's x range widened to whole tiles, rows y 14 / 17). */
+  function ladderTile(cx, cy) {
+    const W = Arena.WALL;
+    if (!W) return false;
+    const L = W.ladder;
+    if (cx < Math.floor(L.x0) || cx > Math.ceil(L.x1)) return false;
+    return (cy >= W.y0 - L.foot && cy < W.y0) || (cy >= W.y1 && cy < W.y1 + L.foot);
+  }
+  Arena.ladderTile = ladderTile;
   /** Which half a y belongs to: 0 (side-0 half), 1 (side-1 half) or -1 (river band). */
   Arena.halfOf = function (y) { return y < Arena.RIVER.y0 ? 0 : (y >= Arena.RIVER.y1 ? 1 : -1); };
   /** Lane by x: 0 = left (sim coords), 1 = right. Ties (x exactly on the split) go to each side's own left. */
@@ -9139,6 +9297,7 @@ body { font-weight: 700; letter-spacing: 0; }
         let ok;
         if (kind === 'anywhere-ground') ok = !Arena.isWater(cx, cy);
         else ok = inRects(zone, cx, cy) && !Arena.inRiverBand(cy);
+        if (ok && Arena.WALL && (Arena.inRiverBand(cy) || ladderTile(cx, cy))) ok = false;   // v22: wall + ladder
         if (ok && tileBlocked(blocks, cx, cy)) ok = false;
         if (ok && kind === 'building' && noBuilding(cx, cy)) ok = false;
         grid[ty * C + tx] = ok ? 1 : 0;
@@ -9194,7 +9353,7 @@ body { font-weight: 700; letter-spacing: 0; }
   Arena.noBuilding = noBuilding;
 
   /** Reason for the middle band: river (classic), hill (plateau) or plain zone (flat tunnel map). */
-  function bandReason() { return Arena.hasRiver ? 'river' : (Arena.RIDGE ? 'hill' : 'zone'); }
+  function bandReason() { return Arena.WALL ? 'zone' : (Arena.hasRiver ? 'river' : (Arena.RIDGE ? 'hill' : 'zone')); }
 
   /**
    * Full placement check. Returns {ok, reason, x, y} with the snapped position.
@@ -9209,6 +9368,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (kind === 'anywhere') return { ok: true, reason: null, x: p.x, y: p.y };
     const blocks = Arena.blockRects(sim, true);
     if (kind === 'anywhere-ground') {
+      // v22 pyramid: not on the wall (top, tunnels) nor on the ladder rungs.
+      if (Arena.WALL && (Arena.inRiverBand(p.y) || ladderTile(p.x, p.y))) return { ok: false, reason: Arena.inRiverBand(p.y) ? 'zone' : 'blocked', x: p.x, y: p.y };
       if (Arena.isWater(p.x, p.y)) return { ok: false, reason: 'river', x: p.x, y: p.y };
       if (tileBlocked(blocks, p.x, p.y)) return { ok: false, reason: 'blocked', x: p.x, y: p.y };
       return { ok: true, reason: null, x: p.x, y: p.y };
@@ -9223,14 +9384,14 @@ body { font-weight: 700; letter-spacing: 0; }
           const cx = x0 + ix + 0.5, cy = y0 + iy + 0.5;
           if (Arena.inRiverBand(cy)) return { ok: false, reason: bandReason(), x: p.x, y: p.y };
           if (!inRects(zone, cx, cy)) return { ok: false, reason: 'zone', x: p.x, y: p.y };
-          if (tileBlocked(blocks, cx, cy) || noBuilding(cx, cy)) return { ok: false, reason: 'blocked', x: p.x, y: p.y };
+          if (tileBlocked(blocks, cx, cy) || noBuilding(cx, cy) || ladderTile(cx, cy)) return { ok: false, reason: 'blocked', x: p.x, y: p.y };
         }
       }
       return { ok: true, reason: null, x: p.x, y: p.y };
     }
     if (Arena.inRiverBand(p.y)) return { ok: false, reason: bandReason(), x: p.x, y: p.y };
     if (!inRects(zone, p.x, p.y)) return { ok: false, reason: 'zone', x: p.x, y: p.y };
-    if (tileBlocked(blocks, p.x, p.y)) return { ok: false, reason: 'blocked', x: p.x, y: p.y };
+    if (tileBlocked(blocks, p.x, p.y) || ladderTile(p.x, p.y)) return { ok: false, reason: 'blocked', x: p.x, y: p.y };
     return { ok: true, reason: null, x: p.x, y: p.y };
   };
 
@@ -9301,7 +9462,7 @@ body { font-weight: 700; letter-spacing: 0; }
   const SIDE_COST = new Float64Array(3), SIDE_FIRST = new Int8Array(3);
 
   /** Fresh routing memory for a troop (stored on the entity, owned by the router). */
-  Arena.newNav = function () { return { rect: null, side: 0, bridge: -1 }; };
+  Arena.newNav = function () { return { rect: null, side: 0, bridge: -1, lad: 1 }; };
 
   function bridgeCost(b, px, py, r, gx, gy) {
     const lo = b.x0 + Math.min(r, (b.x1 - b.x0) / 2), hi = b.x1 - Math.min(r, (b.x1 - b.x0) / 2);
@@ -9311,17 +9472,28 @@ body { font-weight: 700; letter-spacing: 0; }
     return CR.dist(px, py, ex, ey) + Math.abs(oy - ey) + CR.dist(xx, oy, gx, gy);
   }
 
+  /** v22: path cost of a crossing incl. the pyramid ladder's extra (nav.lad: 0 = never takes the
+   *  ladder (buildings-only troops), 1 = melee, 2 = ranged; no nav = melee). */
+  function crossCost(b, px, py, r, gx, gy, nav) {
+    const c = bridgeCost(b, px, py, r, gx, gy);
+    if (!b.ladder) return c;
+    const lad = nav ? nav.lad : 1;
+    if (lad === 0) return Infinity;
+    const LC = Arena.WALL ? Arena.WALL.ladderCost : null;
+    return c + (LC ? (lad === 2 ? LC.ranged : LC.melee) : 0);
+  }
   /** Pick the bridge minimising |p - entry| + |exit - g| (with hysteresis when nav is given). */
   function bestBridge(px, py, r, gx, gy, nav) {
     let best = null, bestCost = Infinity;
     const bs = Arena.BRIDGES;
     for (let i = 0; i < bs.length; i++) {
-      const cost = bridgeCost(bs[i], px, py, r, gx, gy);
+      const cost = crossCost(bs[i], px, py, r, gx, gy, nav);
       if (cost < bestCost - 1e-9) { bestCost = cost; best = bs[i]; }
     }
+    if (!best && bs.length) best = bs[0];
     if (nav && best) {
       const cur = nav.bridge >= 0 && nav.bridge < bs.length ? bs[nav.bridge] : null;
-      if (cur && cur !== best && bridgeCost(cur, px, py, r, gx, gy) <= bestCost + CR.RULES.routing.bridgeHysteresis) best = cur;
+      if (cur && cur !== best && crossCost(cur, px, py, r, gx, gy, nav) <= bestCost + CR.RULES.routing.bridgeHysteresis) best = cur;
       nav.bridge = best.index;
     }
     return best;
@@ -9338,6 +9510,15 @@ body { font-weight: 700; letter-spacing: 0; }
   Arena.waypoint = function (px, py, r, gx, gy, jumps, rects, out, nav) {
     let wx = gx, wy = gy;
     const rv = Arena.RIVER;
+    if (Arena.WALL) {
+      // v22 pyramid: nobody jumps the wall; the wall top is reached / left over the ladder only.
+      jumps = false;
+      if (wallWaypoint(px, py, r, gx, gy, out, nav)) {
+        if (rects && rects.length && !Arena.onWallTop(px, py)) { const ox = out.x, oy = out.y; detour(px, py, r, ox, oy, rects, out, nav); }
+        else if (nav) nav.rect = null;
+        return out;
+      }
+    }
     if (!jumps && Arena.hasRiver) {
       const hp = Arena.halfOf(py), hg = Arena.halfOf(gy);
       const margin = 0.05;
@@ -9367,12 +9548,52 @@ body { font-weight: 700; letter-spacing: 0; }
         const lo = b.x0 + Math.min(r, (b.x1 - b.x0) / 2), hi = b.x1 - Math.min(r, (b.x1 - b.x0) / 2);
         wx = CR.clamp(px, lo, hi);
         wy = hp === 0 ? rv.y0 + margin : rv.y1 - margin;
+        // v22 pyramid ladder: line up at the foot of the rungs first, then climb straight up.
+        if (b.ladder && Math.abs(px - b.cx) > 0.25 && !Arena.onLadder(px, py)) { wx = b.cx; wy = hp === 0 ? rv.y0 - Arena.WALL.ladder.foot - 0.2 : rv.y1 + Arena.WALL.ladder.foot + 0.2; }
       } else if (nav) nav.bridge = -1;
     }
     if (rects && rects.length) detour(px, py, r, wx, wy, rects, out, nav);
     else { out.x = wx; out.y = wy; if (nav) nav.rect = null; }
     return out;
   };
+
+  /**
+   * v22 pyramid: waypoint when the troop or its goal is on the wall top (else false -> the normal
+   * river / bridge routing with the tunnels and the ladder as crossings). On the top: walk along it
+   * (goal on the top too) or to the ladder gap and down the rungs on the goal's side. From the
+   * ground / a tunnel to a goal on the top: out of the tunnel, to the foot of the rungs on the own
+   * half, then straight up.
+   */
+  function wallWaypoint(px, py, r, gx, gy, out, nav) {
+    const WL = Arena.WALL, L = WL.ladder, T = WL.top;
+    const pTop = Arena.onWallTop(px, py), gTop = Arena.onWallTop(gx, gy);
+    if (!pTop && !gTop) return false;
+    const mid = (WL.y0 + WL.y1) / 2;
+    if (nav) nav.bridge = L.index;
+    if (pTop) {
+      if (gTop) { out.x = CR.clamp(gx, T.wx0 + 0.3, T.wx1 - 0.3); out.y = CR.clamp(gy, T.wy0 + 0.3, T.wy1 - 0.3); return true; }
+      if (Math.abs(px - L.cx) > 0.25) { out.x = L.cx; out.y = CR.clamp(py, T.wy0 + 0.3, T.wy1 - 0.3); return true; }
+      const down = gy < mid ? 0 : 1;
+      out.x = L.cx; out.y = down === 0 ? WL.y0 - L.foot - 0.3 : WL.y1 + L.foot + 0.3;
+      return true;
+    }
+    // goal on the top, troop below
+    const h = Arena.halfOf(py);
+    if (h === -1) {
+      // in a tunnel: leave it towards the nearer half first
+      const b = Arena.bridgeAt(px);
+      const lo = b ? b.x0 + Math.min(r, (b.x1 - b.x0) / 2) : px, hi = b ? b.x1 - Math.min(r, (b.x1 - b.x0) / 2) : px;
+      out.x = CR.clamp(px, lo, hi); out.y = py < mid ? WL.y0 - 0.4 : WL.y1 + 0.4;
+      return true;
+    }
+    const footY = h === 0 ? WL.y0 - L.foot - 0.2 : WL.y1 + L.foot + 0.2;
+    if (Math.abs(px - L.cx) > 0.25 && (h === 0 ? py < WL.y0 - 0.1 : py > WL.y1 + 0.1)) {
+      // not lined up: to the foot of the rungs (a troop already on the rungs climbs on)
+      if (!Arena.onLadder(px, py)) { out.x = L.cx; out.y = footY; return true; }
+    }
+    out.x = L.cx; out.y = h === 0 ? WL.y0 + WL.face + 0.35 : WL.y1 - WL.face - 0.35;
+    return true;
+  }
 
   function insideAny(rects, skip, x, y, ri) {
     for (let i = 0; i < rects.length; i++) {
@@ -9583,6 +9804,8 @@ body { font-weight: 700; letter-spacing: 0; }
  * v18: map 'flat' (Flach: flat open field, crown towers, no river / bridges / hill / holes / rails;
  *   every mode, 1v1 / 2v2) needs no sim code of its own; 'rails' is retired from the selections but
  *   still runs when a cfg names it (sim.rails stays null on every other map).
+ * v22: map 'pyramid' (Pyramide, docs/V22-PYRAMID.md): classic rules / towers, the wall with tunnels
+ *   and a ladder lives in CR.Arena (WALL) and CR.Units (height bonus, melee levels); no new view fields.
  * v21: map 'fortress' (Festung, docs/V21-FORTRESS.md): CR.Arena.towerLayout() gives ONE long tower
  *   per side (towerKind 'king' + fortress, always active, two guns - CR.Units.thinkGuns), so the king
  *   rules (3 crowns on destruction, tiebreak) apply unchanged; view.towers[k] adds fortress: true,
@@ -11043,6 +11266,10 @@ body { font-weight: 700; letter-spacing: 0; }
  * hold their ground (never pushed away from their target, friends that are not heavier slide
  * round them). Crown tower entities: x0..y1 = hit box (ranges unchanged), col = footprint.
  *
+ * v22 pyramid map (docs/V22-PYRAMID.md): wallStats (ranged troops on the wall top: range / sight +1
+ * through a getter view of their stats), wallApart in canTarget (melee only on the same level: ground
+ * vs wall top, the ladder rungs reach both), jumper() (no river jump over the wall), newNav (ladder
+ * class for the router: buildings-only troops never take the ladder), ladder rungs slow (uphillMult).
  * v5 hill map (docs/V5.md item 3): ground troops walking up a slope are slowed (CR.Arena.uphillMult,
  * x0.65 straight up); the plateau is the level of air units: a ground troop standing on it may
  * target and hit air units even if it normally targets ground only, and a ground-only attacker
@@ -11689,9 +11916,55 @@ body { font-weight: 700; letter-spacing: 0; }
     const s = u.s;
     if (s.buildingsOnly && !t.building) return false;
     if (t.air) return s.targetsAir || (s.targetsGround && CR.Arena.RIDGE !== null && (levelled(u) || airAtGround(t)));
+    if (CR.Arena.WALL && wallApart(u, t)) return false;   // v22 pyramid: melee only on the same level
     return s.targetsGround;
   }
   Units.canTarget = canTarget;
+
+  // ---------------------------------------------------------------------------------------------
+  // v22 pyramid wall (docs/V22-PYRAMID.md, geometry CR.Arena.WALL): levels, height bonus, jumpers.
+  // ---------------------------------------------------------------------------------------------
+  /** v22: melee ground attacker u and ground target t on different levels (ground vs wall top; the
+   *  ladder rungs reach both)? Ranged attackers (range >= WALL.rangedMin), towers and air never. */
+  function wallApart(u, t) {
+    if (u.air || u.tower || u.tunnel || t.tower) return false;
+    const W = CR.Arena.WALL;
+    if (u.s.range >= W.rangedMin - EPS) return false;
+    const a = CR.Arena.wallLevel(u.x, u.y), b = t.building ? 0 : CR.Arena.wallLevel(t.x, t.y);
+    return Math.abs(a - b) >= 2;
+  }
+  Units.wallApart = wallApart;
+  /** v22: does this troop leap the river? Never over the pyramid wall. */
+  function jumper(s) { return !!s.jumpsRiver && !CR.Arena.WALL; }
+  Units.jumper = jumper;
+  /** v22: routing memory with the ladder class (0 never: buildings-only, 1 melee, 2 ranged). */
+  function newNav(u) {
+    const n = CR.Arena.newNav();
+    const W = CR.Arena.WALL;
+    if (W) n.lad = u.s.buildingsOnly ? 0 : (u.s.range >= W.rangedMin - EPS ? 2 : 1);
+    return n;
+  }
+  Units.newNav = newNav;
+  /**
+   * v22: a ranged ground troop on the wall top uses height stats: range and sight + WALL.rangeBonus
+   * (a prototype view of its own stats with getters, so C.H.A.O.S changes to the base stay live);
+   * off the top it gets its own stats back. Called before every think on the pyramid map.
+   */
+  function wallStats(u) {
+    const W = CR.Arena.WALL;
+    const hi = !u.tunnel && !u.underground && CR.Arena.onWallTop(u.x, u.y);
+    if (u.s === u.sHigh && u.sHigh) { if (!hi) u.s = u.sLow; return; }
+    if (!hi || !(u.s.range >= W.rangedMin - EPS)) return;
+    const base = u.s;
+    if (!u.sHigh || u.sLow !== base) {
+      const h = Object.create(base), B = W.rangeBonus;
+      Object.defineProperty(h, 'range', { get: function () { return base.range + B; }, set: function (v) { base.range = v - B; }, enumerable: true, configurable: true });
+      Object.defineProperty(h, 'sightRange', { get: function () { return base.sightRange + B; }, set: function (v) { base.sightRange = v - B; }, enumerable: true, configurable: true });
+      u.sHigh = h; u.sLow = base;
+    }
+    u.s = u.sHigh;
+  }
+  Units.wallStats = wallStats;
 
   function deployingBlocked(t, sim) {
     return !CR.RULES.deploy.targetableWhileDeploying && !t.tower && t.deployEnd > sim.tickStart + EPS;
@@ -13268,7 +13541,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (u.air || u.underground) { wx = gx; wy = gy; }
       else {
         const ox = sq && leg === 0 ? SQ.x : u.x, oy = sq && leg === 0 ? SQ.y : u.y;
-        CR.Arena.waypoint(ox, oy, rr, gx, gy, s.jumpsRiver, sim.staticRects, WP, u.nav || (u.nav = CR.Arena.newNav()));
+        CR.Arena.waypoint(ox, oy, rr, gx, gy, s.jumpsRiver, sim.staticRects, WP, u.nav || (u.nav = newNav(u)));
         wx = WP.x; wy = WP.y;
       }
       const isFinal = Math.abs(wx - gx) < 1e-9 && Math.abs(wy - gy) < 1e-9;
@@ -13276,7 +13549,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const d = sqrt(dx * dx + dy * dy);
       if (d < 1e-9) break;
       // Hill map: walking up a slope is slower (the budget is in flat-ground tiles).
-      const k = !u.air && CR.Arena.RIDGE !== null ? CR.Arena.uphillMult(u.x, u.y, dx / d, dy / d) : 1;
+      const k = !u.air && (CR.Arena.RIDGE !== null || CR.Arena.WALL) ? CR.Arena.uphillMult(u.x, u.y, dx / d, dy / d) : 1;   // (v22: + pyramid ladder)
       let step = budget * k;
       // The gap shrinks by at most the distance walked, so (stopAt - moved) never overshoots.
       if (isFinal && hasStop && stopAt - moved < step) step = Math.max(0, stopAt - moved);
@@ -13321,7 +13594,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const W = CR.Arena.W, H = CR.Arena.H;
     if (cx < u.r || cx > W - u.r || cy < u.r || cy > H - u.r) return false;
     if (!u.air) {
-      if (!u.s.jumpsRiver && CR.Arena.isWater(cx, cy)) return false;
+      if (!jumper(u.s) && CR.Arena.isWater(cx, cy)) return false;
       const rs = sim.staticRects;
       for (let i = 0; i < rs.length; i++) {
         const b = rs[i];
@@ -13482,6 +13755,7 @@ body { font-weight: 700; letter-spacing: 0; }
    */
   Units.think = function (sim, u) {
     if (u.guns) { thinkGuns(sim, u); return; }   // v21 fortress tower: one think per gun
+    if (CR.Arena.WALL && !u.building && !u.air) wallStats(u);   // v22 pyramid: height bonus on the wall
     if (!CR.Arena.TUNNEL || u.building || u.air) { think(sim, u); return; }
     tunnelBefore(sim, u);
     if (u.underground) { Units.layer = 1; Units.layerSrc = u; }
@@ -14071,7 +14345,7 @@ body { font-weight: 700; letter-spacing: 0; }
   function slideBlocked(u, tx, ty) {
     const x = u.x + tx * (u.r + 0.3), y = u.y + ty * (u.r + 0.3);
     if (x < u.r || x > CR.Arena.W - u.r || y < u.r || y > CR.Arena.H - u.r) return true;
-    return !u.s.jumpsRiver && CR.Arena.isWater(x, y);
+    return !jumper(u.s) && CR.Arena.isWater(x, y);
   }
 
   /** v14: a troop overlapping a mine cart (rect with `cart`) is moved off the rails sideways, to the
@@ -14286,7 +14560,7 @@ body { font-weight: 700; letter-spacing: 0; }
           if (b.cart) { cartPush(a, b); continue; }   // v14 mine cart: off the rails, to the field side
           if (CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, TMP)) { a.x = TMP.x; a.y = TMP.y; }
         }
-        if (!a.s.jumpsRiver) {
+        if (!jumper(a.s)) {
           for (let j = 0; j < water.length; j++) {
             if (pushOutOfWater(a.x, a.y, Math.min(a.r, wcap), water[j], W, TMP)) { a.x = TMP.x; a.y = TMP.y; }
           }
@@ -18118,6 +18392,8 @@ body { font-weight: 700; letter-spacing: 0; }
  *
  * v18 flat map (view.map === 'flat'): no river / bridges / tunnel / trams - the generic open-field
  * play of the hill and tunnel maps (straight lane pushes, buildings in the usual spot) applies.
+ * v22 pyramid map (view.map === 'pyramid', docs/V22-PYRAMID.md): river-map play (the two tunnels are
+ * the bridges, the router picks them); now and then a ranged troop goes up the ladder (tryLadder).
  * v21 fortress map (view.map === 'fortress', docs/V21-FORTRESS.md): the generic open-field play; one
  * long tower per side (kind 'king') - no princess to pick a weak lane from, heavy tanks start just
  * beside the front of the own fortress (x 4 / 14, y 4) instead of behind the king.
@@ -18409,6 +18685,8 @@ body { font-weight: 700; letter-spacing: 0; }
       if (view.map === 'tunnel' && this.rng() < 0.35 && this.tryTunnel(sim, troops)) return true;
       // v14 rails map: now and then put a troop on the platform of a cart that is at home.
       if (view.map === 'rails' && this.rng() < 0.4 && this.tryRails(sim, view, troops, weak, 11.5)) return true;
+      // v22 pyramid map: now and then a ranged troop goes up the ladder in the middle (holds the wall).
+      if (view.map === 'pyramid' && this.rng() < 0.3 && this.tryLadder(sim, troops)) return true;
       troops.sort(function (a, b) { return cardHp(b.c) - cardHp(a.c); });
       const tank = troops[0];
       const bx = weak === 0 ? 3.5 : 14.5;
@@ -18420,6 +18698,26 @@ body { font-weight: 700; letter-spacing: 0; }
       return this.play(sim, tank.i, bx, 12.5);
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Pyramid map (v22, docs/V22-PYRAMID.md)
+  // ---------------------------------------------------------------------------
+  /**
+   * Put a ranged ground troop (range >= CR.Arena.WALL.rangedMin, not buildings-only) in the middle
+   * a few rows in front of the ladder: it climbs onto the wall and shoots from up there (+1 range).
+   */
+  AI.prototype.tryLadder = function (sim, troops) {
+    const W = CR.Arena.WALL;
+    if (!W) return false;
+    let best = null;
+    for (const h of troops) {
+      const u = unitOf(h.c);
+      if (!u || u.air || u.buildingsOnly || !((u.range || 0) >= W.rangedMin)) continue;
+      if (!best || (u.range || 0) > (unitOf(best.c).range || 0)) best = h;
+    }
+    if (!best) return false;
+    return this.play(sim, best.i, W.ladder.cx + (this.rng() < 0.5 ? -0.5 : 0.5), 11.5);
+  };
 
   // ---------------------------------------------------------------------------
   // Tunnel map (v12)
@@ -18958,6 +19256,8 @@ body { font-weight: 700; letter-spacing: 0; }
  * of a received host blob) still accepts 'rails' (LEGACY_MAPS). CR.Net.MAPS / pickMap exported.
  * v21: map 'fortress' (Festung, one long tower per side) joins the same lists; its view towers carry
  * the extras fortress / gunT / gunAp (generic tower extras, strings in the table).
+ * v22: map 'pyramid' (Pyramide: classic towers drawn as pyramids, a wall instead of the river with two
+ * tunnels and a ladder) joins the same lists (string in the table); no new view fields.
  * v16: view.rails = { trams, carts (same list: sent once, `trams` restored on decode), gates, open,
  * left, period, green, red } (air trams beside the field, red / green gates); 'rail' events add
  * phase 'gate' with `open` / `left`; essentialExtras keeps trams + gates + clock.
@@ -19663,6 +19963,8 @@ body { font-weight: 700; letter-spacing: 0; }
     'flat',
     // v21: the fortress map (one long tower per side: view tower extras fortress / gunT / gunAp)
     'fortress', 'gunT', 'gunAp',
+    // v22: the pyramid map (wall with two tunnels and a ladder; no new view fields)
+    'pyramid',
   ];
 
   function cardIdsOf(cards) {
@@ -22599,7 +22901,8 @@ body { font-weight: 700; letter-spacing: 0; }
   // v12: + the tunnel map, v14: + 'rails' (Schienen), v18: 'rails' retired (no longer selectable:
   // lobby, matchmaking keys, random map of an 'egal' host) and the flat open map 'flat' (Flach).
   // v21: + 'fortress' (Festung: the flat field with one long tower per side).
-  const MAPS = ['classic', 'hill', 'tunnel', 'flat', 'fortress'];
+  // v22: + 'pyramid' (Pyramide: pyramid towers, wall with two tunnels and a ladder in the middle).
+  const MAPS = ['classic', 'hill', 'tunnel', 'flat', 'fortress', 'pyramid'];
   // Retired map ids a received lobby blob / start info may still name (decode tolerance: the
   // engine can still build them, CR.Arena.setMap('rails')); a host never picks one itself.
   const LEGACY_MAPS = ['rails'];
@@ -25267,6 +25570,8 @@ body { font-weight: 700; letter-spacing: 0; }
  *   r.setOptions(o); r.reset(); r.destroy();
  *   CR.Render.draw(ctx, prev, cur, alpha, opts)   // compatibility shim (one renderer per canvas)
  *
+ * v22: map 'Pyramide' (CR.Arena.WALL): sand field, the wall with tunnel gates + ladder instead of the
+ * river (_paintWall), pyramid tower sprites (paintPyramid), ground units lifted on the wall (wallLift).
  * v14: map 'Schienen' (CR.Arena.RAILS): tracks, trestles and platforms in the static layer
  * (_paintRails), the mine carts of view.rails under the units (_drawCarts); riders sit on top.
  *
@@ -25856,6 +26161,44 @@ body { font-weight: 700; letter-spacing: 0; }
     fillCircle(g, x + 0.56 * s, y - 0.24 * s, 0.07 * s);
   }
 
+  /** v22 map 'pyramid': a crown tower drawn as a stepped sandstone pyramid (same frame / size as
+   *  paintTower: origin = footprint centre, y down; the crew turret sits on the flat top). */
+  function paintPyramid(g, king, T, state) {
+    g.fillStyle = 'rgba(0,0,0,0.26)';
+    fillEllipse(g, 0.22, king ? 1.3 : 0.98, king ? 2.15 : 1.6, king ? 0.85 : 0.65);
+    if (state === 2) { paintRubble(g, king, T); return; }
+    const n = king ? 6 : 5, bw = king ? 1.95 : 1.42, tw = king ? 0.78 : 0.52, yb = king ? 1.75 : 1.32, yt = king ? -2.5 : -2.25;
+    const SAND = ['#e3be7d', '#d6ac67', '#cb9e59'];
+    for (let k = 0; k < n; k++) {
+      const w = bw + (tw - bw) * k / n, y0 = yb + (yt - yb) * (k + 1) / n, y1 = yb + (yt - yb) * k / n;
+      const gr = g.createLinearGradient(-w, 0, w, 0);
+      gr.addColorStop(0, '#a98450'); gr.addColorStop(0.4, SAND[k % 3]); gr.addColorStop(1, '#9c7948');
+      rrect(g, -w, y0, w * 2, y1 - y0 + 0.02, 0.06);
+      g.fillStyle = gr; g.fill();
+      g.strokeStyle = '#7a5a30'; g.lineWidth = 0.04; g.stroke();
+      g.fillStyle = 'rgba(255,240,200,0.45)';
+      g.fillRect(-w + 0.06, y0 + 0.02, w * 2 - 0.12, 0.07);
+    }
+    // stair up the middle
+    const sw = king ? 0.32 : 0.26;
+    g.fillStyle = '#f0d9a8';
+    g.fillRect(-sw, yt, sw * 2, yb - yt);
+    g.strokeStyle = 'rgba(122,90,48,0.55)'; g.lineWidth = 0.035;
+    g.beginPath();
+    for (let y = yt + 0.18; y < yb; y += 0.18) { g.moveTo(-sw, y); g.lineTo(sw, y); }
+    g.stroke();
+    // flat top terrace + team banner hanging down the front
+    rrect(g, -tw - 0.08, yt - 0.18, (tw + 0.08) * 2, 0.24, 0.06);
+    g.fillStyle = '#f1dcae'; g.fill(); g.strokeStyle = '#7a5a30'; g.lineWidth = 0.04; g.stroke();
+    paintBanner(g, king ? -1.0 : -0.78, yt + 0.5, king ? 0.42 : 0.34, king ? 0.7 : 0.56, T);
+    paintBanner(g, king ? 1.0 : 0.78, yt + 0.5, king ? 0.42 : 0.34, king ? 0.7 : 0.56, T);
+  }
+  /** v22: ground height (tiles) under a ground unit on the pyramid wall / ladder (CR.Arena.heightAt). */
+  function wallLift(x, y) {
+    const A = CR.Arena;
+    return A && A.WALL && typeof A.heightAt === 'function' ? +A.heightAt(x, y) || 0 : 0;
+  }
+
   /** Crown tower in tile units, origin = footprint centre (y down = screen down). state: 0 idle/sleeping, 1 active king, 2 rubble. */
   function paintTower(g, king, T, state) {
     // drop shadow
@@ -26201,6 +26544,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const srcB = (A && A.BRIDGES) || (RA && RA.bridges) || [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }];
       for (let i = 0; i < srcB.length; i++) br.push({ x0: +srcB[i].x0, x1: +srcB[i].x1 });
       this.bridges = br;
+      // v22 map 'pyramid': the wall with tunnels + ladder instead of the river (desert field)
+      this.wall = A && A.WALL ? A.WALL : null;
+      if (this.wall) this.bridges = [];
       // v14 map 'Schienen': the two mine-cart tracks (CR.Arena.RAILS, docs/V14-RAILS.md)
       this.rails = A && A.RAILS && Array.isArray(A.RAILS.tracks) ? A.RAILS : null;
       let lay = null;
@@ -26526,9 +26872,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const aw = W * ts, ah = H * ts;
       // surroundings
       const bg = g.createLinearGradient(0, 0, 0, ch);
-      bg.addColorStop(0, '#2b5821');
-      bg.addColorStop(0.5, '#3a6c29');
-      bg.addColorStop(1, '#2b5821');
+      bg.addColorStop(0, this.wall ? '#b88e55' : '#2b5821');
+      bg.addColorStop(0.5, this.wall ? '#cfa767' : '#3a6c29');
+      bg.addColorStop(1, this.wall ? '#b88e55' : '#2b5821');
       g.fillStyle = bg;
       g.fillRect(0, 0, cw, ch);
       this._paintSurroundings(g);
@@ -26541,13 +26887,13 @@ body { font-weight: 700; letter-spacing: 0; }
       g.lineWidth = Math.max(1, 0.05 * ts);
       g.stroke();
       rrect(g, ax - 0.16 * ts, ay - 0.16 * ts, aw + 0.32 * ts, ah + 0.32 * ts, 0.25 * ts);
-      g.fillStyle = '#4f8a2f';
+      g.fillStyle = this.wall ? '#b38a52' : '#4f8a2f';
       g.fill();
       // checkerboard (screen-space parity)
       const ov = 0.6;
       for (let r = 0; r < H; r++) {
         for (let c = 0; c < W; c++) {
-          g.fillStyle = ((r + c) & 1) ? GRASS_B : GRASS_A;
+          g.fillStyle = this.wall ? (((r + c) & 1) ? '#dcb977' : '#e8c88a') : (((r + c) & 1) ? GRASS_B : GRASS_A);
           g.fillRect(ax + c * ts, ay + r * ts, ts + (c < W - 1 ? ov : 0), ts + (r < H - 1 ? ov : 0));
         }
       }
@@ -26558,8 +26904,8 @@ body { font-weight: 700; letter-spacing: 0; }
         g.fillStyle = (i & 1) ? 'rgba(255,255,255,0.035)' : 'rgba(0,40,0,0.035)';
         fillEllipse(g, x, y, rr, rr * 0.7);
       }
-      // grass blades
-      g.strokeStyle = 'rgba(40,90,20,0.28)';
+      // grass blades (v22 desert: soft sand ripples)
+      g.strokeStyle = this.wall ? 'rgba(150,104,52,0.18)' : 'rgba(40,90,20,0.28)';
       g.lineWidth = Math.max(0.7, 0.04 * ts);
       g.beginPath();
       for (let r = 0; r < H; r++) {
@@ -26580,7 +26926,7 @@ body { font-weight: 700; letter-spacing: 0; }
       g.lineWidth = Math.max(1, 0.12 * ts);
       g.strokeRect(ax + 0.06 * ts, ay + 0.06 * ts, aw - 0.12 * ts, ah - 0.12 * ts);
 
-      this._paintRiver(g);
+      if (this.wall) this._paintWall(g); else this._paintRiver(g);
       if (this.rails) this._paintRails(g);
       this._paintPlatforms(g);
 
@@ -26606,6 +26952,7 @@ body { font-weight: 700; letter-spacing: 0; }
           const cy = (j + 0.2 + hash01(s + 2) * 0.6) * cell;
           const rad = (0.4 + hash01(s + 3) * 0.45) * ts;
           if (cx + rad * 1.3 > fx0 && cx - rad * 1.3 < fx1 && cy + rad * 1.3 > fy0 && cy - rad * 1.3 < fy1) continue;
+          if (this.wall) { if (h1 < 0.3) paintRock(g, cx, cy, rad * 0.62); continue; }   // v22 desert: only rocks
           if (h1 < 0.3) paintBush(g, cx, cy, rad);
           else if (h1 < 0.48) paintTree(g, cx, cy, rad * 1.25);
           else if (h1 < 0.58) paintRock(g, cx, cy, rad * 0.62);
@@ -26768,6 +27115,51 @@ body { font-weight: 700; letter-spacing: 0; }
       }
     }
 
+    /** v22 map 'pyramid' (2D): the stone wall across the middle band with crenellations, the two
+     *  tunnel gates (dark arched openings with a paved floor) and the wooden ladder. Static layer. */
+    _paintWall(g) {
+      const ts = this.ts, Wl = this.wall, ax = this.ax, aw = this.W * ts;
+      const ya = this._by + Wl.y0 * this._my, yb = this._by + Wl.y1 * this._my;
+      const top = Math.min(ya, yb), bot = Math.max(ya, yb), hgt = bot - top;
+      const sx = function (x) { return this._bx + x * this._mx; }.bind(this);
+      g.fillStyle = 'rgba(0,0,0,0.22)';
+      g.fillRect(ax, bot, aw, 0.25 * ts);
+      const gr = g.createLinearGradient(0, top, 0, bot);
+      gr.addColorStop(0, '#d2c7ad'); gr.addColorStop(0.5, '#bdb196'); gr.addColorStop(1, '#a99c80');
+      g.fillStyle = gr;
+      g.fillRect(ax - 0.3 * ts, top, aw + 0.6 * ts, hgt);
+      // block courses
+      g.strokeStyle = 'rgba(110,98,78,0.55)'; g.lineWidth = Math.max(1, 0.04 * ts);
+      g.beginPath();
+      for (let k = 1; k < 3; k++) { const y = top + hgt * k / 3; g.moveTo(ax, y); g.lineTo(ax + aw, y); }
+      for (let k = 0; k < 3; k++) for (let x = (k % 2) * 0.35; x < this.W; x += 0.7) { const px = ax + x * ts, y = top + hgt * k / 3; g.moveTo(px, y); g.lineTo(px, y + hgt / 3); }
+      g.stroke();
+      // crenellations along both edges
+      g.fillStyle = '#e2d8c0';
+      for (let x = 0.15; x < this.W; x += 0.62) { g.fillRect(ax + x * ts, top - 0.16 * ts, 0.32 * ts, 0.2 * ts); g.fillRect(ax + x * ts, bot - 0.04 * ts, 0.32 * ts, 0.2 * ts); }
+      // tunnel gates
+      for (let i = 0; i < Wl.tunnels.length; i++) {
+        const t = Wl.tunnels[i], xa = sx(t.x0), xb = sx(t.x1), l = Math.min(xa, xb), w = Math.abs(xb - xa);
+        g.fillStyle = '#c9b48a';
+        g.fillRect(l, top - 0.2 * ts, w, hgt + 0.4 * ts);
+        g.fillStyle = 'rgba(40,30,20,0.55)';
+        rrect(g, l + 0.08 * ts, top - 0.05 * ts, w - 0.16 * ts, hgt + 0.1 * ts, 0.5 * ts); g.fill();
+        g.fillStyle = '#b39a70';
+        rrect(g, l + 0.22 * ts, top + 0.15 * ts, w - 0.44 * ts, hgt - 0.3 * ts, 0.3 * ts); g.fill();
+        g.fillStyle = '#9b8b70';
+        g.fillRect(l - 0.3 * ts, top - 0.25 * ts, 0.32 * ts, hgt + 0.5 * ts);
+        g.fillRect(l + w - 0.02 * ts, top - 0.25 * ts, 0.32 * ts, hgt + 0.5 * ts);
+      }
+      // ladder (both faces + over the top)
+      const L = Wl.ladder, la = sx(L.x0 + 0.1), lb = sx(L.x1 - 0.1), ll = Math.min(la, lb), lw = Math.abs(lb - la);
+      const y0 = top - L.foot * ts, y1 = bot + L.foot * ts;
+      g.strokeStyle = '#7a4d22'; g.lineWidth = Math.max(1.5, 0.1 * ts);
+      g.beginPath();
+      g.moveTo(ll, y0); g.lineTo(ll, y1); g.moveTo(ll + lw, y0); g.lineTo(ll + lw, y1);
+      for (let y = y0 + 0.25 * ts; y < y1; y += 0.3 * ts) { g.moveTo(ll, y); g.lineTo(ll + lw, y); }
+      g.stroke();
+    }
+
     _paintPlatforms(g) {
       const ts = this.ts;
       for (let i = 0; i < this.layout.length; i++) {
@@ -26818,7 +27210,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
     // ---------------------------------------------------------------- tower sprites
     _towerSprite(king, team, state) {
-      const key = (king ? 6 : 0) + team * 3 + state;
+      const key = (king ? 6 : 0) + team * 3 + state + (this.wall ? 12 : 0);   // (v22: + pyramid sprites)
       let s = this._towerSpr[key];
       if (s) return s;
       const ts = this.ts, d = this.dpr;
@@ -26830,7 +27222,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const g = cv.getContext('2d');
       g.setTransform(d * ts, 0, 0, d * ts, -bx0 * ts * d, -by0 * ts * d);
       g.lineJoin = 'round';
-      paintTower(g, king, TEAM[team], state);
+      if (this.wall) paintPyramid(g, king, TEAM[team], state); else paintTower(g, king, TEAM[team], state);
       s = { cv: cv, ox: -bx0 * ts, oy: -by0 * ts, w: w, h: h };
       this._towerSpr[key] = s;
       return s;
@@ -27293,7 +27685,7 @@ body { font-weight: 700; letter-spacing: 0; }
           r.t = R_AIR;
           this._air[this._nAir++] = r;
         } else {
-          r.z = z;
+          r.z = z + (this.wall && !building ? wallLift(x, y) * 0.75 : 0);   // v22: on the pyramid wall / ladder
           r.t = building ? R_BUILDING : R_UNIT;
           this._ground[this._nGround++] = r;
         }
@@ -27331,6 +27723,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
     // ---------------------------------------------------------------- water
     _drawWater(now) {
+      if (this.wall) return;   // v22: the pyramid map has a wall instead of the river
       const ctx = this.ctx, ts = this.ts, W = this.W;
       const y0 = this.river.y0, y1 = this.river.y1, h = y1 - y0;
       if (!(h > 0)) return;
@@ -29273,6 +29666,9 @@ body { font-weight: 700; letter-spacing: 0; }
  * v21: map "Festung" ('fortress': the flat field with ONE long tower per side) in MAPS (preview from
  * CR.Arena.towerLayout(id) - every preview now draws its own map's towers), gated by f.fortress /
  * ctl.canFortress, rules text UI.fortressRuleTexts; 5 maps use the 2-column has-4 grid (+ has-many).
+ * v22: map "Pyramide" ('pyramid': classic towers drawn as pyramids, a wall instead of the river with
+ * two tunnels and a ladder) in MAPS with its own preview (pyramidFieldSvg / pyramidTowerSvg), gated by
+ * f.pyramid / ctl.canPyramid, rules text UI.pyramidRuleTexts.
  *
  * v13: (1) Touchdown needs a BUILDING in every deck: UI.deckForMode -> UI.ensureBuilding puts
  * one in the last slot for the battle only (German hint in the menu panes and both lobbies via
@@ -29424,6 +29820,8 @@ body { font-weight: 700; letter-spacing: 0; }
     { id: 'flat', label: 'Flach', sub: 'Offenes Feld ohne Fluss' },
     // v21: the flat field with ONE long tower per side instead of three (CR.Arena maps.fortress)
     { id: 'fortress', label: 'Festung', sub: 'Ein langer Turm statt drei' },
+    // v22: pyramid towers, a wall instead of the river with two tunnels and a ladder (maps.pyramid)
+    { id: 'pyramid', label: 'Pyramide', sub: 'Mauer mit Tunneln und Leiter' },
   ];
   const MAP_IDS = MAPS.map(function (m) { return m.id; });
   // v6: game modes (CR.Sim({mode})): C.H.A.O.S (crown towers + upgrades) or Touchdown (the CR
@@ -29610,6 +30008,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (id === 'tunnel' && !(f && f.tunnel)) return 'classic';
     if (id === 'flat' && !(f && f.flat)) return 'classic';
     if (id === 'fortress' && !(f && f.fortress)) return 'classic';
+    if (id === 'pyramid' && !(f && f.pyramid)) return 'classic';
     return id;
   };
   /** Is this map selectable with these features? */
@@ -31580,6 +31979,28 @@ body { font-weight: 700; letter-spacing: 0; }
     return b;
   }
 
+  /** v22 pyramid map preview: warm sand field, the stone wall across the middle (y 15..17) with
+   *  the two dark tunnel gates (x 2..5 / 13..16) and the wooden ladder in the middle. */
+  function pyramidFieldSvg() {
+    let b = '<rect class="pyr-sand" x="0" y="0" width="18" height="32" rx="1.2" fill="#e2bf78"/>' +
+      '<path d="M0 4h18M0 8h18M0 12h18M0 20h18M0 24h18M0 28h18" stroke="#ebcb8a" stroke-width="2"/>';
+    b += '<rect class="pyr-wall" x="0" y="15" width="18" height="2" fill="#b9ab8e" stroke="#6f6450" stroke-width=".25"/>';
+    for (let x = 0.25; x < 18; x += 0.9) b += '<rect x="' + x.toFixed(2) + '" y="14.75" width=".5" height=".35" fill="#cfc2a4"/>';
+    b += '<rect class="pyr-tunnel" x="2.3" y="15" width="2.4" height="2" rx=".5" fill="#2e2418"/><rect class="pyr-tunnel" x="13.3" y="15" width="2.4" height="2" rx=".5" fill="#2e2418"/>';
+    b += '<path class="pyr-ladder" d="M8.55 14V18M9.45 14V18M8.55 14.5h.9M8.55 15.3h.9M8.55 16.1h.9M8.55 16.9h.9M8.55 17.7h.9" stroke="#7a4d22" stroke-width=".22" fill="none"/>';
+    return b;
+  }
+  /** v22: a pyramid tower seen from above (square base, four sloped faces, team-coloured cap). */
+  function pyramidTowerSvg(cx, cy, w, d, c) {
+    const x0 = (cx - w / 2).toFixed(2), x1 = (cx + w / 2).toFixed(2), y0 = (cy - d / 2).toFixed(2), y1 = (cy + d / 2).toFixed(2), X = cx.toFixed(2), Y = cy.toFixed(2);
+    return '<path class="pyr-tower" d="M' + x0 + ' ' + y1 + 'L' + x1 + ' ' + y1 + 'L' + X + ' ' + Y + 'Z" fill="#d8b46c"/>' +
+      '<path d="M' + x1 + ' ' + y1 + 'L' + x1 + ' ' + y0 + 'L' + X + ' ' + Y + 'Z" fill="#c29a55"/>' +
+      '<path d="M' + x1 + ' ' + y0 + 'L' + x0 + ' ' + y0 + 'L' + X + ' ' + Y + 'Z" fill="#a8834a"/>' +
+      '<path d="M' + x0 + ' ' + y0 + 'L' + x0 + ' ' + y1 + 'L' + X + ' ' + Y + 'Z" fill="#e7c98a"/>' +
+      '<rect x="' + (cx - w * 0.17).toFixed(2) + '" y="' + (cy - d * 0.17).toFixed(2) + '" width="' + (w * 0.34).toFixed(2) + '" height="' + (d * 0.34).toFixed(2) + '" fill="' + c + '" stroke="#1b1030" stroke-width=".2"/>' +
+      '<rect x="' + x0 + '" y="' + y0 + '" width="' + w.toFixed(2) + '" height="' + d.toFixed(2) + '" fill="none" stroke="#5a4426" stroke-width=".25"/>';
+  }
+
   /** Small top-down preview of a map (static SVG, sim coordinates 18 x 32, side 0 at the
    *  bottom): grass, towers, and either the river with two bridges, the hill ridge,
    *  (v12) the flat field with the two tunnel holes or (v18) the open flat field. */
@@ -31595,6 +32016,8 @@ body { font-weight: 700; letter-spacing: 0; }
       b += '<rect class="flat-mid" x="0" y="15" width="18" height="2" fill="#6cbc44"/>' +
         '<path d="M0 15h18M0 17h18" stroke="#fff" stroke-opacity=".35" stroke-width=".2" stroke-dasharray=".8 .6"/>' +
         '<path d="M3.5 9v14M14.5 9v14" stroke="#c9a46a" stroke-opacity=".55" stroke-width=".9"/>';
+    } else if (id === 'pyramid') {
+      b += pyramidFieldSvg();
     } else if (id === 'tunnel') {
       b += '<path d="M0 16h18" stroke="#fff" stroke-opacity=".5" stroke-width=".25"/>' + tunnelSvg();
     } else if (hill) {
@@ -31628,6 +32051,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const c = t.side === 1 ? (king ? '#ff4c42' : '#ff6a5e') : (king ? '#3f9cff' : '#6cb8ff');
         // a little smaller than the footprint so neighbouring tiles stay readable
         const w = (t.x1 - t.x0) * 0.85, d = (t.y1 - t.y0) * 0.85;
+        if (id === 'pyramid') { b += pyramidTowerSvg(t.x, 32 - t.y, w, d, c); continue; }   // v22: pyramids seen from above
         b += '<rect x="' + (t.x - w / 2).toFixed(2) + '" y="' + (32 - t.y - d / 2).toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + d.toFixed(2) + '" rx=".35" fill="' + c + '" stroke="#1b1030" stroke-width=".3"/>';
       }
     } else {
@@ -31705,6 +32129,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (m.id === 'tunnel') return 'Football-Feld mit Tunnel';
     if (m.id === 'flat') return 'Offenes Football-Feld';
     if (m.id === 'fortress') return 'Offenes Football-Feld';
+    if (m.id === 'pyramid') return 'Offenes Football-Feld';
     return m.id === 'hill' ? 'Feld mit Hügel in der Mitte' : 'Football-Feld mit Endzonen';
   }
   UI.mapSub = function (id, mode) { const m = MAPS.filter(function (x) { return x.id === UI.normMap(id); })[0]; return mapSub(m, mode); };
@@ -32570,6 +32995,7 @@ body { font-weight: 700; letter-spacing: 0; }
       f.tunnel ? null : hint(notes.tunnel || 'Die Tunnel-Karte ist gerade nicht verfügbar.', 'info'),
       f.flat ? null : hint(notes.flat || 'Die Karte „Flach“ ist gerade nicht verfügbar.', 'info'),
       f.fortress ? null : hint(notes.fortress || 'Die Karte „Festung“ ist gerade nicht verfügbar.', 'info'),
+      f.pyramid ? null : hint(notes.pyramid || 'Die Karte „Pyramide“ ist gerade nicht verfügbar.', 'info'),
       fightBtn,
       f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.'),
     ]);
@@ -33317,7 +33743,14 @@ body { font-weight: 700; letter-spacing: 0; }
       '<b>Hügel</b>: überall Rasen, kein Fluss und keine Brücken. Quer über die Mitte zieht sich ein Hügel, so hoch, wie Lufteinheiten fliegen. Bodentruppen können ihn überall überqueren.',
       'Bergauf laufen Bodentruppen <b>langsamer</b>, bergab und oben auf dem Hügel ganz normal.',
       'Oben auf dem Hügel stehen Bodentruppen auf <b>gleicher Höhe wie Lufteinheiten</b>: Dort treffen auch Nahkämpfer fliegende Gegner. Und fliegt eine Lufteinheit über dem Hügel, können sie auch Bodenkämpfer angreifen, die sonst nur Bodenziele treffen.',
-    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts(), UI.fortressRuleTexts());
+    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts(), UI.fortressRuleTexts(), UI.pyramidRuleTexts());
+  };
+  /** v22: the pyramid map (Pyramide) for the rules screen. */
+  UI.pyramidRuleTexts = function () {
+    return [
+      '<b>Pyramide</b>: eine Wüstenarena mit <b>Pyramiden als Türmen</b> (Regeln wie klassisch). Statt des Flusses steht in der Mitte eine große <b>Mauer</b>. Bodentruppen kommen nur durch die <b>zwei Tunnel</b> links und rechts – oder über die <b>Leiter</b> in der Mitte.',
+      'Über die Leiter klettern Bodentruppen langsam auf die Mauer, können oben <b>die Stellung halten</b> und auf der anderen Seite wieder hinunter. <b>Fernkämpfer auf der Mauer schießen 1 Feld weiter.</b> Nahkämpfer erreichen Truppen auf der Mauer nur über die Leiter; Fernkämpfer, Luft, Türme und Zauber treffen sie überall. Schweinereiter und Co. springen nicht über die Mauer.',
+    ];
   };
   /** v21: the fortress map (Festung) for the rules screen. */
   UI.fortressRuleTexts = function () {
@@ -33867,7 +34300,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const teamSeg = segmented(TEAM_SIZES.map(function (t) { return { id: t.id, label: t.label, disabled: t.id === 2 && !can2 }; }),
       can2 ? teamSize : 1, function (id) { if (ctl.onTeamSize) ctl.onTeamSize(id); }, 'seg seg-sm seg-team');
     // v6: game mode (C.H.A.O.S / Touchdown + switch; v12: + Klassisch) - the map previews follow it
-    const lobbyFeat = { touchdown: !!ctl.canTouchdown, hill: !!ctl.canHill, tunnel: !!ctl.canTunnel, flat: !!ctl.canFlat, fortress: !!ctl.canFortress };
+    const lobbyFeat = { touchdown: !!ctl.canTouchdown, hill: !!ctl.canHill, tunnel: !!ctl.canTunnel, flat: !!ctl.canFlat, fortress: !!ctl.canFortress, pyramid: !!ctl.canPyramid };
     let gMode = UI.allowedGameMode(ctl.gameMode, lobbyFeat);
     let gChaos = !!ctl.tdChaos;
     let gDraft = ctl.tdDraft !== false;
@@ -36481,6 +36914,8 @@ body { font-weight: 700; letter-spacing: 0; }
  * match on it greys the map for the session.
  * v21: map 'fortress' (Festung, docs/V21-FORTRESS.md: the flat field with one long tower per side):
  * PICK_MAPS, probe f.fortress (2 view towers, both fortress), ctl.canFortress, greyed after a crash.
+ * v22: map 'pyramid' (Pyramide, docs/V22-PYRAMID.md: pyramid towers, wall with tunnels + ladder):
+ * PICK_MAPS, probe f.pyramid (CR.Arena.WALL + 6 towers), ctl.canPyramid, greyed after a crash.
  *
  * v14 perf: the host's LocalDriver renders the view hs.tick(sim) returns on snapshot ticks (the
  * same state, already built for the guests) instead of a second sim.view().
@@ -36758,7 +37193,7 @@ body { font-weight: 700; letter-spacing: 0; }
   };
   /** v12: selectable map id 'classic' | 'hill' | 'tunnel' | (v18) 'flat' (anything else, also the
    *  retired v14 'rails': 'classic'). Used for the host's own choices. */
-  const PICK_MAPS = ['hill', 'tunnel', 'flat', 'fortress'];   // v21: + 'fortress' (Festung)
+  const PICK_MAPS = ['hill', 'tunnel', 'flat', 'fortress', 'pyramid'];   // v21: + 'fortress' (Festung), v22: + 'pyramid' (Pyramide)
   function pickMap(m) { return PICK_MAPS.indexOf(m) >= 0 ? m : 'classic'; }
   App.pickMap = pickMap;
   /** Decode of a received / running map: the selectable ones plus the retired 'rails' (an older
@@ -37805,6 +38240,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (this.cfg.map === 'tunnel' && typeof app.disableFeature === 'function') app.disableFeature('tunnel', 'Die Tunnel-Karte ist nach einem Fehler für diese Sitzung deaktiviert.');
     if (this.cfg.map === 'flat' && typeof app.disableFeature === 'function') app.disableFeature('flat', 'Die Karte „Flach“ ist nach einem Fehler für diese Sitzung deaktiviert.');
     if (this.cfg.map === 'fortress' && typeof app.disableFeature === 'function') app.disableFeature('fortress', 'Die Karte „Festung“ ist nach einem Fehler für diese Sitzung deaktiviert.');
+    if (this.cfg.map === 'pyramid' && typeof app.disableFeature === 'function') app.disableFeature('pyramid', 'Die Karte „Pyramide“ ist nach einem Fehler für diese Sitzung deaktiviert.');
     app.dialog({
       title: 'Spielfehler',
       text: 'Der Kampf musste abgebrochen werden.' + (chaos ? ' C.H.A.O.S ist vorerst deaktiviert.' : '') + '\n(' + msg + ')',
@@ -38048,7 +38484,7 @@ body { font-weight: 700; letter-spacing: 0; }
     // ---------------------------------------------------------------- features
 
     function detectFeatures() {
-      const f = { data: false, play: false, ai: false, net: false, match: false, chaos: false, gfx3d: false, hill: false, tunnel: false, flat: false, fortress: false, team2: false, touchdown: false, draft: false, audio: !!UI.audio(), notes: {} };
+      const f = { data: false, play: false, ai: false, net: false, match: false, chaos: false, gfx3d: false, hill: false, tunnel: false, flat: false, fortress: false, pyramid: false, team2: false, touchdown: false, draft: false, audio: !!UI.audio(), notes: {} };
       const cat = UI.catalog();
       f.data = cat.enabled.length >= 8;
       if (!f.data) f.notes.data = 'Kartendaten fehlen oder sind unvollständig – Spielen ist nicht möglich.';
@@ -38172,6 +38608,17 @@ body { font-weight: 700; letter-spacing: 0; }
         } catch (e) {
           logError('fortress probe', e);
           f.notes.fortress = 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.';
+        }
+        // v22: the pyramid map (classic towers, wall with two tunnels and a ladder)
+        try {
+          const s = new CR.Sim({ seed: 27, mode: 'classic', map: 'pyramid', decks: [deck, deck], names: ['A', 'B'] });
+          for (let i = 0; i < 3; i++) s.tick();
+          const v = s.view();
+          f.pyramid = (v.map === 'pyramid' || CR.Arena.map === 'pyramid') && !!CR.Arena.WALL && v.towers.length === 6;
+          if (!f.pyramid) f.notes.pyramid = 'Die Karte „Pyramide“ ist in dieser Version noch nicht verfügbar.';
+        } catch (e) {
+          logError('pyramid probe', e);
+          f.notes.pyramid = 'Die Karte „Pyramide“ meldet einen Fehler und ist deaktiviert.';
         }
         App.applyMap('classic');
       } else {
@@ -38666,6 +39113,7 @@ body { font-weight: 700; letter-spacing: 0; }
           if (map === 'tunnel') disableFeature('tunnel', 'Die Tunnel-Karte meldet einen Fehler und ist deaktiviert.');
           else if (map === 'flat') disableFeature('flat', 'Die Karte „Flach“ meldet einen Fehler und ist deaktiviert.');
           else if (map === 'fortress') disableFeature('fortress', 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.');
+          else if (map === 'pyramid') disableFeature('pyramid', 'Die Karte „Pyramide“ meldet einen Fehler und ist deaktiviert.');
           else if (mode === 'touchdown') disableFeature('touchdown', 'Touchdown meldet einen Fehler und ist deaktiviert.');
           else if (two) disableFeature('team2', '2 gegen 2 meldet einen Fehler und ist deaktiviert.');
           else if (mode === 'chaos') disableFeature('chaos', 'Der C.H.A.O.S-Modus meldet einen Fehler – es wird nach den Grundregeln gespielt.');
@@ -38737,6 +39185,7 @@ body { font-weight: 700; letter-spacing: 0; }
         canTunnel: !!app.features.tunnel,
         canFlat: !!app.features.flat,
         canFortress: !!app.features.fortress,
+        canPyramid: !!app.features.pyramid,
         canBots: !!app.features.ai,
         gameMode: gameMode,
         tdChaos: tdChaos,
@@ -39127,6 +39576,7 @@ body { font-weight: 700; letter-spacing: 0; }
         if (map === 'tunnel') disableFeature('tunnel', 'Die Tunnel-Karte meldet einen Fehler und ist deaktiviert.');
         else if (map === 'flat') disableFeature('flat', 'Die Karte „Flach“ meldet einen Fehler und ist deaktiviert.');
         else if (map === 'fortress') disableFeature('fortress', 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.');
+        else if (map === 'pyramid') disableFeature('pyramid', 'Die Karte „Pyramide“ meldet einen Fehler und ist deaktiviert.');
         else if (mode === 'touchdown') disableFeature('touchdown', 'Touchdown meldet einen Fehler und ist deaktiviert.');
         else if (mode === 'chaos') disableFeature('chaos', 'Der C.H.A.O.S-Modus meldet einen Fehler – es wird nach den Grundregeln gespielt.');
         app.dialog({ title: 'Start nicht möglich', text: errMsg(e), buttons: [{ label: 'OK', value: true }] });
@@ -59872,6 +60322,10 @@ body { font-weight: 700; letter-spacing: 0; }
  * merlons, an arched gate and two small team banners per face; crown tower pivots / towerCustom.
  * The renderer places the two 'tower-archer' crews and draws a procedural long rubble heap.
  *
+ * v22 'pyramid-princess' / 'pyramid-king' (map 'pyramid' / "Pyramide", docs/V22-PYRAMID.md): the crown
+ * towers of the desert map as stepped sandstone pyramids (pyramidTower: steps, back stair, top
+ * terrace, team banners, fire bowls = coreF / coreB) on the crown tower geometry / pivots.
+ *
  * Model ids
  *   crown towers : princess-tower, king-tower, princess-tower-rubble, king-tower-rubble
  *                  Model -Z = front (enemy side), +Z = back (own back line; the own camera sees
@@ -61373,6 +61827,135 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('smokeA', towerSmoke(kit, F + 0.5).at(GX + 0.35, 0, 0.2));
       return rig;
     },
+  });
+
+  // v22 PYRAMID TOWERS (map 'pyramid' / "Pyramide", docs/V22-PYRAMID.md; user: "Mach eine
+  // Pyramide. Das soll das Gebäude sein"): the crown towers of the desert map as stepped sandstone
+  // pyramids on the unchanged crown tower geometry (footprints 3 / 4, mounts PT.floor / KT.floor):
+  // warm sandstone steps (two tones, a darker joint course, pale capstones), a straight stair up the
+  // middle of the back face (+Z, the face the own camera sees), a small flat top terrace with a
+  // pale coping where the crew stands, a team banner hanging down the front face (banF) and a short
+  // one beside the stair on the back (banB), team pennants on two top corners (flagA / flagB), small
+  // fire bowls front / back (coreF / coreB: lit when the king wakes). Team colour only on the cloth.
+  // Same pivot / anim contract as the crown towers (towerCustom), so the renderer swaps the model
+  // ids per map and everything else (crews, bars, rubble, destruction) stays as it is.
+  const SAND = { a: 0xcf9f58, b: 0xbf8f4c, c: 0xb08244, joint: 0x6f4c26, cap: 0xe3c58a, capShade: 0xc9a66c, dark: 0x3b2a1a, wood: 0x9a6634 };
+  /** Stepped pyramid body: n steps from apothem a0 (y 0) to a1 at height F; returns parts. */
+  function pyrSteps(kit, a0, a1, F, n, seed) {
+    const parts = [], rnd = kit.rand(seed), h = F / n;
+    parts.push(band(kit, a0 + 0.08, a0 + 0.06, 0, 0.1, SAND.joint, 0.06));
+    for (let k = 0; k < n; k++) {
+      const ak = a0 + (a1 - a0) * k / n, y0 = 0.08 + k * h * (F - 0.08) / F, y1 = y0 + h * (F - 0.08) / F;
+      const col = [SAND.a, SAND.b, SAND.c][(k + (rnd() * 2 | 0)) % 3];
+      parts.push(band(kit, ak, ak - 0.06, y0, y1 - 0.035, col, 0.05));
+      // pale capstone course on every step (the sunlit tread), dark joint line under it
+      parts.push(band(kit, ak - 0.04, ak - 0.07, y1 - 0.04, y1, k === n - 1 ? SAND.cap : SAND.capShade, 0.03));
+      // a few proud blocks per face (stone texture that reads under the steep camera)
+      for (let f = 0; f < 4; f++) {
+        const m = 1 + (rnd() * 2 | 0);
+        for (let q = 0; q < m; q++) {
+          const x = (rnd() * 2 - 1) * (ak - 0.3), w = 0.22 + rnd() * 0.2;
+          const blk = kit.box(w, (y1 - y0) * 0.55, 0.04, { bevel: 0.012, seg: 1, color: kit.mix(col, 0xffffff, 0.12), mat: 'stone', rough: 0.86 }).at(x, (y0 + y1) / 2 - 0.02, -ak + 0.03);
+          if (f === 1) blk.rot(0, Math.PI, 0); else if (f === 2) blk.rot(0, HP, 0); else if (f === 3) blk.rot(0, -HP, 0);
+          parts.push(blk);
+        }
+      }
+    }
+    return parts;
+  }
+  /** Straight stair up the middle of the back face (+Z) from the ground to the top terrace. */
+  function pyrStair(kit, a0, a1, F, w, n) {
+    const parts = [];
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n, y = F * t, z = a0 + (a1 - a0) * t + 0.06;
+      parts.push(kit.box(w, F / n + 0.01, 0.2, { bevel: 0.02, seg: 1, color: k % 2 ? SAND.cap : SAND.capShade, mat: 'stone', rough: 0.8 }).at(0, y - F / n / 2 + 0.005, z - 0.06));
+    }
+    // low side walls of the stair
+    for (const sx of [-1, 1]) parts.push(kit.tube([[sx * (w / 2 + 0.05), 0.08, a0 + 0.04], [sx * (w / 2 + 0.05), F + 0.06, a1 + 0.02]], 0.05, { color: SAND.c, radial: 4, seg: 1, caps: 'round', mat: 'stone' }));
+    return kit.merge(parts);
+  }
+  /** Small fire bowl (stone foot + dark bowl); the glowing coals are separate (core pivots). */
+  function pyrBowl(kit, x, y, z) {
+    return kit.merge([
+      kit.rcyl(0.06, 0.08, 0.12, { seg: 8, color: SAND.c, mat: 'stone', bevel: 0.01 }).at(x, y + 0.06, z),
+      kit.lathe([[0.04, 0], [0.1, 0.02], [0.12, 0.09], [0.1, 0.1]], { seg: 10, color: SAND.dark, mat: 'metal' }).at(x, y + 0.12, z),
+    ]);
+  }
+  function pyrCoals(kit, x, y, z) {
+    return kit.merge([
+      kit.sphere(0.085, { seg: 8, hseg: 4, theta: [0, 1.4], color: 0xff8a2a, glow: 0.9, scale: [1, 0.6, 1] }).at(x, y + 0.2, z),
+      flame(kit, 0.12, { seg: 6 }).at(x, y + 0.2, z),
+    ]);
+  }
+  /** One pyramid crown tower. P = { a0 base apothem, a1 top apothem, F top (mount), n steps,
+   *  king, banner [w, h], seed }. */
+  function pyramidTower(kit, P) {
+    const rig = kit.rig();
+    const a0 = P.a0, a1 = P.a1, F = P.F;
+    rig.pivot('body', 'root', [0, 0, 0]);
+    const parts = pyrSteps(kit, a0, a1, F, P.n, P.seed);
+    // top terrace: pale coping slab + a low parapet ring of small pale blocks at the corners
+    parts.push(band(kit, a1 + 0.02, a1, F - 0.02, F + 0.04, SAND.cap, 0.03));
+    for (let q = 0; q < 4; q++) {
+      const sx = q & 1 ? 1 : -1, sz = q & 2 ? 1 : -1;
+      parts.push(merlon(kit, 0.22, 0.16, 0.22, sx * (a1 - 0.1), F + 0.03, sz * (a1 - 0.1), SAND.cap));
+    }
+    parts.push(pyrStair(kit, a0, a1, F, P.king ? 0.62 : 0.5, P.n * 2));
+    // fire bowls on the front / back middle of the terrace edge
+    const bz = a1 - 0.12;
+    parts.push(pyrBowl(kit, P.king ? -0.36 : -0.28, F + 0.03, -bz), pyrBowl(kit, P.king ? 0.36 : 0.28, F + 0.03, -bz));
+    parts.push(pyrBowl(kit, P.king ? -0.5 : -0.4, F + 0.03, bz), pyrBowl(kit, P.king ? 0.5 : 0.4, F + 0.03, bz));
+    // pennant poles on two top corners
+    const fx = a1 - 0.1, FY = F + 0.19 + 0.42;
+    for (const sg of [-1, 1]) {
+      parts.push(kit.rcyl(0.016, 0.02, 0.44, { seg: 8, color: SAND.wood, mat: 'wood', bevel: 0.006 }).at(sg * fx, F + 0.19 + 0.2, sg * fx));
+      parts.push(kit.sphere(0.03, { seg: 8, color: TW.gold, mat: 'gold' }).at(sg * fx, FY + 0.03, sg * fx));
+    }
+    rig.add('body', parts);
+    // team banner hanging down the front face from the terrace edge (banF), a short one beside the
+    // stair on the back face (banB)
+    const bw = P.banner[0], bh = P.banner[1], yT = F - 0.06;
+    const slope = (a0 - a1) / F, zf = a1 + slope * 0.06 + 0.02;
+    rig.pivot('banF', 'body', [0, yT, -zf - 0.08]);
+    rig.pivot('banB', 'body', [0, yT, zf + 0.08]);
+    const ban = banner17(kit, zf - PR + 0.03, yT, bw, bh).rot(-Math.atan(slope) * 0.85, 0, 0);
+    rig.add('banF', ban);
+    const sb = banner17(kit, zf - PR + 0.03, yT, bw * 0.55, bh * 0.45);
+    rig.add('banB', kit.merge([sb.clone().at(-(P.king ? 0.62 : 0.5), 0, 0).bake(), sb.clone().at(P.king ? 0.62 : 0.5, 0, 0).bake()]).rot(0, Math.PI, 0));
+    rig.pivot('flagA', 'body', [-fx, FY, -fx]);
+    rig.pivot('flagB', 'body', [fx, FY, fx]);
+    const fl = pennant17(kit, 0.36, 0.2);
+    rig.add('flagA', fl.clone().at(-fx, FY, -fx));
+    rig.add('flagB', fl.clone().rot(0, Math.PI, 0).at(fx, FY, fx));
+    // glowing coals (lit when the king wakes - towerCustom)
+    rig.pivot('coreF', 'body', [0, F + 0.2, -bz]);
+    rig.pivot('coreB', 'body', [0, F + 0.2, bz]);
+    rig.add('coreF', kit.merge([pyrCoals(kit, P.king ? -0.36 : -0.28, F + 0.03, -bz), pyrCoals(kit, P.king ? 0.36 : 0.28, F + 0.03, -bz)]));
+    rig.add('coreB', kit.merge([pyrCoals(kit, P.king ? -0.5 : -0.4, F + 0.03, bz), pyrCoals(kit, P.king ? 0.5 : 0.4, F + 0.03, bz)]));
+    // damage: cracks on the lower steps, fire + smoke on the terrace
+    rig.pivot('crack1', 'body', [0, 0, 0]);
+    rig.pivot('crack2', 'body', [0, 0, 0]);
+    const am = a0 - (a0 - a1) * 0.25;
+    const PC = { hw: am, plinth: a0 + 0.06, floor: F };
+    rig.add('crack1', towerCracks(kit, PC, false, P.seed + 3, 0.35, F * 0.42));
+    rig.add('crack2', towerCracks(kit, PC, true, P.seed + 7, 0.35, F * 0.42));
+    rig.pivot('fireA', 'body', [0.3, F + 0.04, 0.2]);
+    rig.add('fireA', kit.merge([flame(kit, 0.28, { seg: 7 }).at(0.3, F + 0.04, 0.2), flame(kit, 0.2, { seg: 6 }).at(-0.25, F + 0.04, -0.15)]));
+    rig.pivot('smokeA', 'body', [0.35, F + 0.5, 0.2]);
+    rig.add('smokeA', towerSmoke(kit, F + 0.5).at(0.35, 0, 0.2));
+    return rig;
+  }
+  defineModel('pyramid-princess', {
+    height: 2.3, mount: PT.floor, footprint: 3, ao: 0.16, prop: 'tower', look: LOOK_TW,
+    anim: { body: 'building', attack: 'none', weight: 1, custom(rig, st, t, dt, a) { towerCustom(rig, st, t, dt, a, false); } },
+    portrait: { yaw: -0.62, pitch: 0.34, zoom: 1.0 },
+    build(kit) { return pyramidTower(kit, { a0: 1.3, a1: 0.56, F: PT.floor, n: 5, king: false, banner: [0.36, 0.62], seed: 41 }); },
+  });
+  defineModel('pyramid-king', {
+    height: 2.5, mount: KT.floor, footprint: 4, ao: 0.16, prop: 'tower', look: LOOK_TW,
+    anim: { body: 'building', attack: 'none', weight: 1, custom(rig, st, t, dt, a) { towerCustom(rig, st, t, dt, a, true); } },
+    portrait: { yaw: -0.62, pitch: 0.34, zoom: 1.0 },
+    build(kit) { return pyramidTower(kit, { a0: 1.84, a1: 0.82, F: KT.floor, n: 6, king: true, banner: [0.5, 0.8], seed: 47 }); },
   });
 
   // Rubble after a crown tower falls (v17, CR style): the dark footing stays, low broken wall
@@ -68272,6 +68855,12 @@ body { font-weight: 700; letter-spacing: 0; }
  * sunken river with an animated water shader (flow ripples + bank foam), two wooden bridges,
  * baked into one static mesh. Hemisphere + directional light, toon materials, instanced blob
  * shadows, no shadow maps.
+ * v22 map 'pyramid' (Pyramide, docs/V22-PYRAMID.md): wallFor() / wallHeight() (exported as
+ *  Render3D.v22); desert field (paintField arg `desert`: sand checker, ripples, sandstone plazas, paved
+ *  tunnel floors), desert surroundings (palms, dunes, dry shrubs, sandstone rocks, sand plane), the wall
+ *  in the static scenery mesh (_buildWall: ashlar body, walkway, crenellations, watch / gate towers,
+ *  open arched tunnel gates, ladders), ground units lifted onto the wall / ladder (+ shadows), crown
+ *  towers drawn with the 'pyramid-king' / 'pyramid-princess' models (tm.pyr, _syncTowerSet).
  * v21 map 'fortress' (Festung, docs/V21-FORTRESS.md): drawn as the open flat field (flatField); its
  *  layout (CR.Arena.towerLayout(map)) has ONE long tower per side (kind 'king' + fortress): body
  *  CR.GFX 'fortress-tower' fitted to 8 x 2.5, two 'tower-archer' crews on the gun platforms aiming at
@@ -68592,7 +69181,7 @@ body { font-weight: 700; letter-spacing: 0; }
    *  rails map stays buildable (setMap('rails'), old replays / tests) but no menu offers it. */
   const RAIL_IDS = { rails: 1, rail: 1, schienen: 1, minecart: 1, train: 1, lore: 1 };
   const FLAT_IDS = { flat: 1, flach: 1, open: 1, plain: 1 };
-  function normMap(id) { return id === 'hill' || id === 'tunnel' || id === 'fortress' ? id : (FLAT_IDS[id] ? 'flat' : (RAIL_IDS[id] ? 'rails' : 'classic')); }
+  function normMap(id) { return id === 'hill' || id === 'tunnel' || id === 'fortress' || id === 'pyramid' ? id : (id === 'pyramide' ? 'pyramid' : (FLAT_IDS[id] ? 'flat' : (RAIL_IDS[id] ? 'rails' : 'classic'))); }
   /** v21: maps drawn as the open flat field (no river, open middle band): 'flat' and 'fortress'. */
   function flatField(mid) { return mid === 'flat' || mid === 'fortress'; }
 
@@ -68861,6 +69450,37 @@ body { font-weight: 700; letter-spacing: 0; }
     if (path.length < 2) { path.length = 0; path.push({ x: holes[0].x, y: holes[0].y }, { x: holes[1].x, y: holes[1].y }); }
     const w = +src.width > 0 ? clamp(+src.width, 0.8, 3) : (+src.halfWidth > 0 ? clamp(+src.halfWidth * 2, 0.8, 3) : 1.5);
     return { holes: holes, path: path, width: w };
+  }
+  /** v22 map 'pyramid': the wall geometry for the renderers {y0, y1, height, face, sep, top {x0, x1},
+   *  ladder {x0, x1, cx, foot}, tunnels [{x0, x1}]} from CR.Arena.WALL (live) or the map rules
+   *  (CR.RULES.arena.maps.pyramid), null for every other map / in touchdown. */
+  function wallFor(mapId, td) {
+    if (mapId !== 'pyramid' || td) return null;
+    const A = CR.Arena;
+    const RA = CR.RULES && CR.RULES.arena;
+    const M = RA && RA.maps ? RA.maps.pyramid : null;
+    const rv = RA && RA.river ? RA.river : { y0: 15, y1: 17 };
+    if (A && A.map === 'pyramid' && A.WALL) {
+      const W = A.WALL;
+      return { y0: W.y0, y1: W.y1, height: W.height, face: W.face, sep: W.sep, top: { x0: W.top.x0, x1: W.top.x1 }, ladder: { x0: W.ladder.x0, x1: W.ladder.x1, cx: W.ladder.cx, foot: W.ladder.foot }, tunnels: W.tunnels.map(function (t) { return { x0: t.x0, x1: t.x1 }; }) };
+    }
+    const wl = (M && M.wall) || {};
+    const br = (M && M.bridges) || [{ x0: 2, x1: 5, tunnel: true }, { x0: 8.4, x1: 9.6, ladder: true }, { x0: 13, x1: 16, tunnel: true }];
+    let lad = { x0: 8.4, x1: 9.6 };
+    const tun = [];
+    for (let i = 0; i < br.length; i++) { if (br[i].ladder) lad = br[i]; else tun.push({ x0: br[i].x0, x1: br[i].x1 }); }
+    return { y0: rv.y0, y1: rv.y1, height: +wl.height || 1.4, face: +wl.face || 0.4, sep: +wl.sep || 0.3, top: { x0: (wl.top && wl.top.x0) || 5, x1: (wl.top && wl.top.x1) || 13 }, ladder: { x0: lad.x0, x1: lad.x1, cx: (lad.x0 + lad.x1) / 2, foot: +wl.foot || 1 }, tunnels: tun };
+  }
+  /** v22: ground height under a ground unit on the pyramid map (wall top / ladder ramp), from a
+   *  wallFor() block - same profile as CR.Arena.heightAt. */
+  function wallHeight(Wl, x, y) {
+    if (!Wl) return 0;
+    if (y >= Wl.y0 && y < Wl.y1 && x > Wl.top.x0 && x < Wl.top.x1) return Wl.height;
+    const L = Wl.ladder;
+    if (x < L.x0 || x > L.x1) return 0;
+    if (y >= Wl.y0 - L.foot && y < Wl.y0) return Wl.height * clamp(1 - (Wl.y0 - y) / L.foot, 0, 1);
+    if (y >= Wl.y1 && y < Wl.y1 + L.foot) return Wl.height * clamp(1 - (y - Wl.y1) / L.foot, 0, 1);
+    return 0;
   }
   /** Ridge of a map id: {y0, top0, top1, y1, height} (sim y / world height) or null. */
   function ridgeFor(mapId) {
@@ -69494,8 +70114,11 @@ body { font-weight: 700; letter-spacing: 0; }
   /** Painted field texture (canvas row 0 = sim y H). ridge (hill map): no river gaps, the lanes
    *  run over the ridge as paved paths, slope contours, crest highlights, foot occlusion.
    *  px = pixels per tile (default FIELD_PX; an `into` canvas keeps its own resolution). */
-  function paintField(W, H, towers, bridges, river, into, ridge, td, px, tun, extra, dusk, flatMid) {
-    const D = !!dusk;   // v15 default: the pre-v14 dusk palette (dark moss, worn earth lanes, slate plazas)
+  function paintField(W, H, towers, bridges, river, into, ridge, td, px, tun, extra, dusk, flatMid, desert) {
+    // v22 desert (map 'pyramid', a wallFor() block or true): warm sand checker, wind ripples instead
+    // of grass blades, packed-sand lanes, sandstone plazas, the wall band + paved tunnel floors
+    const S = !!desert && !td;
+    const D = !!dusk && !S;   // v15 default: the pre-v14 dusk palette (dark moss, worn earth lanes, slate plazas)
     const PX = into ? Math.max(8, Math.round(into.width / W)) : (px > 0 ? px : FIELD_PX);
     const K = PX / 32;   // pixel constants were authored at 32 px per tile
     const cv = into || makeCanvas(W * PX, H * PX);
@@ -69524,14 +70147,16 @@ body { font-weight: 700; letter-spacing: 0; }
         // ~3 % apart): warmer yellow-green #c0cd4c / #b2c046 (R/G 0.94 like CR) - lit ~#afbb48 /
         // #a3ae43 on screen (v18 #97b148 / #88a541: too green and dark); still a touch deeper than CR
         // and ~7 % apart, so the tiles stay clearly readable (v18 user wish)
-        const r = D ? (odd ? 66 : 52) + j : (odd ? 192 : 178) + j, gg = D ? (odd ? 94 : 77) + j * 1.1 : (odd ? 205 : 192) + j * 1.1, b = D ? (odd ? 40 : 32) + j * 0.5 : (odd ? 76 : 70) + j * 0.5;
+        let r = D ? (odd ? 66 : 52) + j : (odd ? 192 : 178) + j, gg = D ? (odd ? 94 : 77) + j * 1.1 : (odd ? 205 : 192) + j * 1.1, b = D ? (odd ? 40 : 32) + j * 0.5 : (odd ? 76 : 70) + j * 0.5;
+        // v22 desert: warm sand checker (#e8c88a / #dcb977, ~6 % apart - the tiles stay readable)
+        if (S) { r = (odd ? 232 : 220) + j; gg = (odd ? 200 : 185) + j; b = (odd ? 138 : 119) + j * 0.6; }
         g.fillStyle = 'rgb(' + (r | 0) + ',' + (gg | 0) + ',' + (b | 0) + ')';
         g.fillRect(X(tx), Y(ty + 1), PX, PX);
         // soft sunlit sheen towards the top-left of every tile (a gently domed sod tile)
         const sh = g.createLinearGradient(X(tx), Y(ty + 1), X(tx + 1), Y(ty));
         sh.addColorStop(0, D ? 'rgba(255,206,140,' + (odd ? 0.05 : 0.04) + ')' : 'rgba(255,246,190,' + (odd ? 0.07 : 0.055) + ')');
         sh.addColorStop(0.55, D ? 'rgba(255,206,140,0)' : 'rgba(255,246,190,0)');
-        sh.addColorStop(1, D ? 'rgba(6,12,4,0.12)' : 'rgba(30,60,10,0.07)');
+        sh.addColorStop(1, D ? 'rgba(6,12,4,0.12)' : (S ? 'rgba(120,70,20,0.07)' : 'rgba(30,60,10,0.07)'));
         g.fillStyle = sh;
         g.fillRect(X(tx), Y(ty + 1), PX, PX);
       }
@@ -69541,7 +70166,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const x = rnd() * W, y = rnd() * H, r = (2 + rnd() * 4.5) * PX;
       const gr = g.createRadialGradient(X(x), Y(y), 0, X(x), Y(y), r);
       const lighter = rnd() < 0.5;
-      gr.addColorStop(0, D ? (lighter ? 'rgba(170,170,96,0.06)' : 'rgba(10,22,6,0.13)') : (lighter ? 'rgba(250,246,160,0.06)' : 'rgba(70,130,30,0.06)'));
+      gr.addColorStop(0, D ? (lighter ? 'rgba(170,170,96,0.06)' : 'rgba(10,22,6,0.13)') : (S ? (lighter ? 'rgba(255,240,200,0.08)' : 'rgba(170,110,50,0.07)') : (lighter ? 'rgba(250,246,160,0.06)' : 'rgba(70,130,30,0.06)')));
       gr.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = gr;
       g.fillRect(X(x) - r, Y(y) - r, r * 2, r * 2);
@@ -69557,7 +70182,11 @@ body { font-weight: 700; letter-spacing: 0; }
       }
     }
     // ---- fine grass blades: short tapered strokes in a few colour buckets (one stroke() each)
-    const buckets = D ? [
+    const buckets = S ? [
+      // v22 desert: fine wind ripples in the sand (light crests + soft shadows)
+      { c: 'rgba(255,238,196,0.26)', w: 1.2 }, { c: 'rgba(178,128,70,0.16)', w: 1.2 },
+      { c: 'rgba(255,244,214,0.18)', w: 1.6 }, { c: 'rgba(196,146,84,0.14)', w: 1.0 },
+    ] : D ? [
       { c: 'rgba(16,34,10,0.34)', w: 1.1 }, { c: 'rgba(28,50,16,0.28)', w: 1.5 },
       { c: 'rgba(130,146,74,0.20)', w: 1.0 }, { c: 'rgba(108,128,60,0.20)', w: 1.4 },
       { c: 'rgba(56,80,32,0.26)', w: 1.2 }, { c: 'rgba(180,160,100,0.10)', w: 0.9 },
@@ -69566,15 +70195,15 @@ body { font-weight: 700; letter-spacing: 0; }
       { c: 'rgba(236,244,140,0.20)', w: 1.0 }, { c: 'rgba(218,232,118,0.18)', w: 1.4 },
       { c: 'rgba(156,186,62,0.18)', w: 1.2 }, { c: 'rgba(250,244,170,0.12)', w: 0.9 },
     ];
-    const perTile = PX >= 56 ? 40 : 26;
+    const perTile = S ? 6 : (PX >= 56 ? 40 : 26);
     g.lineCap = 'round';
     for (let bi = 0; bi < buckets.length; bi++) {
       g.beginPath();
       const n = Math.round(W * H * perTile / buckets.length);
       for (let i = 0; i < n; i++) {
         const x = rnd() * W, y = rnd() * H;
-        const len = (0.05 + rnd() * 0.07) * PX;
-        const a = -Math.PI / 2 + (rnd() - 0.5) * 1.1;
+        const len = (S ? 0.12 + rnd() * 0.14 : 0.05 + rnd() * 0.07) * PX;
+        const a = S ? (rnd() - 0.5) * 0.35 : -Math.PI / 2 + (rnd() - 0.5) * 1.1;
         const px0 = X(x), py0 = Y(y);
         g.moveTo(px0, py0);
         g.lineTo(px0 + Math.cos(a) * len, py0 + Math.sin(a) * len);
@@ -69621,7 +70250,13 @@ body { font-weight: 700; letter-spacing: 0; }
           g.stroke();
         }
       };
-      if (D) {
+      if (S) {
+        // v22 desert: packed, slightly darker sand paths with a pale middle
+        strokeLane(1.08, 'rgba(150,104,52,0.22)');
+        strokeLane(0.96, 'rgb(200,152,94)');
+        strokeLane(0.84, 'rgb(214,170,112)');
+        strokeLane(0.5, 'rgba(236,206,154,0.45)');
+      } else if (D) {
         // v15 dusk: dark worn-earth lanes (v11 colours) in the crisp v14 CR grid shape
         strokeLane(1.1, 'rgba(14,20,8,0.42)');      // trodden grass rim
         strokeLane(0.96, 'rgb(78,62,42)');          // packed dark earth edge
@@ -69654,14 +70289,14 @@ body { font-weight: 700; letter-spacing: 0; }
     } else paintMowing(g, W, H, PX, td, X, Y, D);
     // ---- tile seams: thin darker lines on every tile edge (+ a faint light lip = bevel)
     const gl = Math.max(1, 0.9 * K);
-    g.fillStyle = D ? 'rgba(12,22,6,0.42)' : 'rgba(112,132,36,0.56)';   // (v20: warmer olive seams like CR; v18 rgba(84,122,34,0.62); v16 #7aaa3a; v15 dusk: dark moss seams)
+    g.fillStyle = D ? 'rgba(12,22,6,0.42)' : (S ? 'rgba(168,124,66,0.46)' : 'rgba(112,132,36,0.56)');   // (v20: warmer olive seams like CR; v18 rgba(84,122,34,0.62); v16 #7aaa3a; v15 dusk: dark moss seams)
     for (let tx = 1; tx < W; tx++) g.fillRect(X(tx) - gl / 2, 0, gl, H * PX);
     for (let ty = 1; ty < H; ty++) { if (inRiver(ty)) continue; g.fillRect(0, Y(ty) - gl / 2, W * PX, gl); }
     g.fillStyle = D ? 'rgba(214,208,160,0.09)' : 'rgba(255,250,200,0.10)';
     for (let tx = 1; tx < W; tx++) g.fillRect(X(tx) + gl / 2, 0, gl * 0.8, H * PX);
     for (let ty = 1; ty < H; ty++) { if (inRiver(ty)) continue; g.fillRect(0, Y(ty) + gl / 2, W * PX, gl * 0.8); }
     // ---- little flowers (daisies, buttercups, a few cornflowers / poppies) - sparse
-    for (let i = 0; i < (D ? 34 : 46); i++) {
+    for (let i = 0; i < (S ? 0 : (D ? 34 : 46)); i++) {
       const x = 0.5 + rnd() * (W - 1), y = 0.5 + rnd() * (H - 1);
       if (riverOn && y > river.y0 - 1 && y < river.y1 + 1) continue;
       if (td && (x > 1.2 && x < W - 1.2)) continue;   // touchdown: flowers only along the sidelines
@@ -69687,9 +70322,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const s = fs + 0.3, sd = sd0 + 0.3;
       const x0 = X(t.x - s / 2), y0 = Y(t.y + sd / 2), w = s * PX, hpx = sd * PX;
       // (v15 dusk: v10 dark slate flags with a gold inlay, same v14 footprint)
-      g.fillStyle = D ? 'rgba(0,0,0,0.38)' : 'rgba(60,96,20,0.24)';
+      g.fillStyle = D ? 'rgba(0,0,0,0.38)' : (S ? 'rgba(120,80,30,0.24)' : 'rgba(60,96,20,0.24)');
       rrect(g, x0 - 3 * K, y0 - 2 * K, w + 6 * K, hpx + 6 * K, PX * 0.42); g.fill();
-      g.fillStyle = D ? '#2a2624' : '#9a958b';   // (v16: light CR stone plaza; v18 a touch darker)
+      g.fillStyle = D ? '#2a2624' : (S ? '#b8935c' : '#9a958b');   // (v16: light CR stone plaza; v18 a touch darker; v22 desert: sandstone)
       rrect(g, x0, y0, w, hpx, PX * 0.36); g.fill();
       g.save();
       rrect(g, x0 + 2 * K, y0 + 2 * K, w - 4 * K, hpx - 4 * K, PX * 0.32); g.clip();
@@ -69698,8 +70333,8 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let a = -1; a <= n; a++) {
         for (let b2 = 0; b2 < nb; b2++) {
           const sx = x0 + a * cw + (b2 & 1 ? cw / 2 : 0), sy = y0 + b2 * cw;
-          const shade = (D ? 78 : 188) + ((rnd() * 22) | 0);
-          g.fillStyle = D ? 'rgb(' + shade + ',' + (shade - 4) + ',' + (shade - 8) + ')' : 'rgb(' + shade + ',' + (shade - 3) + ',' + (shade - 12) + ')';
+          const shade = (D ? 78 : (S ? 206 : 188)) + ((rnd() * 22) | 0);
+          g.fillStyle = D ? 'rgb(' + shade + ',' + (shade - 4) + ',' + (shade - 8) + ')' : (S ? 'rgb(' + shade + ',' + (shade - 26) + ',' + (shade - 70) + ')' : 'rgb(' + shade + ',' + (shade - 3) + ',' + (shade - 12) + ')');
           rrect(g, sx + gap, sy + gap, cw - gap * 2, cw - gap * 2, 4 * K); g.fill();
           g.fillStyle = D ? 'rgba(255,226,170,0.16)' : 'rgba(255,250,224,0.35)';
           rrect(g, sx + gap * 1.6, sy + gap * 1.3, cw - gap * 3.2, Math.max(1, 1.3 * K), 1 * K); g.fill();
@@ -69714,15 +70349,15 @@ body { font-weight: 700; letter-spacing: 0; }
         g.strokeStyle = 'rgba(201,154,60,0.85)'; g.lineWidth = 1.4 * K;   // gold trim inlay
         rrect(g, x0 + 3.2 * K, y0 + 3.2 * K, w - 6.4 * K, hpx - 6.4 * K, PX * 0.3); g.stroke();
       } else {
-        g.strokeStyle = 'rgba(122,116,104,0.9)'; g.lineWidth = 2.2 * K;
+        g.strokeStyle = S ? 'rgba(140,100,54,0.9)' : 'rgba(122,116,104,0.9)'; g.lineWidth = 2.2 * K;
         rrect(g, x0 + 1 * K, y0 + 1 * K, w - 2 * K, hpx - 2 * K, PX * 0.34); g.stroke();
       }
     }
     // ---- soft occlusion along the river banks and the outer border
     function band(x0, y0, x1, y1, horizontal, dir) {
       const gr = horizontal ? g.createLinearGradient(0, Y(y0), 0, Y(y1)) : g.createLinearGradient(X(x0), 0, X(x1), 0);
-      gr.addColorStop(dir ? 1 : 0, D ? 'rgba(4,10,2,0.5)' : 'rgba(40,80,14,0.24)');
-      gr.addColorStop(dir ? 0 : 1, D ? 'rgba(4,10,2,0)' : 'rgba(40,80,14,0)');
+      gr.addColorStop(dir ? 1 : 0, D ? 'rgba(4,10,2,0.5)' : (S ? 'rgba(110,66,20,0.24)' : 'rgba(40,80,14,0.24)'));
+      gr.addColorStop(dir ? 0 : 1, D ? 'rgba(4,10,2,0)' : (S ? 'rgba(110,66,20,0)' : 'rgba(40,80,14,0)'));
       g.fillStyle = gr;
       g.fillRect(Math.min(X(x0), X(x1)), Math.min(Y(y0), Y(y1)), Math.abs(X(x1) - X(x0)), Math.abs(Y(y1) - Y(y0)));
     }
@@ -69758,6 +70393,28 @@ body { font-weight: 700; letter-spacing: 0; }
       // a small round chalk mark in the middle of each lane + the field centre
       g.strokeStyle = D ? 'rgba(220,214,180,0.22)' : 'rgba(255,252,226,0.5)'; g.lineWidth = lw;
       for (const cx of [3.5, 9, 14.5]) { g.beginPath(); g.arc(X(cx), Y(16), (cx === 9 ? 0.75 : 0.32) * PX, 0, TAU); g.stroke(); }
+    }
+    // v22 desert wall band: shaded sand under the wall (the wall mesh covers it), paved floors in
+    // the two tunnel gates, a soft contact shadow along both wall faces
+    if (S) {
+      const wl = typeof desert === 'object' ? desert : { y0: 15, y1: 17, tunnels: [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }] };
+      g.fillStyle = 'rgb(150,116,72)';
+      g.fillRect(0, Y(wl.y1), W * PX, (wl.y1 - wl.y0) * PX);
+      for (let i = 0; i < (wl.tunnels || EMPTY).length; i++) {
+        const t = wl.tunnels[i];
+        g.fillStyle = 'rgb(176,146,104)';
+        g.fillRect(X(t.x0), Y(wl.y1), (t.x1 - t.x0) * PX, (wl.y1 - wl.y0) * PX);
+        // flagstones (two rows per tile)
+        for (let yy = wl.y0; yy < wl.y1 - 1e-6; yy += 0.5) {
+          for (let xx = t.x0 + ((yy * 2) % 2 ? 0.25 : 0); xx < t.x1 - 0.05; xx += 0.5) {
+            const sh = 168 + ((rnd() * 26) | 0);
+            g.fillStyle = 'rgb(' + sh + ',' + (sh - 22) + ',' + (sh - 58) + ')';
+            rrect(g, X(xx) + 1.5 * K, Y(yy + 0.5) + 1.5 * K, Math.min(0.5, t.x1 - xx) * PX - 3 * K, 0.5 * PX - 3 * K, 3 * K); g.fill();
+          }
+        }
+      }
+      band(0, wl.y0 - 0.5, W, wl.y0, true, true);
+      band(0, wl.y1, W, wl.y1 + 0.5, true, false);
     }
     if (riverOn) {
       band(0, river.y0 - 0.6, W, river.y0, true, true);
@@ -71173,10 +71830,15 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!this.rails) this._railSigSpots = null;
       this.riverOn = !this.hillOn && !this.td && !this.tunnelOn && this.map !== 'flat';   // v18: the flat map has no river
       if (flatField(this.map)) this.riverOn = false;   // v21: nor the fortress map (the flat field)
+      // v22 map 'pyramid': no river - a wall with two tunnels and a ladder (wallFor), desert field
+      this.wall = wallFor(mid, this.td);
+      if (mid === 'pyramid') this.riverOn = false;
       let br = null;
       if (A && A.BRIDGES && A.BRIDGES.length) br = A.BRIDGES;
       else if (RU && RU.bridges && RU.bridges.length) br = RU.bridges;
-      const bl = br ? br.map(function (b) { return { x0: b.x0, x1: b.x1 }; }) : [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }];
+      let bl = br ? br.map(function (b) { return { x0: b.x0, x1: b.x1 }; }) : [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }];
+      if (this.wall && this.wall.tunnels.length >= 2) bl = this.wall.tunnels.map(function (t) { return { x0: t.x0, x1: t.x1 }; });   // v22: the lanes run through the tunnels
+      else if (bl.length !== 2) bl = [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }];
       this._laneBridges = bl;                         // lane x positions (paths over the ridge)
       this.bridges = this.riverOn ? bl : [];
       hillProfile(mid, this._hill);
@@ -71267,7 +71929,7 @@ body { font-weight: 700; letter-spacing: 0; }
       let same = lay.length === this._towerList.length;
       for (let i = 0; same && i < lay.length; i++) {
         const tm = this._towers.get(lay[i].id);
-        if (!tm || tm.kind !== lay[i].kind || !!tm.fortress !== !!lay[i].fortress) same = false;
+        if (!tm || tm.kind !== lay[i].kind || !!tm.fortress !== !!lay[i].fortress || !!tm.pyr !== (this.map === 'pyramid')) same = false;   // (v22: + pyramid models)
       }
       if (same) return false;
       for (let i = 0; i < this._towerList.length; i++) {
@@ -71318,7 +71980,7 @@ body { font-weight: 700; letter-spacing: 0; }
           if (own) { this._fieldCanvas = own; this._fieldTex.image = own; }
           this._fieldShared = false;
         }
-        paintField(this.W, this.H, this.layout, this.riverOn ? this.bridges : this._laneBridges, this.riverOn ? this._riverVis() : null, this._fieldCanvas, this.ridge, this.td ? this.zones : null, 0, this.tunnel, this._paintExtras(), this._grim, (this.map === 'fortress' && !this.td) || this.map === 'flat' && !this.td);
+        paintField(this.W, this.H, this.layout, this.riverOn ? this.bridges : this._laneBridges, this.riverOn ? this._riverVis() : null, this._fieldCanvas, this.ridge, this.td ? this.zones : null, 0, this.tunnel, this._paintExtras(), this._grim, (this.map === 'fortress' && !this.td) || this.map === 'flat' && !this.td, this.wall || false);
         this._fieldTex.needsUpdate = true;
       }
       this._fitCamera();
@@ -71649,7 +72311,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this._arenaGeos = [];
       this._arenaTex = [];
       const aniso = this._maxAniso || 1;
-      const fcv = this._paintFieldCached([W, H, this.layout, this._laneBridges, null, null, this.ridge, this.td ? this.zones : null, this._fieldPx, this.tunnel, this._paintExtras(), this._grim, flatField(this.map) && !this.td]);
+      const fcv = this._paintFieldCached([W, H, this.layout, this._laneBridges, null, null, this.ridge, this.td ? this.zones : null, this._fieldPx, this.tunnel, this._paintExtras(), this._grim, flatField(this.map) && !this.td, this.wall || false]);
       const ftex = fcv ? new T.CanvasTexture(fcv) : null;
       this._fieldCanvas = fcv; this._fieldTex = ftex;
       if (ftex) {
@@ -71667,8 +72329,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const self = this;
       this._staticScenery(group, function (gb) {   // (v20: cached per arena)
         self._buildBorder(gb);
-        self._buildHillDecor(gb);
+        if (!self.wall) self._buildHillDecor(gb);
         const cB = gb.c.length;
+        if (self.wall) self._buildWall(gb);   // v22 pyramid: the stone wall, tunnel gates, ladder
         if (self.tunnelOn) self._buildTunnelDecor(gb);
         if (self.rails) self._buildRailsDecor(gb);
         if (self._grim) gb.dusk(cB);
@@ -71911,6 +72574,128 @@ body { font-weight: 700; letter-spacing: 0; }
     /** Tunnel holes (static scenery mesh): a horseshoe of dark rim stones open towards the ramp
      *  entrance, a timber portal (two posts, lintel, braces) over the far end of the ramp where
      *  the tunnel goes under ground, a black mouth inside the portal and a few loose rocks. */
+    /**
+     * v22 map 'pyramid' (docs/V22-PYRAMID.md): the "Great Wall" across the middle band, baked into
+     * the static scenery mesh (one draw call): grey-beige ashlar wall body (height wall.height) with
+     * block courses, a pale walkway on top, crenellations along both edges, two square watchtowers
+     * at the side lines, gate towers beside the two tunnels with arched gates (only a thin arch on
+     * each face - the passage between stays open to the camera, so troops in the tunnel stay
+     * visible) and a wooden ladder on both faces in the middle. Neutral ochre pennants, no team
+     * colours (the scenery is shared by both views).
+     */
+    _buildWall(gb) {
+      const T = this.T, hw = this.hw, hh = this.hh, Wl = this.wall;
+      if (!Wl) return;
+      const rnd = seeded(91);
+      const box = new T.BoxGeometry(1, 1, 1);
+      const STONE = [0xa39577, 0x978a6c, 0xae9f80, 0x8d8064], CAP = 0xc8bb9a, JOINT = 0x6a5f4c, DARK = 0x3a3128;
+      const WOOD = 0x9a6634, WOODL = 0xb88048, OCHRE = 0xc8862e;
+      const Hh = Wl.height, z0 = hh - Wl.y1, z1 = hh - Wl.y0, zc = (z0 + z1) / 2, D = z1 - z0;
+      const X = function (x) { return x - hw; };
+      // wall body segments (sim x ranges) - outside the tunnels, run a little past the side lines
+      const tun = Wl.tunnels.slice().sort(function (a, b) { return a.x0 - b.x0; });
+      const segs = [];
+      let cur = -0.5;
+      for (let i = 0; i < tun.length; i++) { segs.push([cur, tun[i].x0]); cur = tun[i].x1; }
+      segs.push([cur, this.W + 0.5]);
+      const face = function (x0, x1) {
+        // ashlar courses on both faces: proud blocks in running bond + dark joint lines
+        const rows = 3, rh = (Hh - 0.12) / rows;
+        for (let f = -1; f <= 1; f += 2) {
+          const zf = f < 0 ? z0 - 0.02 : z1 + 0.02;
+          for (let k = 0; k < rows; k++) {
+            const yc = 0.1 + (k + 0.5) * rh;
+            gb.add(box, X((x0 + x1) / 2), 0.1 + k * rh, zf, 0, 0, 0, x1 - x0, 0.03, 0.03, JOINT, null);
+            let x = x0 + (k % 2 ? 0 : 0.3);
+            while (x < x1 - 0.1) {
+              const w = Math.min(0.5 + rnd() * 0.35, x1 - x);
+              if (w > 0.15 && rnd() < 0.55) gb.rbox(X(x + w / 2), yc, zf + f * 0.025, 0, 0, 0, w - 0.05, rh - 0.06, 0.06, 0.02, STONE[(rnd() * STONE.length) | 0], null);
+              x += w;
+            }
+          }
+        }
+      };
+      const merlons = function (x0, x1, y) {
+        for (let f = -1; f <= 1; f += 2) {
+          const zf = f < 0 ? z0 + 0.12 : z1 - 0.12;
+          const n = Math.max(1, Math.round((x1 - x0) / 0.62));
+          for (let k = 0; k < n; k++) {
+            const x = x0 + (x1 - x0) * (k + 0.5) / n;
+            if (Math.abs(x - Wl.ladder.cx) < 0.75) continue;   // open over the ladder
+            gb.rbox(X(x), y + 0.15, zf, 0, 0, 0, 0.34, 0.3, 0.22, 0.05, CAP, [y, y + 0.3, 0.82]);
+          }
+        }
+      };
+      for (let i = 0; i < segs.length; i++) {
+        const x0 = segs[i][0], x1 = segs[i][1];
+        if (x1 - x0 < 0.05) continue;
+        gb.rbox(X((x0 + x1) / 2), 0.04, zc, 0, 0, 0, x1 - x0 + 0.12, 0.08, D + 0.16, 0.03, 0x766a55, null);                       // footing
+        gb.rbox(X((x0 + x1) / 2), Hh / 2, zc, 0, 0, 0, x1 - x0, Hh, D, 0.06, STONE[i % STONE.length], [0, Hh, 0.7]);              // body
+        gb.rbox(X((x0 + x1) / 2), Hh + 0.02, zc, 0, 0, 0, x1 - x0 + 0.04, 0.06, D + 0.04, 0.02, CAP, null);                      // walkway coping
+        // walkway flagstones (pale, two rows)
+        for (let x = x0 + 0.05; x < x1 - 0.1; x += 0.55) {
+          for (let r = 0; r < 2; r++) gb.add(box, X(Math.min(x + 0.26, x1 - 0.26)), Hh + 0.055, zc + (r ? 0.3 : -0.3), 0, (rnd() - 0.5) * 0.04, 0, 0.5, 0.012, 0.52, rnd() < 0.5 ? 0xcfc3a6 : 0xbdb092, null);
+        }
+        face(x0, x1);
+        merlons(x0 + 0.1, x1 - 0.1, Hh + 0.05);
+      }
+      // square towers: two watchtowers at the side lines, a gate tower on each side of each tunnel
+      const tower = function (x, w, h, pennant) {
+        gb.rbox(X(x), h / 2, zc, 0, 0, 0, w, h, D + 0.36, 0.07, STONE[2], [0, h, 0.68]);
+        gb.rbox(X(x), h + 0.03, zc, 0, 0, 0, w + 0.08, 0.08, D + 0.44, 0.03, CAP, null);
+        for (let q = 0; q < 4; q++) {
+          const sx = q & 1 ? 1 : -1, sz = q & 2 ? 1 : -1;
+          gb.rbox(X(x + sx * (w / 2 - 0.12)), h + 0.22, zc + sz * ((D + 0.36) / 2 - 0.12), 0, 0, 0, 0.26, 0.32, 0.26, 0.05, CAP, [h, h + 0.38, 0.82]);
+        }
+        // arrow slits front / back
+        for (let f = -1; f <= 1; f += 2) gb.add(box, X(x), h * 0.62, zc + f * ((D + 0.36) / 2 + 0.01), 0, 0, 0, 0.1, 0.32, 0.02, DARK, null);
+        if (pennant) {
+          gb.add(box, X(x), h + 0.62, zc, 0, 0, 0, 0.04, 0.9, 0.04, WOOD, null);
+          gb.add(box, X(x) + 0.18, h + 0.92, zc, 0, 0, 0, 0.34, 0.2, 0.02, OCHRE, null);
+        }
+      };
+      tower(-0.25, 1.1, Hh + 0.62, true);
+      tower(this.W + 0.25, 1.1, Hh + 0.62, true);
+      for (let i = 0; i < tun.length; i++) {
+        const t = tun[i];
+        tower(t.x0 - 0.35, 0.7, Hh + 0.32, false);
+        tower(t.x1 + 0.35, 0.7, Hh + 0.32, false);
+        // arched gate: a segmental arch of voussoirs + spandrel fill + lintel on each FACE only
+        const cx = (t.x0 + t.x1) / 2, span = t.x1 - t.x0, hs = span / 2, apex = Hh - 0.3, rise = apex - 0.55;
+        const r = (hs * hs + rise * rise) / (2 * rise), yc0 = apex - r, ha = Math.asin(Math.min(1, hs / r));
+        for (let f = -1; f <= 1; f += 2) {
+          const zf = f < 0 ? z0 + 0.2 : z1 - 0.2;
+          gb.rbox(X(cx), Hh - 0.08, zf, 0, 0, 0, span + 0.1, 0.26, 0.4, 0.04, STONE[1], null);                                  // lintel
+          gb.rbox(X(cx), Hh + 0.02, zf, 0, 0, 0, span + 0.14, 0.06, 0.44, 0.02, CAP, null);
+          const n = 7;
+          for (let k = 0; k < n; k++) {
+            const a = Math.PI / 2 - ha + 2 * ha * (k + 0.5) / n;
+            const ax = cx + Math.cos(a) * r, ay = yc0 + Math.sin(a) * r;
+            gb.rbox(X(ax), ay, zf, 0, 0, a - Math.PI / 2, 0.42, 0.26, 0.42, 0.04, k === 3 ? CAP : 0xb9ab8c, null);
+            // spandrel: fill from the arch up to the lintel
+            const top = Hh - 0.2, sh = top - ay - 0.1;
+            if (sh > 0.06) gb.add(box, X(ax), ay + 0.1 + sh / 2, zf, 0, 0, 0, span / n + 0.02, sh, 0.36, STONE[k % STONE.length], null);
+          }
+        }
+        merlons(t.x0, t.x1, Hh + 0.05);
+      }
+      // the ladder on both faces (rails from the ground in front of the face up over the coping)
+      const L = Wl.ladder, lw = Math.min(1.0, L.x1 - L.x0 - 0.1);
+      for (let f = -1; f <= 1; f += 2) {
+        const zb = f < 0 ? z0 - L.foot * 0.85 : z1 + L.foot * 0.85, zt = f < 0 ? z0 - 0.04 : z1 + 0.04;
+        const len = Math.sqrt((Hh + 0.25) * (Hh + 0.25) + (zb - zt) * (zb - zt)), tilt = Math.atan2(zb - zt, Hh + 0.25);
+        for (const sx of [-1, 1]) gb.rbox(X(L.cx + sx * lw / 2), (Hh + 0.25) / 2, (zb + zt) / 2, -tilt, 0, 0, 0.09, len, 0.09, 0.03, WOOD, null);
+        const nr = 6;
+        for (let k = 1; k <= nr; k++) {
+          const t = k / (nr + 1);
+          gb.rbox(X(L.cx), (Hh + 0.25) * t, zb + (zt - zb) * t, 0, 0, 0, lw + 0.06, 0.06, 0.08, 0.02, k % 2 ? WOODL : WOOD, null);
+        }
+        // a gap in the merlons above the ladder is left by the walkway; a small stone landing
+        gb.rbox(X(L.cx), Hh + 0.07, f < 0 ? z0 + 0.25 : z1 - 0.25, 0, 0, 0, lw + 0.2, 0.04, 0.4, 0.02, 0xcfc3a6, null);
+      }
+      box.dispose();
+    }
+
     _buildTunnelDecor(gb) {
       const tun = this.tunnel;
       if (!tun) return;
@@ -72140,6 +72925,22 @@ body { font-weight: 700; letter-spacing: 0; }
             gb.add(box, x + w / 2, -0.005 + rnd() * 0.01, zz, 0, (rnd() - 0.5) * 0.12, 0, w, 0.05, 0.34 + rnd() * 0.05, COB[(rnd() * COB.length) | 0], null);
           }
         }
+        // v22 desert (pyramid map): palms, dunes and sandstone rocks instead of hedge, festival,
+        // trees and flowers (clean, no text); the stone lanterns stay
+        if (this.wall) {
+          const zp = zl + e * 1.7;
+          lantern(-1.55, zp); lantern(1.55, zp);
+          lantern(-hw - 0.05, zl + e * 0.65, true); lantern(hw + 0.05, zl + e * 0.65, true);
+          const palms = [[-7.6, 1.5, 1.15], [-4.2, 2.4, 1.0], [3.6, 1.9, 1.1], [7.2, 1.2, 1.2], [0.4, 3.4, 1.05], [-9.8, 3.2, 1.0], [9.9, 3.0, 0.95]];
+          for (let i = 0; i < palms.length; i++) dec.put('palm', palms[i][0] * -e, zl + e * palms[i][1], rnd() * TAU, palms[i][2]);
+          const dunes = [[-6.0, 3.6, 1.2], [5.6, 3.9, 1.4], [-1.8, 4.6, 1.1], [9.0, 5.2, 1.3], [-9.4, 5.6, 1.2]];
+          for (let i = 0; i < dunes.length; i++) dec.put('dune', dunes[i][0] * -e, zl + e * dunes[i][1], (rnd() - 0.5) * 0.8, dunes[i][2]);
+          dec.put('rock-big', -5.4 * -e, zl + e * 2.2, rnd() * TAU, 0.7);
+          dec.put('rock', 5.6 * -e, zl + e * 2.6, rnd() * TAU, 0.8);
+          dec.put('shrub', -2.8 * -e, zl + e * 2.3, rnd() * TAU, 1.0);
+          dec.put('shrub', 2.4 * -e, zl + e * 1.1, rnd() * TAU, 0.9);
+          continue;
+        }
         // trimmed hedge (gap in the middle) + stone lanterns at its ends and at the gap
         // (v18: gaps for the festival tents / banner poles of the CR-like decoration strip)
         const zh = zl + e * 1.6;
@@ -72321,6 +73122,7 @@ body { font-weight: 700; letter-spacing: 0; }
         for (let i = 0; i < spots.length; i++) {
           const z = spots[i][0] * sd * (hh / 16);
           if (this.riverOn && z > zr0 - 1.1 && z < zr1 + 1.1) continue;
+          if (this.wall && Math.abs(z - (hh - (this.wall.y0 + this.wall.y1) / 2)) < 2.2) continue;   // v22: not at the wall towers
           if (this.rails) continue;
           // on the curb line: the CR side margin is only ~0.42 tiles, so they sit on the curb and
           // lean over the outer tile edge a little (like CR's edge rocks)
@@ -72413,7 +73215,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const insts = {};
       // (v15 polish, ART-REVIEW-V15 R1: round crowns / bushes from smooth blobs, softened rocks and
       // 12-sided pines instead of the faceted v14 low-poly shapes; one static mesh as before)
-      const geo = { ico: new T.IcosahedronGeometry(1, 1), sph: new T.SphereGeometry(1, 8, 6), blob: new T.SphereGeometry(1, 12, 9), cone: new T.ConeGeometry(1, 1, 12) };
+      const geo = { ico: new T.IcosahedronGeometry(1, 1), sph: new T.SphereGeometry(1, 8, 6), blob: new T.SphereGeometry(1, 12, 9), cone: new T.ConeGeometry(1, 1, 12), cyl: new T.CylinderGeometry(0.82, 1, 1, 8) };
       // v15 polish R1: dusk foliage on the same grade as the meadow (no brighter garden greens);
       // blooms = the field's dusk poppies and dry gold
       const DK = !!this._grim;
@@ -72440,10 +73242,49 @@ body { font-weight: 700; letter-spacing: 0; }
         insts[id] = it;
         return it;
       };
+      const DES = !!self.wall;   // v22 desert (pyramid map): dry shrubs, sandstone rocks, palms, dunes
+      const DRY = [0x8a8a44, 0x9a9450, 0x7c7c3c, 0xa6a058, 0x6e7036];
       return {
         put: function (id, wx, wz, ry, s, y) {
           const h = (y || 0) + self._gh(wx, wz);
           s = s || 1;
+          if (DES && id === 'palm') {
+            // date palm: a curved ringed trunk (stacked tapering cones) + 7 drooping fronds + dates
+            const lean = 0.18 + (Math.abs(wx * 3.1 + wz) % 0.2), ca = Math.cos(ry), sa = Math.sin(ry);
+            let px = wx, pz = wz, py = h;
+            for (let k = 0; k < 6; k++) {
+              const seg = 0.36 * s, rr = (0.12 - k * 0.012) * s;
+              const nx = px + ca * lean * seg * (0.5 + k * 0.18), nz = pz - sa * lean * seg * (0.5 + k * 0.18);
+              gb.add(geo.cyl, (px + nx) / 2, py + seg / 2, (pz + nz) / 2, 0, ry, 0, rr, seg * 1.02, rr, k % 2 ? 0x8a6a42 : 0x9c7a4c, null);
+              px = nx; pz = nz; py += seg;
+            }
+            for (let k = 0; k < 7; k++) {
+              const a = ry + k * TAU / 7, fx = Math.cos(a), fz = Math.sin(a);
+              gb.add(geo.blob, px + fx * 0.42 * s, py - 0.1 * s, pz + fz * 0.42 * s, 0, -a, 0.55, 0.5 * s, 0.05 * s, 0.13 * s, k % 2 ? 0x5f9a3a : 0x6aa842, null);
+              gb.add(geo.blob, px + fx * 0.8 * s, py - 0.32 * s, pz + fz * 0.8 * s, 0, -a, 0.95, 0.3 * s, 0.035 * s, 0.1 * s, k % 2 ? 0x558e34 : 0x5f9a3a, null);
+            }
+            gb.add(geo.sph, px, py - 0.06 * s, pz, 0, 0, 0, 0.13 * s, 0.11 * s, 0.13 * s, 0xb0622a, null);
+            return;
+          }
+          if (DES && id === 'dune') {
+            // low sand dune: a long soft mound with a lighter crest
+            gb.add(geo.blob, wx, h - 0.05 * s, wz, 0, ry, 0, 1.3 * s, 0.32 * s, 0.7 * s, 0xd9b574, [h - 0.1, h + 0.25 * s, 0.82]);
+            gb.add(geo.blob, wx + 0.2 * s * Math.cos(ry), h + 0.04 * s, wz - 0.2 * s * Math.sin(ry), 0, ry, 0, 0.8 * s, 0.22 * s, 0.38 * s, 0xe8c98c, null);
+            return;
+          }
+          if (DES && id === 'shrub') {
+            const cA = DRY[(Math.abs(wx * 7 + wz * 3) | 0) % 3];
+            gb.add(geo.blob, wx, h + 0.18 * s, wz, 0, ry, 0, 0.3 * s, 0.2 * s, 0.28 * s, cA, [h, h + 0.4 * s, 0.7]);
+            gb.add(geo.blob, wx + 0.16 * s, h + 0.13 * s, wz + 0.05 * s, 0, ry, 0, 0.18 * s, 0.14 * s, 0.18 * s, DRY[3], null);
+            gb.add(geo.blob, wx - 0.15 * s, h + 0.12 * s, wz - 0.04 * s, 0, ry, 0, 0.17 * s, 0.13 * s, 0.17 * s, DRY[4], null);
+            return;
+          }
+          if (DES && (id === 'rock' || id === 'rock-big')) {
+            const big = id === 'rock-big' ? 1.6 : 1;
+            gb.add(geo.ico, wx, h + 0.14 * s * big, wz, 0.3, ry, 0.2, 0.42 * s * big, 0.3 * s * big, 0.38 * s * big, 0xc49a62, [h, h + 0.44 * s * big, 0.7]);
+            gb.add(geo.ico, wx + 0.3 * s * big, h + 0.07 * s * big, wz + 0.12 * s * big, 1.1, ry, 0.5, 0.2 * s * big, 0.15 * s * big, 0.18 * s * big, 0xb08850, [h, h + 0.2 * s * big, 0.75]);
+            return;
+          }
           // v14 cheap own shapes for the many small things (the kit models are 2-7k triangles each)
           if (id === 'shrub') {
             const cA = SHRUB[(Math.abs(wx * 7 + wz * 3) | 0) % 3];
@@ -72511,7 +73352,7 @@ body { font-weight: 700; letter-spacing: 0; }
         },
         done: function () {
           for (const k in insts) { const it = insts[k]; if (it) { try { if (it.object3d.parent) it.object3d.parent.remove(it.object3d); it.release(); } catch (e) { /* ignore */ } } }
-          geo.ico.dispose(); geo.sph.dispose(); geo.blob.dispose(); geo.cone.dispose();
+          geo.ico.dispose(); geo.sph.dispose(); geo.blob.dispose(); geo.cone.dispose(); geo.cyl.dispose();
         },
       };
     }
@@ -72529,7 +73370,7 @@ body { font-weight: 700; letter-spacing: 0; }
       // cut by the screen edge - one deeper olive meadow tone with only a smooth low-frequency
       // variation (neighbouring quads differ by < 1.5 %), a little darker than the field so the
       // checkered 18 x 32 field is clearly framed. (v15 dusk: after GeoBuf.dusk a deep moss.)
-      const base = new T.Color(this._grim ? 0x4c7631 : 0x6f9636), cc = new T.Color();
+      const base = new T.Color(this.wall ? 0xcfa767 : (this._grim ? 0x4c7631 : 0x6f9636)), cc = new T.Color();   // (v22 desert: sand)
       const smooth = function (x, z) {
         return 0.06 * Math.sin(x * 0.37 + z * 0.11 + 1.3) * Math.cos(z * 0.29 - x * 0.07) + 0.035 * Math.sin(x * 0.13 - z * 0.21 + 0.4);
       };
@@ -73474,12 +74315,12 @@ body { font-weight: 700; letter-spacing: 0; }
       this.scene.add(this.shadows);
     }
 
-    _shadow(x, z, sx, sz, ry) {
+    _shadow(x, z, sx, sz, ry, y) {
       const n = this._shadowN;
       if (n >= 220) return;
       this._e.set(0, ry || 0, 0);
       this._q.setFromEuler(this._e);
-      this._pos.set(x, 0.012 + (n % 7) * 0.0006, z);
+      this._pos.set(x, (y || 0) + 0.012 + (n % 7) * 0.0006, z);   // (v22: y = ground height on the pyramid wall)
       this._sc.set(sx, 1, sz);
       this._m4.compose(this._pos, this._q, this._sc);
       this.shadows.setMatrixAt(n, this._m4);
@@ -73593,6 +74434,7 @@ body { font-weight: 700; letter-spacing: 0; }
         };
         tm.e.x = L.x - this.hw; tm.e.z = this.hh - L.y;
         tm.group.position.set(tm.e.x, 0, tm.e.z);
+        tm.pyr = this.map === 'pyramid';   // v22: pyramid tower models on the pyramid map
         if (tm.fortress) {
           // v21 fortress: second crew + per-gun aim / crew state (gun 0 uses crewInst / cst / dirS)
           tm.crew2Inst = null; tm.crew2Meshes = null; tm.crew2 = null; tm.dirS2 = tm.dirS; tm.posed2 = false;
@@ -73677,7 +74519,9 @@ body { font-weight: 700; letter-spacing: 0; }
       tm.cside = cs;
       if (tm.fortress) { this._dressFortress(tm, cs); return; }
       const X = gfx();
-      const bodyId = tm.king ? 'king-tower' : 'princess-tower';
+      // v22 map 'pyramid': the stepped sandstone pyramids (same geometry / pivots as the crown towers)
+      const pyrId = tm.pyr ? (tm.king ? 'pyramid-king' : 'pyramid-princess') : '';
+      const bodyId = pyrId && X && gfxHas(pyrId) ? pyrId : (tm.king ? 'king-tower' : 'princess-tower');
       const crewId = tm.king ? 'king' : 'tower-archer';
       const yaw = (CR.GFX && typeof CR.GFX.dirToYaw === 'function') ? CR.GFX.dirToYaw(tm.side === 0 ? Math.PI / 2 : -Math.PI / 2) : (tm.side === 0 ? 0 : Math.PI);
       tm.yaw = yaw;
@@ -75499,7 +76343,8 @@ body { font-weight: 700; letter-spacing: 0; }
         if (this.hillOn) {
           gy = this._ghs(x, y);
           if (!u.air) by = u.building ? this._footGround(x, y, u, gy) : gy;
-        } else if (!u.air && this._onBridge(x, y)) by = 0.09;
+        } else if (this.wall && !u.air && !u.building) by = wallHeight(this.wall, x, y);   // v22: on the pyramid wall / ladder
+        else if (!u.air && this._onBridge(x, y)) by = 0.09;
         if (under) by -= TUNNEL_SINK;   // v12: inside the tunnel (dimmed silhouette, feet below the ground)
         if (seat) by = seat.y;
         e.x = wx; e.z = wz; e.under = under;
@@ -75542,7 +76387,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const hz = base - (this.hillOn ? gy : by);
         const ss = (u.building ? (u.size > 0 ? u.size * 1.1 : rr * 2.4) : rr * 2.1) * clamp(1 - hz * 0.1, 0.55, 1);
         if (!((fxb & 32) && !u.building) && !under && !seat) {
-          this._shadow(wx, wz, ss, ss * (u.building ? 1 : 0.9), 0);
+          this._shadow(wx, wz, ss, ss * (u.building ? 1 : 0.9), 0, this.wall && !this.hillOn ? by : 0);
           // v11 team ring under every unit: v14 OFF by default (user: no circles around the units -
           // the team colour reads from the model itself); options.teamRings === true brings it back
           if (this.options.teamRings === true) {
@@ -77097,6 +77942,7 @@ body { font-weight: 700; letter-spacing: 0; }
     profile: hillProfile, profileAt: profileAt, rayTerrain: rayTerrain, ringKind: ringKind, ringSlot: ringSlot };
   // v6 Touchdown field helpers (pure; exposed for headless tests)
   // v18: flat map ids, the narrower drawn river, the decoration strip under the field (pure, tests)
+  Render3D.v22 = { normMap: normMap, wallFor: wallFor, wallHeight: wallHeight, paintField: paintField, arenaKey: arenaKey };
   Render3D.v18 = { normMap: normMap, FLAT_IDS: FLAT_IDS, RIVER_INSET: RIVER_INSET, BOT_MIN: FIT_BOT_MIN, TOP_MIN: FIT_TOP_MIN };
   Render3D.tunnel = { normMap: normMap, tunnelFor: tunnelFor, tunnelDir: tunnelDir, isUnderground: isUnderground, isClone: isClone, arenaKey: arenaKey };
   Render3D.touchdown = { zones: tdZones, lines: tdLines, rect: tdRect, scoreZone: tdScoreZone, arenaKey: arenaKey, isTouchdown: isTouchdown, DEPTH: TD_DEPTH };
