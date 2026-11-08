@@ -6131,6 +6131,162 @@ body { font-weight: 700; letter-spacing: 0; }
 }
 .hcard.is-poor .hcard-name { color: #a9b8d6; }
 
+/* ===================================================================== v19 feel pass: the hand like Clash Royale
+   Rarity frames (common silver-blue, rare orange, epic purple, legendary rainbow-gold, champion
+   gold), rounder hand cards with the purple cost drop at the top LEFT and the name caption at the
+   bottom of the card face; select = springy lift + the other cards dim; card cycle (played card
+   pops away, the next card flies in from the "next" slot - Web Animations in 10-ui.js); elixir pip
+   glow + number pop; deny = shake + short red flash; cost drop wiggles when not affordable; button
+   press feedback. Sizes / hand position from v16 + v18 unchanged. Only transform / opacity (and
+   the individual translate / scale / rotate properties) animate. */
+:is(.card, .hcard, .hero-card, .load-card, .dm-card, .dr-card) {
+  --rar-frame: linear-gradient(150deg, #f4f8fd 0%, #c0d0e2 18%, #7d92ad 50%, #b1c2d6 72%, #36435a 100%);
+}
+:is(.card, .hcard, .hero-card, .load-card, .dm-card, .dr-card, .dr-slot, .tag).rar-rare {
+  --rar-frame: linear-gradient(150deg, #ffe6bf 0%, #ffad4a 20%, #cf650f 52%, #f6a23f 74%, #5c2705 100%);
+}
+:is(.card, .hcard, .hero-card, .load-card, .dm-card, .dr-card, .dr-slot, .tag).rar-epic {
+  --rar-frame: linear-gradient(150deg, #f7e3ff 0%, #d382ff 20%, #8a2fd2 52%, #c868ff 74%, #3a0a63 100%);
+}
+:is(.card, .hcard, .hero-card, .load-card, .dm-card, .dr-card, .dr-slot, .tag).rar-legendary {
+  --rar-frame: linear-gradient(135deg, #fff5c0 0%, #ffd25e 13%, #ff9ad8 30%, #a3d4ff 47%, #8cf5c8 63%, #ffe27a 80%, #a8721c 100%);
+}
+:is(.card, .hcard, .hero-card, .load-card, .dm-card, .dr-card, .dr-slot, .tag).rar-champion {
+  --rar-frame: linear-gradient(150deg, #fff8d2 0%, #ffd94a 20%, #c4860c 52%, #ffe47a 74%, #5e3a00 100%);
+}
+
+/* hand card: rounder frame, a hair thicker; selected card lifts with a spring */
+.hcard {
+  --cr: calc(var(--card-w) * 0.15);
+  border-width: 2.5px;
+  border-radius: var(--cr);
+  transition: transform 0.26s cubic-bezier(.34, 1.7, .5, 1), opacity 0.14s;
+}
+.hcard > .card-art, .hcard > .card-shine { border-radius: calc(var(--cr) - 2.5px); }
+.hcard.small { --cr: calc(var(--next-w) * 0.15); border-width: 2px; }
+.hcard.small > .card-art, .hcard.small > .card-shine { border-radius: calc(var(--cr) - 2px); }
+.hcard.is-selected { z-index: 2; transform: translateY(calc(var(--card-w) * -0.18)) scale(1.08); }
+.hcard.is-selected.is-dragging { transform: translateY(calc(var(--card-w) * -0.18)); opacity: 0.45; }
+.hcard.is-out { opacity: 0 !important; transition: none; }
+/* dim / flash layer over the whole card */
+.hcard-fx {
+  position: absolute;
+  inset: -2.5px;
+  z-index: 5;
+  border-radius: var(--cr);
+  background: rgba(4, 8, 24, 0.34);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease-out;
+}
+.hand-cards.has-sel .hcard:not(.is-selected) .hcard-fx { opacity: 1; }
+.hcard.deny .hcard-fx { animation: cr19-deny 0.42s ease-out; }
+.hcard.shake { animation: cr19-shake 0.34s ease-in-out; }
+
+/* cost: purple drop at the top left corner (like the CR card), name caption at the bottom */
+.hcard .cost {
+  left: calc(var(--card-w) * -0.1);
+  top: calc(var(--card-w) * -0.09);
+  bottom: auto;
+  margin-left: 0;
+  width: calc(var(--card-w) * 0.36);
+  height: calc(var(--card-w) * 0.36);
+  z-index: 4;
+}
+.hcard .cost b { font-size: calc(var(--card-w) * 0.23); margin-top: calc(var(--card-w) * 0.04); }
+.hcard.small .cost {
+  left: calc(var(--next-w) * -0.12);
+  top: calc(var(--next-w) * -0.12);
+  bottom: auto;
+  margin-left: 0;
+  width: calc(var(--next-w) * 0.44);
+  height: calc(var(--next-w) * 0.44);
+}
+.hcard .cost.shake { animation: cr19-cost 0.42s ease-in-out; }
+.hcard-name {
+  top: auto;
+  bottom: 0;
+  padding: 3px 3px 1px;
+  border-radius: 0 0 calc(var(--cr) - 2.5px) calc(var(--cr) - 2.5px);
+  background: linear-gradient(0deg, rgba(3, 8, 24, 0.86) 0%, rgba(3, 8, 24, 0.58) 60%, rgba(3, 8, 24, 0) 100%);
+}
+.hcard-charge { z-index: 1; }
+
+/* played card: a pointer-free copy pops (white flash) and shrinks away in its slot */
+.hcard.hcard-out {
+  position: absolute;
+  z-index: 31;
+  width: var(--card-w);
+  height: var(--card-h);
+  pointer-events: none;
+  transition: none;
+  animation: cr19-out 0.26s cubic-bezier(.3, .6, .5, 1) forwards;
+}
+.hcard-out .hcard-fx { background: #fff; animation: cr19-flash 0.26s ease-out forwards; }
+/* drag card over the hand: pops up under the finger */
+.hcard-float:not([hidden]) { animation: cr19-float-in 0.18s cubic-bezier(.3, 1.7, .5, 1); }
+
+/* elixir: the pip that just filled glows, the number pops */
+.ex-pip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 10%;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(60% 70% at 50% 50%, rgba(255, 244, 255, 0.95), rgba(246, 150, 255, 0.55) 55%, rgba(246, 150, 255, 0) 100%);
+  will-change: opacity;
+}
+.ex-pip.on { animation: cr19-pip 0.5s ease-out; }
+.ex-num { display: inline-block; }
+.ex-num.pop { animation: cr19-num 0.3s cubic-bezier(.3, 1.8, .5, 1); }
+
+@keyframes cr19-shake {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  20% { translate: -6px 0; rotate: -3deg; }
+  40% { translate: 6px 0; rotate: 3deg; }
+  60% { translate: -4px 0; rotate: -2deg; }
+  80% { translate: 3px 0; rotate: 1deg; }
+}
+@keyframes cr19-deny {
+  0% { opacity: 0; background: rgba(255, 60, 50, 0.42); }
+  22% { opacity: 1; background: rgba(255, 60, 50, 0.42); }
+  100% { opacity: 0; background: rgba(255, 60, 50, 0.42); }
+}
+@keyframes cr19-cost {
+  0%, 100% { rotate: 0deg; scale: 1; }
+  15% { rotate: -16deg; scale: 1.2; }
+  35% { rotate: 14deg; scale: 1.2; }
+  55% { rotate: -9deg; scale: 1.1; }
+  75% { rotate: 5deg; scale: 1.05; }
+}
+@keyframes cr19-out {
+  0% { scale: 1.04; opacity: 1; }
+  30% { scale: 1.16; opacity: 1; }
+  100% { scale: 0.3; translate: 0 -45%; opacity: 0; }
+}
+@keyframes cr19-flash { 0% { opacity: 0; } 25% { opacity: 0.55; } 100% { opacity: 0; } }
+@keyframes cr19-float-in { from { scale: 0.82; } to { scale: 1; } }
+@keyframes cr19-pip { 0% { opacity: 0; scale: 1 1; } 15% { opacity: 1; scale: 1 1.3; } 100% { opacity: 0; scale: 1 1; } }
+@keyframes cr19-num { 0% { scale: 1; } 40% { scale: 1.38; } 100% { scale: 1; } }
+
+/* buttons: clear press (fast down, springy release); every other button gets a small press scale */
+.btn { transition: transform 0.22s cubic-bezier(.3, 1.8, .5, 1), box-shadow 0.1s ease-out, filter 0.12s; }
+.btn:active:not([disabled]), .btn.is-pressed:not([disabled]) {
+  transform: translateY(4px) scale(0.96);
+  transition-duration: 0.06s, 0.06s, 0.12s;
+  transition-timing-function: ease-out;
+}
+:is(button, [role="button"]):not(.btn):not(.hcard):not([disabled]):active { scale: 0.94; }
+
+@media screen and (prefers-reduced-motion: reduce) {
+  .hcard, .hcard-fx { transition: none; }
+  .hcard.shake, .hcard.deny .hcard-fx, .hcard .cost.shake, .hcard-float:not([hidden]), .ex-pip.on, .ex-num.pop { animation: none; }
+  .hcard.hcard-out { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -28628,6 +28784,15 @@ body { font-weight: 700; letter-spacing: 0; }
  * canvases kept) above the new one sliding in; not for battle / loading screens. Reduced motion
  * switches flights, ghosts and celebrations off (UI.reducedMotion).
  *
+ * v19 feel pass (hand like Clash Royale, styles.css "v19 feel pass"): a selected card lifts with a
+ * spring and the other cards dim (.hand-cards.has-sel + a .hcard-fx layer per card); a played card
+ * pops away as a pointer-free copy (playOut) while its slot stays empty (.is-out) until the next
+ * card flies in from the small "next" slot with a bounce (dealIn, Web Animations on the individual
+ * translate / scale properties) and the new "next" card pops up (nextIn); the elixir bar eases
+ * toward the value (exShown, frozen views snap), the pip that just filled glows (.ex-pip) and the
+ * number pops; a refused play shakes the card with a short red flash (shakeSlot -> 'deny'), the cost
+ * drop of an unaffordable card wiggles when tapped (shakeCost). Reduced motion -> plain CSS classes.
+ *
  * v4 (user feedback): the battle screen is sized like Clash Royale on the phone (arena fills
  * the screen above a compact CR card panel, top info + crowns float on the arena) and shows NO
  * words or names during the fight - card art + cost, numbers and icons only (German text stays
@@ -28851,6 +29016,9 @@ body { font-weight: 700; letter-spacing: 0; }
   for (let i = 0; i <= 500; i++) SCALE_X.push('scaleX(' + (i / 500).toFixed(4) + ')');
   const SCALE_Y = [];
   for (let i = 0; i <= 100; i++) SCALE_Y.push('scaleY(' + (i / 100).toFixed(2) + ')');
+  // v19: elixir pip glow positions (one segment = 10 % of the bar = 100 % of the pip's width)
+  const PIP_X = [];
+  for (let i = 0; i < 10; i++) PIP_X.push('translateX(' + (i * 100) + '%)');
 
   UI.EMOTES = EMOTES;
   UI.EMOTE_SHOW_MS = EMOTE_SHOW_MS;
@@ -34261,17 +34429,20 @@ body { font-weight: 700; letter-spacing: 0; }
       const up = small ? null : h('span', { class: 'hcard-up', hidden: true }, icon('bolt'));
       // v5: the card name (the only words in the battle); v18: a slim caption on the card face
       const nm = small ? null : h('span', { class: 'hcard-name', 'aria-hidden': 'true' });
+      const costEl = h('span', { class: 'cost' }, [h('i'), costB]);
       const el = h('div', {
         class: 'hcard is-empty' + (small ? ' small' : ''),
         'data-slot': small ? null : String(slot),
         role: small ? null : 'button',
         'aria-label': small ? 'Nächste Karte' : 'Karte ' + (slot + 1),
-      }, [art, h('span', { class: 'card-shine' }), charge, up, h('span', { class: 'cost' }, [h('i'), costB]), nm]);
-      return { el: el, art: art, costB: costB, charge: charge, up: up, nm: nm, upRar: '', small: small, id: undefined, cost: 0, poor: null, frac: -1, sel: null, pend: null, drag: null };
+      }, [art, h('span', { class: 'card-shine' }), charge, up, nm, costEl,
+        small ? null : h('span', { class: 'hcard-fx', 'aria-hidden': 'true' })]);   // v19: dim / red-flash layer
+      return { el: el, art: art, costB: costB, costEl: costEl, charge: charge, up: up, nm: nm, upRar: '', small: small, id: undefined, cost: 0, poor: null, frac: -1, sel: null, pend: null, drag: null, outT: 0 };
     }
     function setSlotCard(s, id) {
       s.id = id;
       s.poor = null; s.frac = -1; s.sel = null; s.pend = null; s.drag = null;
+      if (s.outT) { G.clearTimeout(s.outT); s.outT = 0; }
       if (!id) {
         s.el.className = 'hcard is-empty' + (s.small ? ' small' : '');
         Art.apply(s.art, null, s.el);
@@ -34300,9 +34471,10 @@ body { font-weight: 700; letter-spacing: 0; }
     const exNum = h('span', { class: 'ex-num' }, '0');
     const exFill = h('div', { class: 'ex-fill' });
     const exMult = h('div', { class: 'ex-mult' }, '');
+    const exPip = h('div', { class: 'ex-pip', 'aria-hidden': 'true' });   // v19: glow of the pip that just filled
     const elixirEl = h('div', { class: 'elixir', 'aria-label': 'Elixier' }, [
       h('div', { class: 'ex-drop' }, [h('i'), exNum]),
-      h('div', { class: 'ex-bar' }, [exFill, h('div', { class: 'ex-segs' }), exMult]),
+      h('div', { class: 'ex-bar' }, [exFill, exPip, h('div', { class: 'ex-segs' }), exMult]),
     ]);
     const hand = h('div', { class: 'hand' }, [
       h('div', { class: 'hand-left' }, [emoteBtn, h('div', { class: 'next-wrap' }, nextSlot.el)]),
@@ -34323,6 +34495,9 @@ body { font-weight: 700; letter-spacing: 0; }
     // ---- state
     let view = null;           // latest view (for hand + events)
     let elixirNow = 0;         // displayed (interpolated) elixir incl. pending deductions
+    let exShown = 0;           // v19: the bar's value, eased toward elixirNow (no visible steps)
+    let exT = -1;              // time of the last elixir frame (ms; -1 = none yet)
+    let hasSel = null;         // v19: a card is selected (the other hand cards dim)
     let lastExK = -1;
     let lastExN = -1;
     let lastSecs = -1;
@@ -34559,14 +34734,23 @@ body { font-weight: 700; letter-spacing: 0; }
 
     function shakeSlot(slot) {
       const s = slots[slot];
-      if (s) replayClass(s.el, 'shake');
+      if (!s) return;
+      if (s.outT) { G.clearTimeout(s.outT); s.outT = 0; }
+      s.el.classList.remove('is-out');   // v19: a bounced play brings the card back
+      replayClass(s.el, 'shake');
+      replay(s.el, 'deny');              // v19: short red flash on the card
+    }
+    /** v19: the cost drop of a card the player cannot afford wiggles. */
+    function shakeCost(slot) {
+      const s = slots[slot];
+      if (s && s.costEl) replay(s.costEl, 'shake');
     }
     function flashElixir() { replayClass(elixirEl, 'flash'); }
 
     function reject(slot, reason) {
       shakeSlot(slot);
       const elix = UI.isElixirReason(reason);
-      if (elix) flashElixir();
+      if (elix) { flashElixir(); shakeCost(slot); }
       showMessage(UI.reasonText(reason), elix ? 'is-elixir' : 'is-deny');
       Sound.play('deny');
       vibrate([8, 40, 8]);
@@ -34582,9 +34766,71 @@ body { font-weight: 700; letter-spacing: 0; }
       hover = null;
       Sound.play('deploy');
       vibrate(14);
-      const s = slots[slot];
-      if (s) replayClass(s.el, 'played');
+      playOut(slot);
       return true;
+    }
+
+    // ---- v19 card cycle (CR feel): the played card pops and shrinks away in its slot (a
+    // pointer-free copy, so the slot is free for the next card at once), the next card flies
+    // from the small "next" slot into the hand with a bounce and a new "next" card pops up.
+    // Individual transform properties (translate / scale) compose with the state transform
+    // (selected lift); Web Animations + CSS only, one layout read per played card.
+    const CAN_WAAPI = !!(G.document && G.document.documentElement && typeof G.document.documentElement.animate === 'function' &&
+      G.CSS && typeof G.CSS.supports === 'function' && G.CSS.supports('translate', '1px 1px') && G.CSS.supports('scale', '1'));
+    function motionOk() { return CAN_WAAPI && !UI.reducedMotion(); }
+    /** Layout position of el inside root (offsets: no transforms, no forced style of animations). */
+    const offOut = { x: 0, y: 0 };
+    function offsetIn(el) {
+      let x = 0, y = 0, n = el;
+      while (n && n !== root) { x += n.offsetLeft || 0; y += n.offsetTop || 0; n = n.offsetParent; }
+      offOut.x = x; offOut.y = y;
+      return offOut;
+    }
+    function playOut(slot) {
+      const s = slots[slot];
+      if (!s) return;
+      if (!motionOk() || !s.id) { replayClass(s.el, 'played'); return; }
+      const o = offsetIn(s.el);
+      const g = s.el.cloneNode(true);
+      g.className = 'hcard hcard-out' + (/\brar-\w+/.exec(s.el.className) ? ' ' + /\brar-\w+/.exec(s.el.className)[0] : '');
+      g.removeAttribute('data-slot');
+      g.removeAttribute('role');
+      g.setAttribute('aria-hidden', 'true');
+      g.style.left = o.x + 'px';
+      g.style.top = o.y + 'px';
+      root.appendChild(g);
+      G.setTimeout(function () { remove(g); }, 300);
+      // the slot stays empty until the next card arrives (or comes back if the play bounced)
+      s.el.classList.add('is-out');
+      if (s.outT) G.clearTimeout(s.outT);
+      s.outT = G.setTimeout(function () { s.outT = 0; s.el.classList.remove('is-out'); }, 1400);
+    }
+    function dealIn(s) {
+      if (!motionOk()) { replay(s.el, 'deal'); return; }
+      const a = offsetIn(nextSlot.el), ax = a.x, ay = a.y;
+      const b = offsetIn(s.el);
+      const cw = s.el.offsetWidth || 1, ch = s.el.offsetHeight || 1;
+      const nw = nextSlot.el.offsetWidth || cw * 0.6, nh = nextSlot.el.offsetHeight || ch * 0.6;
+      const dx = Math.round(ax + nw / 2 - (b.x + cw / 2)), dy = Math.round(ay + nh / 2 - (b.y + ch / 2));
+      const k = Math.max(0.3, Math.min(1, nw / cw)).toFixed(3);
+      try {
+        s.el.animate([
+          { translate: dx + 'px ' + dy + 'px', scale: k, opacity: 0.85, offset: 0 },
+          { translate: '0px ' + Math.round(-ch * 0.12) + 'px', scale: '1.1', opacity: 1, offset: 0.62 },
+          { translate: '0px 2px', scale: '0.96', offset: 0.82 },
+          { translate: '0px 0px', scale: '1', opacity: 1, offset: 1 },
+        ], { duration: 380, delay: 80, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'backwards' });
+      } catch (e) { replay(s.el, 'deal'); }
+    }
+    function nextIn() {
+      if (!motionOk()) { replay(nextSlot.el, 'deal'); return; }
+      try {
+        nextSlot.el.animate([
+          { translate: '0px 60%', scale: '0.4', opacity: 0, offset: 0 },
+          { translate: '0px -6%', scale: '1.12', opacity: 1, offset: 0.6 },
+          { translate: '0px 0px', scale: '1', opacity: 1, offset: 1 },
+        ], { duration: 320, delay: 260, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'backwards' });
+      } catch (e) { /* cosmetic */ }
     }
 
     // ---- floating card
@@ -34708,6 +34954,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (d.fromCard && !d.moved) {
         // plain tap on a hand card: toggle selection
         sel = sel === d.slot ? -1 : d.slot;
+        if (slots[d.slot] && slots[d.slot].poor && !slots[d.slot].pend) shakeCost(d.slot);   // v19: not enough elixir yet
         if (sel >= 0 && chaosState === 'open') { chaosState = 'min'; applyChaosVisibility(); }
         Sound.play('select');
         if (sel >= 0) vibrate(6);
@@ -35036,13 +35283,28 @@ body { font-weight: 700; letter-spacing: 0; }
       if (pc > 0) e = Math.max(0, e - pc);
       if (e > ELIXIR_MAX) e = ELIXIR_MAX;
       elixirNow = e;
-      const k = Math.max(0, Math.min(500, Math.round(e / ELIXIR_MAX * 500)));
+      // v19: the bar eases toward the value (frame-rate independent, ~70 ms), so coarse view
+      // updates never show as steps; spending drops it at once (like CR). No clock or no new
+      // view pair (prev === cur: nothing moves) -> snap, so a frozen view writes nothing.
+      const t = now();
+      const dt = exT >= 0 ? (t - exT) / 1000 : 0;
+      exT = t;
+      if (dt <= 0 || dt > 0.25 || prev === cur || !pp || e < exShown - 0.02) exShown = e;
+      else exShown += (e - exShown) * (1 - Math.exp(-dt * 15));
+      if (e - exShown < 0.002) exShown = e;
+      const k = Math.max(0, Math.min(500, Math.round(exShown / ELIXIR_MAX * 500)));
       if (k !== lastExK) { exFill.style.transform = SCALE_X[k]; lastExK = k; }
-      const n = Math.floor(e + 1e-6);
+      const n = Math.floor(exShown + 1e-6);
       if (n !== lastExN) {
         exNum.textContent = String(n);
         elixirEl.classList.toggle('is-full', n >= ELIXIR_MAX);
-        if (lastExN >= 0 && n > lastExN) replay(elixirEl, 'tick');
+        if (lastExN >= 0 && n > lastExN) {
+          replay(elixirEl, 'tick');
+          // v19: the segment that just completed flashes (one transform write per pip)
+          exPip.style.transform = PIP_X[Math.max(0, Math.min(ELIXIR_MAX - 1, n - 1))];
+          replay(exPip, 'on');
+        }
+        if (lastExN >= 0) replay(exNum, 'pop');   // number badge pops on every change
         lastExN = n;
       }
     }
@@ -35056,7 +35318,7 @@ body { font-weight: 700; letter-spacing: 0; }
         if (s.id !== id) {
           const first = s.id === undefined;
           setSlotCard(s, id);
-          if (!first && id) replay(s.el, 'deal');
+          if (!first && id) dealIn(s);   // v19: flies in from the "next" slot with a bounce
           if (sel === i) sel = -1;
           if (drag && drag.slot === i) { drag = null; hideFloat(); }
         }
@@ -35086,7 +35348,13 @@ body { font-weight: 700; letter-spacing: 0; }
         }
       }
       const nid = p.next || null;
-      if (nextSlot.id !== nid) setSlotCard(nextSlot, nid);
+      if (nextSlot.id !== nid) {
+        const first = nextSlot.id === undefined;
+        setSlotCard(nextSlot, nid);
+        if (!first && nid) nextIn();
+      }
+      const hs = sel >= 0 && !!hd[sel];
+      if (hs !== hasSel) { handCards.classList.toggle('has-sel', hs); hasSel = hs; }
     }
 
     /** Own C.H.A.O.S upgrades as a rarity badge on the hand cards (views are immutable: the
@@ -42878,6 +43146,13 @@ body { font-weight: 700; letter-spacing: 0; }
  *     X), core* (pulses). Any pivot set .visible = false in custom() is collapsed (hidden).
  *
  * ---- anim --------------------------------------------------------------------------------
+ *   v19 feel pass (game v19, same options / pivots / contracts): attacks = anticipation (lean back,
+ *   heavier units wind up earlier + longer) -> strike on the hit -> follow-through overshoot ->
+ *   elastic settle, impact squash + hit-stop tremble scaled by weight; hurt = ~120 ms flinch jerk
+ *   (fixed envelope, alternating side); walk = foot lock (leg swing matched to st.speed, no sliding),
+ *   sharper contact bob, speed lean; snap look-around fidget; crisper deploy drop / landing squash;
+ *   troop death ~0.46 s (recoil, tip over, thud squash, shrink, poof); flyers lift / drop per beat.
+ *   Curves: CR.GFX.animCurves (backOut, elasticSettle, flinchEnv, anticip, impactPulse).
  *   body:   'biped'|'quadruped'|'flyer'|'blob'|'spirit'|'rider'|'roller'|'building'|'static'
  *   walk:   biped 'march' (heroic jog) | 'stomp' (heavy) | 'sneak' (crouched) | 'dash' (ninja
  *           run: lean + arms swept back) | 'hop' | 'float';  quadruped/rider 'gallop' | 'trot';
@@ -43259,6 +43534,8 @@ body { font-weight: 700; letter-spacing: 0; }
   G.ready = !!(okThree && HAS_DOM);
   G.THREE = okThree ? THREE : null;
 
+  // v19 feel curves of the animation system (pure, hoisted; read-only - for tests / tools)
+  G.animCurves = { backOut, elasticSettle, flinchEnv, anticip, impactPulse };
   if (!G.ready) {
     G.kit = null;
     G.createInstance = function () { return null; };
@@ -45999,8 +46276,9 @@ body { font-weight: 700; letter-spacing: 0; }
   const C_LEG = cycCurve([[0, 1], [0.1, 0.78], [0.25, 0.05], [0.4, -0.82], [0.5, -1], [0.6, -0.72], [0.75, 0.12], [0.88, 1.06]]);
   const C_LIFT = cycCurve([[0, 0], [0.1, 0], [0.42, 0], [0.5, 0.06], [0.6, 0.85], [0.7, 1], [0.8, 0.62], [0.92, 0.1]]);
   // half-cycle curves (evaluated at 2u): body height and squash per step
-  const C_BOB = cycCurve([[0, -0.35], [0.16, -1], [0.4, 0.25], [0.66, 1], [0.86, 0.3]]);
-  const C_SQ = cycCurve([[0, 0.45], [0.15, 1], [0.34, 0], [0.62, -0.5], [0.85, -0.1]]);
+  // (v19 feel: sharper contact dip + squash right after the foot plants, springier push-off)
+  const C_BOB = cycCurve([[0, -0.45], [0.12, -1], [0.34, 0.2], [0.6, 1], [0.84, 0.3]]);
+  const C_SQ = cycCurve([[0, 0.55], [0.11, 1], [0.3, 0], [0.58, -0.55], [0.84, -0.1]]);
   // wing beat: fast power stroke down, slow recovery up; lift peaks after the downstroke
   const C_FLAP = cycCurve([[0, 1], [0.18, 0.2], [0.36, -1], [0.5, -0.85], [0.75, 0.25], [0.92, 0.9]]);
   const C_FLIFT = cycCurve([[0, -0.4], [0.2, 0.6], [0.38, 1], [0.55, 0.2], [0.8, -0.8]]);
@@ -46009,10 +46287,10 @@ body { font-weight: 700; letter-spacing: 0; }
   // bob), lean (forward lean), twist (hip/shoulder counter rotation), sway (weight shift), roll
   // (shoulder roll), squash, armOut, armBack (arms swept back: the ninja dash), crouch, headUp.
   const WALK = {
-    march: { legA: 0.64, armA: 0.58, lift: 0.075, bounce: 0.05, lean: 0.15, twist: 0.13, sway: 0.022, roll: 0.05, squash: 0.035, armOut: 0.1, armBack: 0, crouch: 0, headUp: 0 },
-    stomp: { legA: 0.46, armA: 0.34, lift: 0.085, bounce: 0.065, lean: 0.06, twist: 0.08, sway: 0.075, roll: 0.09, squash: 0.09, armOut: 0.2, armBack: 0, crouch: 0.02, headUp: 0 },
+    march: { legA: 0.64, armA: 0.58, lift: 0.08, bounce: 0.062, lean: 0.15, twist: 0.13, sway: 0.022, roll: 0.05, squash: 0.05, armOut: 0.1, armBack: 0, crouch: 0, headUp: 0 },
+    stomp: { legA: 0.46, armA: 0.34, lift: 0.09, bounce: 0.072, lean: 0.06, twist: 0.08, sway: 0.075, roll: 0.09, squash: 0.11, armOut: 0.2, armBack: 0, crouch: 0.02, headUp: 0 },
     sneak: { legA: 0.72, armA: 0.3, lift: 0.065, bounce: 0.022, lean: 0.32, twist: 0.08, sway: 0.02, roll: 0.03, squash: 0.02, armOut: 0.12, armBack: 0.25, crouch: 0.06, headUp: 0.1 },
-    dash: { legA: 0.88, armA: 0.1, lift: 0.1, bounce: 0.05, lean: 0.5, twist: 0.06, sway: 0.01, roll: 0.02, squash: 0.04, armOut: 0.18, armBack: 1.3, crouch: 0.03, headUp: 0.32 },
+    dash: { legA: 0.88, armA: 0.1, lift: 0.1, bounce: 0.055, lean: 0.5, twist: 0.06, sway: 0.01, roll: 0.02, squash: 0.05, armOut: 0.18, armBack: 1.3, crouch: 0.03, headUp: 0.32 },
   };
 
   // Attack key poses. Every key = 'target.channel': [ready, wind, impact, follow]; values are
@@ -46077,6 +46355,8 @@ body { font-weight: 700; letter-spacing: 0; }
     kamikaze: { tin: 0.1, hold: 0, out: 0.32, kamikaze: true, keys: { 'sq': [0, 0.22, 0, 0] } },
     none: { tin: 0.06, hold: 0.04, out: 0.3, keys: {} },
   };
+  // v19: attack styles that get the generic anticipation / impact layer (melee + casts)
+  const GEN_ATK = { swing: 1, slash: 1, smash: 1, punch: 1, kick: 1, thrust: 1, throw: 1, bite: 1, cast: 1 };
   const CHN = { rx: 0, ry: 1, rz: 2, px: 3, py: 4, pz: 5, sx: 6, sy: 7, sz: 8 };
   const CH_MIRROR = [false, true, true, true, false, false, false, false, false];
   const LIST_TARGETS = { armsL: 1, armsR: 1, legsL: 1, legsR: 1, wingsL: 1, wingsR: 1, cores: 1 };
@@ -46108,6 +46388,23 @@ body { font-weight: 700; letter-spacing: 0; }
   }
   function easeOutQuart(t) { t = clamp(t, 0, 1); const u = 1 - t; return 1 - u * u * u * u; }
   function settle(t) { t = clamp(t, 0, 1); return smooth01(t) + 0.09 * Math.sin(Math.PI * t) * t; }  // ease with a soft overshoot
+  // v19 feel curves. backOut: ease out past the target by about c * 0.1 and back (c 0 = cubic).
+  // elasticSettle: eases out of the held follow pose, swings ~5 % past the target and lands on 1.
+  // flinchEnv: hurt jerk - snap to 1 in 30 ms, rebound to about -0.15, 0 at 0.16 s.
+  function backOut(t, c) { t = clamp(t, 0, 1); const u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; }
+  function elasticSettle(t) { t = clamp(t, 0, 1); return backOut(t * t * (3 - 2 * t), 1.3); }
+  function flinchEnv(t) {
+    if (t < 0) return 0;
+    if (t < 0.03) return Math.sin(t / 0.03 * HALF_PI);
+    const x = (t - 0.03) / 0.13;
+    if (x >= 1) return 0;
+    const r = 1 - x;
+    return Math.cos(x * Math.PI * 1.15) * r * Math.sqrt(r);
+  }
+  // anticipation of the wind-up: ease in-out, the last 20 % creep a little further back (tension)
+  function anticip(w) { w = clamp(w, 0, 1); const s = w * w * (3 - 2 * w); return s + 0.07 * smooth01((w - 0.8) / 0.2); }
+  // impact pulse (0 before contact): spike on contact, quick decay with one rebound (~0.16 s)
+  function impactPulse(t) { if (t < 0 || t > 0.22) return 0; return Math.exp(-t * 16) * Math.cos(t * 26); }
 
   // Secondary-motion springs per pivot prefix. f (Hz), z (damping ratio), drag (rad per tile/s
   // of forward speed), accH / accV (rad per tile/s^2 of carrier acceleration), rot (inertia
@@ -46185,6 +46482,7 @@ body { font-weight: 700; letter-spacing: 0; }
     this.stringIdx = tpl.roles.string;
     // attack keys resolved to pose objects
     this.atk = compileAttack(d);
+    this.genAtk = !!GEN_ATK[d.attack];
     this.atkKeys = this.atk.keys.map((k) => {
       let list = null;
       if (k.t === 'sq' || k.t === 'P' || k.t === 'Q') list = null;
@@ -46216,10 +46514,18 @@ body { font-weight: 700; letter-spacing: 0; }
     this.altitude = d.altitude !== undefined ? +d.altitude : (this.isFlyer ? 2.2 : 0);
     this.hipY = tpl.worldPos.legL ? Math.max(0.05, tpl.worldPos.legL[1]) : 0.3;
     this.stride = d.stride > 0 ? d.stride : Math.max(0.4, tpl.height * 0.62);
+    // v19 feel: foot lock. footR = ground travel per walk cycle per unit of sin(leg swing) (two
+    // stances of 2 * hip height each); the cadence uses a stride between the designer stride and
+    // the leg geometry, the leg swing amplitude then makes up the rest (A.legK) so feet don't slide
+    const ws = this.isBiped && WALK[d.walk] ? WALK[d.walk] : null;
+    this.footR = ws && tpl.worldPos.legL ? 4 * this.hipY * this.scale : 0;
+    this.cadStride = this.footR > 0 && !(d.stride > 0) ? 0.5 * (this.stride + this.footR * Math.sin(ws.legA)) : this.stride;
+    this.legA = ws ? ws.legA : 0.6;
     this.faceU = tpl.height * 0.02;
     const du = dataUnit(this.unitId);
     this.baseSpeed = du && du.speed > 0 ? du.speed : 1;
-    this.deathTime = d.deathTime > 0 ? d.deathTime : (this.isBuilding ? 0.75 : this.isFlyer ? 0.75 : 0.62);
+    // v19 feel: short readable deaths (troops ~0.46 s: recoil, tip over, thud squash, shrink + puff)
+    this.deathTime = d.deathTime > 0 ? d.deathTime : (this.isBuilding ? 0.75 : this.isFlyer ? 0.6 : 0.46);
     this.fx = { mat: null, stars: null, lines: null, ring: null, col: null, badge: null, dust: null };
     this.ghost = 0; this.ghostTint = null; this.curMat = BASE_MAT;
     this.top = this.height; this.lift = this.altitude;
@@ -46236,6 +46542,7 @@ body { font-weight: 700; letter-spacing: 0; }
     A.t = 0; A.rt = 0; A.age = 0; A.phase = 0; A.flap = 0; A.roll = 0; A.move = 0; A.aim = 0; A.amp = 1;
     A.wu = 0; A.strikeT = 9; A.strikes = 0; A.prevProg = 0; A.nextArm = 0; A.strikeArm = 0; A.impactDone = true;
     A.flash = 0; A.flinch = 0; A.flinchV = 0; A.lastHurt = -9; A.sq = 0; A.hover = 0;
+    A.flT = 9; A.flA = 0; A.flS = 1; A.legK = 1;   // v19: flinch envelope time / amplitude / side, foot-lock leg swing
     A.stun = 0; A.frozen = 0; A.rage = 0; A.slow = 0; A.charge = 0; A.hidden = 0;
     A.yaw = this.isBuilding && this.side === 1 ? Math.PI : 0; A.yawInit = false; A.turret = 0; A.turretInit = false;
     A.yawRate = 0; A.bank = 0; A.look = 0; A.vFwd = 0; A.aFwd = 0; A.aUp = 0; A.lodK = this.lod >= 1 ? 1 : 0;
@@ -46372,9 +46679,14 @@ body { font-weight: 700; letter-spacing: 0; }
     const moving = st.moving !== undefined && st.moving !== null ? !!st.moving : st.state === 'moving';
     A.move = approach(A.move, moving ? 1 : 0, 9, rdt * live);
     const spd = st.speed > 0 ? +st.speed : this.baseSpeed * ts * (1 + 0.35 * A.rage) * (1 - 0.35 * A.slow);
-    const fRaw = spd / this.stride;
+    const fRaw = spd / this.cadStride;
     const freq = clamp(fRaw, 0.8, 4.2) * d.tempo * (1 + 0.5 * A.charge);
     A.amp = approach(A.amp, clamp(0.8 + 0.25 * fRaw / 1.6, 0.85, 1.25) * (1 + 0.15 * A.charge), 4, rdt);
+    if (this.footR > 0 && moving) {
+      // v19 foot lock: leg swing so that one cycle covers exactly the distance travelled
+      const need = spd / (freq * this.footR);
+      A.legK = approach(A.legK, clamp(Math.asin(need < 0.97 ? need : 0.97) / (this.legA * A.amp), 0.45, 1.45), 6, rdt);
+    }
     A.phase += TAU * freq * dt * live * A.move;
     if (A.phase > TAU * 64) A.phase -= TAU * 64;
     A.roll += spd * dt * live * A.move / (d.wheelRadius || 0.25);
@@ -46425,7 +46737,10 @@ body { font-weight: 700; letter-spacing: 0; }
       A.strikeT = 0; A.strikes++; A.wu = 0; A.impactDone = false;
       A.strikeArm = A.nextArm; A.nextArm = 1 - A.nextArm;
     } else A.strikeT += adt;
-    A.wu = approach(A.wu, attacking ? smooth01((prog - 0.05) / 0.9) : 0, 20, adt);
+    // v19 feel: heavier units start winding up earlier (longer, readable anticipation), light ones
+    // late and fast; the curve itself is shaped by anticip() (ease in-out + tension creep)
+    const wu0 = 0.32 - 0.27 * d.weight;
+    A.wu = approach(A.wu, attacking ? clamp((prog - wu0) / (0.97 - wu0), 0, 1) : 0, 24, adt);
     A.aim = approach(A.aim, attacking ? 1 : 0, 8, adt);
     const at = this.atk;
     if (!A.impactDone && A.strikeT >= at.tin) {
@@ -46442,20 +46757,14 @@ body { font-weight: 700; letter-spacing: 0; }
     if (st.hurt && A.rt - A.lastHurt > 0.2) {
       const big = clamp(Math.max(d.weight * 1.1 - 0.35, (this.height - 1.5) / 1.5), 0, 1);
       A.flash = 0.62 - 0.32 * big; A.lastHurt = A.rt;
-      A.flinchV += 7.5 * (1 - d.weight * 0.6);
-    } else if (st.hurt && A.rt - A.lastHurt > 0.1) A.flinchV += 3 * (1 - d.weight * 0.6);
+      this._flinchHit(d, 1);
+    } else if (st.hurt && A.rt - A.lastHurt > 0.1) this._flinchHit(d, 0.45);
     A.flash = Math.max(0, A.flash - dt / 0.085);
-    // v5 QA fix: sub-stepped (h <= ~16 ms). One explicit step of this stiff spring diverges for
-    // rdt > ~0.075 s (a slow frame at 1,5x tempo) and threw hurt towers / troops off screen.
-    if (rdt > 0) {
-      const fn = Math.min(16, Math.ceil(rdt / 0.016)), fh = rdt / fn;
-      for (let q = 0; q < fn; q++) {
-        A.flinchV += (-190 * A.flinch - 17 * A.flinchV) * fh;
-        A.flinch += A.flinchV * fh;
-      }
-    }
-    if (!(Math.abs(A.flinch) < 2)) { A.flinch = A.flinch > 0 ? 2 : (A.flinch < 0 ? -2 : 0); A.flinchV = 0; }
-    if (Math.abs(A.flinch) < 1e-4 && Math.abs(A.flinchV) < 1e-3) { A.flinch = 0; A.flinchV = 0; }
+    // v19 feel: the hurt flinch is a fixed ~120 ms envelope (snap away in 30 ms, a small rebound,
+    // settled by 0.16 s) instead of the old spring - crisp like CR, cannot diverge on slow frames
+    A.flT += rdt;
+    A.flinch = A.flA > 0 ? A.flA * flinchEnv(A.flT) : 0;
+    if (A.flT > 0.2) A.flA = 0;
 
     // ---- idle fidgets
     const idleNow = A.move < 0.1 && A.aim < 0.05 && A.stun < 0.05 && A.intro === 0 && live > 0.5 && !this.isBuilding;
@@ -46477,8 +46786,10 @@ body { font-weight: 700; letter-spacing: 0; }
     let dropY = 0, pop = 1;
     if (A.intro === 1) {
       A.introT += rdt;
-      const D = this.isFlyer ? 0.34 : 0.28;
-      if (A.introT < D) { const k = A.introT / D; dropY = (this.isFlyer ? 2.4 : 3.6) * (1 - k * k); A.sq -= 0.16 * k; }
+      // v19 feel: gravity drop (accelerating), stretched along the fall the faster it goes, then
+      // the landing snaps straight into the squash (no in-between frame)
+      const D = this.isFlyer ? 0.34 : 0.3;
+      if (A.introT < D) { const k = A.introT / D; dropY = (this.isFlyer ? 2.4 : 3.8) * (1 - k * k); A.sq -= (this.isFlyer ? 0.12 : 0.26 - 0.08 * d.weight) * k * k; }
       else {
         A.intro = 3; A.landT = 0; this.landed = true; A.dustT = 0;
         try { G.hooks.land(this, 1 + d.weight); } catch (e) { /* ignore */ }
@@ -46492,8 +46803,9 @@ body { font-weight: 700; letter-spacing: 0; }
     if (A.intro === 3) {
       A.landT += rdt;
       const L = A.landT;
-      if (!this.isFlyer) A.sq += 0.42 * Math.exp(-L * 8) * Math.cos(L * 19) * (1 - d.weight * 0.25);
-      else A.sq += 0.12 * Math.exp(-L * 8) * Math.cos(L * 16);
+      // v19 feel: big squash on touch-down (heavier = flatter, slower), one stretch rebound, settle
+      if (!this.isFlyer) { const W = d.weight; A.sq += (0.36 + 0.1 * W) * Math.exp(-L * (11 - 2 * W)) * Math.cos(L * (23 - 8 * W)); }
+      else A.sq += 0.14 * Math.exp(-L * 9) * Math.cos(L * 18);
       if (L > 0.8) A.intro = 0;
     }
 
@@ -46642,7 +46954,8 @@ body { font-weight: 700; letter-spacing: 0; }
     const S = WALK[w] || WALK.march;
     const u = ph / TAU, k = mv * A.amp;
     const cL = cs(C_LEG, u), cR = cs(C_LEG, u + 0.5);
-    const aL = S.legA * cL * k, aR = S.legA * cR * k;
+    const kl = k * (this.footR > 0 ? A.legK : 1);   // v19 foot lock (swing matched to the speed)
+    const aL = S.legA * cL * kl, aR = S.legA * cR * kl;
     const lL = Math.max(0, cs(C_LIFT, u)), lR = Math.max(0, cs(C_LIFT, u + 0.5));
     for (const l of L.legsL) { l.rx += aL; l.py += lL * S.lift * k; }
     for (const l of L.legsR) { l.rx += aR; l.py += lR * S.lift * k; }
@@ -46670,7 +46983,8 @@ body { font-weight: 700; letter-spacing: 0; }
     R.root.ry -= tw; R.body.ry += 2 * tw; R.head.ry -= tw;
     R.root.px -= S.sway * Math.sin(TAU * u) * k;
     R.body.rz += S.roll * Math.sin(TAU * u + 0.3) * k;
-    R.body.rx -= S.lean * mv + S.lean * 0.22 * bob * k;
+    // v19: lean further into the run at higher speed (fast units dig in, slow ones stay upright)
+    R.body.rx -= S.lean * mv + S.lean * 0.22 * bob * k + 0.05 * clamp(A.vFwd - 0.9, 0, 1.4) * mv;
     R.head.rx += (S.lean * 0.6 + S.headUp) * mv + 0.03 * bob * k;
     A.sq += S.squash * cs(C_SQ, uh) * k;
     if (life > 0) {
@@ -46689,6 +47003,7 @@ body { font-weight: 700; letter-spacing: 0; }
     R.root.rz += A.bank * 0.5 * mv;
   };
 
+  const QUAD_OFF_G = [0, 0.12, 0.5, 0.62], QUAD_OFF_T = [0, 0.5, 0.5, 0];
   IP._quad = function (d, t, mv, ph, seed) {
     const R = this.R, L = this.L, A = this.A, W = d.weight, idle = 1 - mv;
     const br = Math.sin(t * (2.0 - W * 0.8) + seed * 7);
@@ -46703,8 +47018,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (mv < 0.001) return;
     const g = d.walk !== 'trot' && d.walk !== 'march', amp = (g ? 0.66 : 0.52) * A.amp;
     const u = ph / TAU;
-    const off = g ? [0, 0.12, 0.5, 0.62] : [0, 0.5, 0.5, 0];
-    const legs = [L.armsL, L.armsR, L.legsL, L.legsR];
+    const off = g ? QUAD_OFF_G : QUAD_OFF_T;   // (v19: no per-frame arrays)
+    const legs = this._quadLegs || (this._quadLegs = [L.armsL, L.armsR, L.legsL, L.legsR]);
     for (let q = 0; q < 4; q++) {
       const a = cs(C_LEG, u + off[q]) * amp, lf = Math.max(0, cs(C_LIFT, u + off[q])) * 0.075;
       for (const l of legs[q]) { l.rx += a * mv; l.py += lf * mv; }
@@ -46753,8 +47068,15 @@ body { font-weight: 700; letter-spacing: 0; }
         const lag = i * 0.08, f = cs(C_FLAP, u - lag) * amp * (i ? 0.55 : 1), sw = 0.2 * cs(C_FLAP, u - lag - 0.25) * (i ? 0.6 : 1);
         wr[i].rz += f; wr[i].ry -= sw;
       }
-      R.root.py += 0.045 * cs(C_FLIFT, u - 0.1);
-      R.body.rx += 0.05 * cs(C_FLAP, u - 0.15);
+      // v19 feel: each power stroke lifts the body (stretch), the recovery lets it drop (squash);
+      // dangling legs follow a beat later
+      const W = d.weight, fl = cs(C_FLIFT, u - 0.1);
+      R.root.py += (0.075 - 0.04 * W) * fl;
+      R.body.rx += 0.06 * cs(C_FLAP, u - 0.15);
+      A.sq -= 0.035 * (1 - 0.6 * W) * cs(C_FLIFT, u - 0.05);
+      const dl = 0.1 * cs(C_FLIFT, u - 0.3);
+      for (const l of L.legsL) l.rx += dl;
+      for (const l of L.legsR) l.rx += dl;
     }
     for (const a of L.armsL) { a.rx += 0.25 * Math.sin(t * 3.1 + seed * 2) * idle + 0.2 * mv; a.rz -= 0.12; }
     for (const a of L.armsR) { a.rx += 0.25 * Math.sin(t * 3.1 + seed * 2 + 1.3) * idle + 0.2 * mv; a.rz += 0.12; }
@@ -46822,8 +47144,9 @@ body { font-weight: 700; letter-spacing: 0; }
       return;
     }
     if (!this.isBiped) { A.sq += 0.12 * Math.sin(clamp(f, 0, 1) * TAU * 2) * e; R.root.py += 0.08 * Math.max(0, Math.sin(clamp(f, 0, 1) * TAU * 2)) * e; return; }
-    if (A.fidget === 0) {          // look around (quick head turn, hold, back)
-      R.head.ry += 0.75 * sg * e; R.body.ry += 0.16 * sg * e; R.head.rx -= 0.08 * e;
+    if (A.fidget === 0) {          // look around (v19: snap to one side, hold, snap across, back)
+      const lk = f < 0.4 ? backOut(f / 0.12, 1.4) : f < 0.78 ? 1 - 1.85 * backOut((f - 0.4) / 0.12, 1.4) : -0.85 * (1 - smooth01((f - 0.78) / 0.16));
+      R.head.ry += 0.7 * sg * lk; R.body.ry += 0.14 * sg * lk; R.head.rx -= 0.07 * Math.abs(lk);
     } else if (A.fidget === 1) {   // stretch: lean back, arms out
       R.body.rx += 0.2 * e; R.head.rx += 0.18 * e;
       for (const a of L.armsL) { a.rz -= 0.65 * e; a.rx += 0.35 * e; }
@@ -46854,10 +47177,12 @@ body { font-weight: 700; letter-spacing: 0; }
       if (T < 0) { r0 = 0; r1 = 1; }
       else if (T < at.tin) { const k = easeOutQuart(T / at.tin); r0 = 0; r1 = 1 - k; r2 = k; }
       else if (T < at.tin + at.hold) { r0 = 0; r2 = 1; }
-      else if (T < at.tin + at.hold + tf) { const k = easeOutCubic((T - at.tin - at.hold) / tf); r0 = 0; r2 = 1 - k; r3 = k; }
-      else { const k = settle((T - at.tin - at.hold - tf) / tsl); r3 = 1 - k; r0 = k; }
+      // v19 feel: follow-through overshoots the follow pose (lighter units more), then an
+      // elastic settle back into the ready stance (one small bounce past it)
+      else if (T < at.tin + at.hold + tf) { const k = backOut((T - at.tin - at.hold) / tf, 2.1 - 1.2 * this.def.anim.weight); r0 = 0; r2 = 1 - k; r3 = k; }
+      else { const k = elasticSettle((T - at.tin - at.hold - tf) / tsl); r3 = 1 - k; r0 = k; }
     }
-    const w = smooth01(this.A.wu);
+    const w = anticip(this.A.wu);
     out[0] = r0 * (1 - w) * blend; out[1] = (r1 * (1 - w) + w) * blend; out[2] = r2 * (1 - w) * blend; out[3] = r3 * (1 - w) * blend;
     return out;
   };
@@ -46887,6 +47212,19 @@ body { font-weight: 700; letter-spacing: 0; }
       const list = k.list;
       for (let j = 0; j < list.length; j++) addCh(list[j], k.ch, val);
     }
+    if (this.genAtk && !this.isBuilding) {
+      // v19 feel (generic layer on top of the key poses): lean back + gather on the wind-up, a
+      // punchy impact squash (heavier = bigger) with a short hit-stop tremble, then the rebound
+      const W = d.weight, wv = _co[1], iv = _co[2];
+      const lb = d.body === 'rider' ? R.rider : R.body;   // riders: the rider leans, not the mount
+      lb.rx += (0.06 + 0.05 * W) * wv - 0.05 * iv; if (lb === R.body) R.head.rx -= 0.035 * wv;
+      R.root.pz += 0.03 * wv; A.sq += 0.035 * W * wv;
+      if (striking) {
+        const ip = impactPulse(T - at.tin);
+        if (ip !== 0) { A.sq += (0.04 + 0.14 * W) * ip; R.root.py -= (0.008 + 0.03 * W) * (ip > 0 ? ip : 0); }
+        if (W > 0.3 && T >= at.tin && T < at.tin + at.hold + 0.05) R.body.px += 0.022 * W * Math.sin(A.rt * 95) * (1 - A.lodK);
+      }
+    }
     if (at.spin && striking) {
       const sp = d.spinTime || 0.42, kk = clamp(T / sp, 0, 1);
       if (kk < 1) R.root.ry -= TAU * easeOutCubic(kk);
@@ -46904,10 +47242,26 @@ body { font-weight: 700; letter-spacing: 0; }
     }
   };
 
+  // v19: start a hurt flinch (s = strength 0..1; renewed hits add up a little)
+  IP._flinchHit = function (d, s) {
+    const A = this.A;
+    const amp = s * (1 - 0.6 * d.weight) * (this.isBuilding ? 0.15 : 1);
+    A.flA = Math.min(1.25, Math.max(amp, Math.abs(A.flinch) + 0.5 * amp));
+    A.flT = 0; A.flS = -A.flS;
+  };
+
   IP._effects = function (d) {
     const A = this.A, R = this.R, L = this.L;
     const f = A.flinch;
-    if (f !== 0) { R.body.rx += 0.5 * f; R.head.rx += 0.32 * f; R.root.pz += 0.07 * f; A.sq -= 0.1 * f; }
+    if (f !== 0) {
+      // v19 feel: jerk away from the hit (back + to one side, alternating), head snaps further,
+      // arms fly out a little, a small squash on the hit frame
+      const sd = A.flS;
+      R.body.rx += 0.4 * f; R.head.rx += 0.3 * f; R.root.pz += 0.08 * f;
+      R.body.rz += 0.07 * sd * f; R.head.rz += 0.16 * sd * f; R.head.ry -= 0.1 * sd * f;
+      A.sq += 0.07 * f;
+      if (this.isBiped) { for (const a of L.armsL) a.rz -= 0.2 * f; for (const a of L.armsR) a.rz += 0.2 * f; }
+    }
     if (A.stun > 0.001) {
       const k = A.stun, w = A.rt * 7.5;
       R.body.rz += 0.1 * Math.sin(w) * k;
@@ -46940,7 +47294,7 @@ body { font-weight: 700; letter-spacing: 0; }
       return;
     }
     const t = A.landT;
-    const c = t < 0.05 ? smooth01(t / 0.05) : t < 0.2 ? 1 : 1 - settle((t - 0.2) / 0.45);
+    const c = t < 0.04 ? smooth01(t / 0.04) : t < 0.15 ? 1 : 1 - settle((t - 0.15) / 0.38);   // (v19: crisper)
     const k = c * W;
     R.root.py -= 0.34 * this.hipY * k;
     R.body.rx -= 0.42 * k; R.head.rx += 0.34 * k;
@@ -46964,6 +47318,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
   // secondary motion: damped springs driven by the carrier's acceleration, speed (drag) and the
   // body's rotation (inertia), blended with cheap procedural sway at LOD 1
+  const _ANG = new Float64Array(6);
   IP._secondary = function (d, t, mv, ph, seed, adt) {
     const L = this.L, A = this.A, R = this.R, cv = A.cv;
     for (const w of L.wheels) w.rx -= A.roll % TAU;
@@ -46995,7 +47350,8 @@ body { font-weight: 700; letter-spacing: 0; }
       cv.fill(0); cv[0] = bp; cv[1] = by; cv[2] = bz; cv[9] = hp; cv[10] = hy; cv[11] = hz; cv[18] = h; A.cvInit = true;
     }
     const inv = 1 / adt, sm = 1 - Math.exp(-28 * adt);
-    const ang = [bp, by, bz, hp, hy, hz];
+    const ang = _ANG;   // (v19: no per-frame array)
+    ang[0] = bp; ang[1] = by; ang[2] = bz; ang[3] = hp; ang[4] = hy; ang[5] = hz;
     for (let q = 0; q < 6; q++) {
       const o = q < 3 ? q : 9 + (q - 3);
       const vel = (ang[q] - cv[o]) * inv;
@@ -47183,18 +47539,24 @@ body { font-weight: 700; letter-spacing: 0; }
       sx = S * (1 + 0.08 * Math.sin(k * Math.PI)) * shr; sy = S * shr;
       flash = 0.2 + 0.5 * k;
     } else {
-      const fly = clamp(k / 0.62, 0, 1);
-      kb = (0.32 + 0.25 * this.radius) * easeOutCubic(fly) * (1 - this.def.anim.weight * 0.6);
-      lift = A.deathLift + 0.22 * Math.sin(fly * Math.PI) * (1 - this.def.anim.weight * 0.7);
-      tip = 1.05 * smooth01(fly) * (1 - this.def.anim.weight * 0.5);
-      const pk = clamp((k - 0.55) / 0.45, 0, 1);
-      const shr = 1 - easeInQuad(pk);
-      sy = S * (1 - 0.35 * Math.sin(pk * HALF_PI)) * shr;
-      sx = S * (1 + 0.25 * Math.sin(pk * Math.PI)) * shr + S * 0.1 * pk * (1 - pk);
-      op = 1 - smooth01((k - 0.6) / 0.4);
-      flash = k < 0.12 ? 0.85 : 0.2 + 0.75 * pk;
+      // v19 feel: recoil pop (squash on the killing blow), hop back + tip over with gravity (the
+      // tip accelerates), THUD = flat squash when the body hits the ground, then shrink into the
+      // puff (poof at k 0.7 of ~0.46 s)
+      const W = this.def.anim.weight;
+      const rc = k < 0.1 ? Math.sin(k / 0.1 * Math.PI) : 0;
+      const fly = clamp((k - 0.04) / 0.56, 0, 1);
+      kb = (0.28 + 0.22 * this.radius) * easeOutCubic(fly) * (1 - W * 0.6);
+      lift = A.deathLift + 0.2 * Math.sin(fly * Math.PI) * (1 - W * 0.7);
+      tip = 1.2 * fly * fly * (1 - W * 0.5);
+      const pk = clamp((k - 0.6) / 0.4, 0, 1);
+      const thud = pk > 0 ? Math.sin(Math.min(1, pk / 0.3) * HALF_PI) : 0;
+      const shr = 1 - easeInQuad(clamp((k - 0.68) / 0.32, 0, 1));
+      sy = S * (1 - 0.18 * rc) * (1 - (0.38 + 0.1 * W) * thud) * shr;
+      sx = S * (1 + 0.1 * rc) * (1 + (0.26 + 0.08 * W) * thud) * shr;
+      op = 1 - smooth01((k - 0.78) / 0.22);
+      flash = k < 0.1 ? 0.85 : 0.2 + 0.7 * pk;
     }
-    if (!A.poofed && k >= 0.62) { A.poofed = true; try { G.hooks.poof(this); } catch (e) { /* ignore */ } }
+    if (!A.poofed && k >= (this.isFlyer || this.isBuilding ? 0.62 : 0.7)) { A.poofed = true; try { G.hooks.poof(this); } catch (e) { /* ignore */ } }
     this.liftNode.position.set(0, lift, kb);
     if (!this.isBuilding) this.liftNode.rotation.set(tip, 0, 0);
     this.liftNode.scale.set(Math.max(1e-3, sx), Math.max(1e-3, sy), Math.max(1e-3, sx));
@@ -47977,6 +48339,7 @@ body { font-weight: 700; letter-spacing: 0; }
       return null;
     });
     PQ = p.then(() => null, () => null);
+    if (opts.nocache) return p; // v19: one-shot renders (card-art cut-outs) are not kept in memory
     PCACHE[key] = p; PCACHE_KEYS[key] = 1;
     p.then(v => { if (!v) { delete PCACHE[key]; delete PCACHE_KEYS[key]; } });
     return p;
@@ -58152,6 +58515,10 @@ body { font-weight: 700; letter-spacing: 0; }
   // =====================================================================================
   const LOOK_CREW = { grim: 0, wear: 0.05, blood: 0, lift: 0.12, team: 0.1 };
 
+  // v19 (battle-camera read, CR princess): bigger head (R 0.2 -> 0.25) on a shorter body (same
+  // measured height, so the renderer's CREW_H keeps her size), PINK hair for both teams (the CR
+  // princess read) with a small gold tiara instead of the slim circlet, a bigger dark-wood bow with
+  // gold tips / grip rings that contrasts with the plank deck. Pivots + anim contract unchanged.
   // tower-archer - princess tower crew (v17): a young archer girl in a team-coloured bell tunic
   // with a cream collar and gold belt, chestnut hair with swept bangs and a big springy high
   // ponytail tied with a team ribbon, a slim gold circlet with a team gem, big friendly eyes,
@@ -58180,7 +58547,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const V = G.__cdV11, cape = V.cape;
       const rig = kit.rig();
       // chibi proportions: head radius 0.2 (~1/3 of the height), short wide body
-      const R = 0.2, HIP = 0.4, SH = 0.7, HY = SH + 0.08 + R * 0.92, SX = 0.17, LX = 0.075;
+      const R = 0.25, HIP = 0.34, SH = 0.64, HY = SH + 0.08 + R * 0.92, SX = 0.19, LX = 0.08;
       rig.pivot('body', 'root', [0, HIP, 0]);
       rig.pivot('scarf', 'body', [0, SH, 0.14]);
       rig.pivot('head', 'body', [0, SH + 0.05, 0]);
@@ -58188,11 +58555,11 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.pivot('hairTail', 'head', [0, HY + R * 0.85, R * 0.75]);
       rig.pivot('armL', 'body', [-SX, SH - 0.03, 0]);
       rig.pivot('armR', 'body', [SX, SH - 0.03, 0]);
-      const HL = [-(SX + 0.04), SH - 0.33, -0.04], HR = [SX + 0.04, SH - 0.33, -0.04];
+      const HL = [-(SX + 0.09), SH - 0.31, -0.04], HR = [SX + 0.04, SH - 0.33, -0.04];   // v19: bow hand further out (the bow shows beside her, also from behind)
       rig.pivot('weapon', 'armL', HL);
       rig.pivot('string', 'weapon', [HL[0], HL[1] + 0.12, HL[2]], { rot: [-HP, 0, 0] });
       rig.pivot('arrow', 'armR', HR);
-      const SKIN = 0xf3c59e, HAIR = 0x8a4220, HAIRL = 0xc8703c, HAIRD = 0x5e2a14, LEA = 0x7a4a2a, LEAD = 0x5a3420, CREAM = 0xfff1d6, GD = 0xf2c23e, WOOD = 0xc08a4a;
+      const SKIN = 0xf3c59e, HAIR = 0xee5fa0, HAIRL = 0xff9cc8, HAIRD = 0xa83a6c, LEA = 0x7a4a2a, LEAD = 0x5a3420, CREAM = 0xfff1d6, GD = 0xf2c23e, WOOD = 0xc08a4a, BOW = 0x5e3218;
 
       // ---- legs (body mesh): team-dark leggings, brown boots with a cuff
       const leg = kit.merge([
@@ -58232,10 +58599,16 @@ body { font-weight: 700; letter-spacing: 0; }
         kit.sphere(R * 1.07, { color: HAIR, seg: 16, hseg: 9, theta: [0, 1.25], mat: 'hair' }).rot(-0.28, 0, 0).at(0, HY + R * 0.04, R * 0.05),
         kit.sphere(R * 1.05, { color: HAIR, seg: 14, hseg: 9, phi: [0, PI], theta: [0.5, 1.75], mat: 'hair' }).at(0, HY - R * 0.02, R * 0.05),
       ];
+      // v19: small gold tiara (band + three points, team gem) - reads gold on pink from above
+      const TY = HY + R * 0.74, TZ = R * 0.05, TR = R * 0.84;
       const circ = [
-        kit.torus(R * 1.02, R * 0.05, { color: GD, seg: [5, 24], mat: 'gold' }).rot(HP - 0.5, 0, 0).at(0, HY + R * 0.55, R * 0.02),
-        kit.gem(R * 0.12, { color: 'teamGlow', mat: 'gem', glow: 0.3, stretch: 1.3 }).rot(-0.45, 0, 0).at(0, HY + R * 0.86, -R * 0.84),
+        kit.ring(TR, R * 0.075, { color: GD, seg: [4, 18], mat: 'gold' }).at(0, TY, TZ),
+        kit.gem(R * 0.15, { color: 'teamGlow', mat: 'gem', glow: 0.3, stretch: 1.3 }).rot(HP, 0, 0).at(0, TY + R * 0.04, TZ - TR - R * 0.05),
       ];
+      for (const tp of [[-0.55, 0.3], [0, 0.42], [0.55, 0.3]]) {
+        const ang = tp[0], cx = Math.sin(ang) * TR, cz = TZ - Math.cos(ang) * TR;
+        circ.push(kit.cone(R * 0.11, R * tp[1], { color: GD, seg: 4, mat: 'gold' }).rot(-0.25 * Math.cos(ang), 0, -0.25 * Math.sin(ang)).at(cx, TY + R * 0.05 + R * tp[1] * 0.5, cz));
+      }
       // side locks framing the face (long, rounded)
       const side = [];
       for (const sx of [-1, 1]) side.push(V.lock(kit, head, [sx * 0.86, 0.35, -0.3], [sx * 1.0, -0.55, -0.15], R * 0.17, HAIR, { n: 3, l0: 0.06, l1: 0.1, tail: [[sx * R * 0.04, -R * 0.25, -R * 0.02]], hi: HAIRL, root: 0.9, blunt: 0.85, wide: 1.5, thick: 0.6, nv: 6, nu: 4 }));
@@ -58248,7 +58621,7 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('hair', bangs);
       // big high ponytail (tapered, curls up then down) + team ribbon bow at its root
       const P0 = [0, HY + R * 0.85, R * 0.75];
-      const tail = kit.tube([P0, [0, HY + R * 1.2, R * 1.35], [0, HY + R * 0.75, R * 1.95], [0, HY - R * 0.2, R * 2.05], [0, HY - R * 0.95, R * 1.8]], function (u) { return R * (0.3 + 0.18 * Math.sin(PI * Math.min(1, u * 1.6)) - 0.26 * u * u) ; }, { color: HAIR, radial: 9, seg: 14, caps: 'round', mat: 'hair' });
+      const tail = kit.tube([P0, [0, HY + R * 0.95, R * 1.22], [0, HY + R * 0.45, R * 1.55], [0, HY - R * 0.25, R * 1.5], [0, HY - R * 0.75, R * 1.3]], function (u) { return R * (0.26 + 0.12 * Math.sin(PI * Math.min(1, u * 1.6)) - 0.24 * u * u) ; }, { color: HAIR, radial: 9, seg: 14, caps: 'round', mat: 'hair' });
       tail.paint(function (x, y, z, nx, ny, nz) { return nz > 0.4 && ny > -0.2 ? kit.mix(HAIR, HAIRL, 0.35) : null; });
       rig.add('hairTail', tail,
         kit.sphere(R * 0.2, { color: 'team', seg: 10, scale: [1.6, 0.9, 0.7], mat: 'cloth' }).rot(0, 0, 0.35).at(-R * 0.26, P0[1] + R * 0.06, P0[2] + R * 0.1),
@@ -58270,16 +58643,17 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('armR', arm(1));
       // honey-wood recurve longbow (rest frame: limbs along Z), gold tips, team grip
       const bx = HL[0], by = HL[1], bz = HL[2];
-      const bowPath = [[0, 0.17, -0.48], [0, 0.1, -0.43], [0, 0.03, -0.29], [0, -0.01, -0.1], [0, -0.016, 0], [0, -0.01, 0.1], [0, 0.03, 0.29], [0, 0.1, 0.43], [0, 0.17, 0.48]].map(function (q) { return [bx + q[0], by + q[1], bz + q[2]]; });
+      // v19: bigger, darker bow (dark wood + gold tips / grip rings) - clear against the plank deck
+      const bowPath = [[0, 0.19, -0.56], [0, 0.11, -0.5], [0, 0.03, -0.34], [0, -0.012, -0.12], [0, -0.018, 0], [0, -0.012, 0.12], [0, 0.03, 0.34], [0, 0.11, 0.5], [0, 0.19, 0.56]].map(function (q) { return [bx + q[0], by + q[1], bz + q[2]]; });
       rig.add('weapon',
-        kit.tube(bowPath, function (u) { return 0.014 + 0.022 * Math.sin(PI * u); }, { color: WOOD, radial: 8, seg: 22, caps: 'round', mat: 'wood' }),
-        kit.rcyl(0.036, 0.036, 0.11, { color: 'team', seg: 12, mat: 'cloth' }).rot(HP, 0, 0).at(bx, by - 0.012, bz),
-        kit.sphere(0.03, { color: GD, seg: 8, mat: 'gold' }).at(bx, by + 0.18, bz - 0.5),
-        kit.sphere(0.03, { color: GD, seg: 8, mat: 'gold' }).at(bx, by + 0.18, bz + 0.5));
+        kit.tube(bowPath, function (u) { return 0.018 + 0.026 * Math.sin(PI * u); }, { color: BOW, radial: 8, seg: 22, caps: 'round', mat: 'wood' }),
+        kit.rcyl(0.042, 0.042, 0.12, { color: 'team', seg: 12, mat: 'cloth' }).rot(HP, 0, 0).at(bx, by - 0.014, bz),
+        kit.sphere(0.038, { color: GD, seg: 8, mat: 'gold' }).at(bx, by + 0.2, bz - 0.58),
+        kit.sphere(0.038, { color: GD, seg: 8, mat: 'gold' }).at(bx, by + 0.2, bz + 0.58));
       const nock = [bx, by + 0.12 + 0.2, bz];
       rig.add('string',
-        kit.tube([[bx, by + 0.12, bz - 0.44], nock], 0.005, { color: 0xf4ead2, radial: 5, seg: 1, caps: false }),
-        kit.tube([nock, [bx, by + 0.12, bz + 0.44]], 0.005, { color: 0xf4ead2, radial: 5, seg: 1, caps: false }));
+        kit.tube([[bx, by + 0.14, bz - 0.52], nock], 0.006, { color: 0xf4ead2, radial: 5, seg: 1, caps: false }),
+        kit.tube([nock, [bx, by + 0.14, bz + 0.52]], 0.006, { color: 0xf4ead2, radial: 5, seg: 1, caps: false }));
       const ax = HR[0], ay = HR[1], az = HR[2];
       rig.add('arrow',
         kit.cylinder(0.011, 0.011, 0.46, { color: WOOD, seg: 8, open: true }).at(ax, ay - 0.19, az),
@@ -58290,6 +58664,10 @@ body { font-weight: 700; letter-spacing: 0; }
     },
   });
 
+  // v19 (CR king read, less team colour): a white fur shoulder mantle covers
+  // the robe's top (the steep battle camera sees white + gold, not a team blob), a shorter cape
+  // (no team pool on the deck), a taller crown, a grumpy frown while awake, and the cannon is
+  // stowed while he sleeps and pops up when the king tower wakes (cart pivot scale).
   // v18: the king follows the v18 hero style (user: the main tower's king "genauso wie die
   // Charaktere"): a bigger head (~1/3 of the height), bigger eyes under bolder brows, cleaner robe
   // (no thin chain - the medallion stays). Pivots, anim contract and the cannon are unchanged.
@@ -58348,6 +58726,15 @@ body { font-weight: 700; letter-spacing: 0; }
           rig.browL.rotation.z -= 0.35 * g; rig.browR.rotation.z += 0.35 * g;
           rig.head.rotation.z += 0.08 * Math.sin(a.kWake * 40) * g;
         }
+        // v19: grumpy while awake (brows stay low), the cannon is stowed under the deck while he
+        // dozes and pops up (overshoot) when the king tower activates
+        const aw = 1 - k;
+        rig.browL.rotation.z -= 0.16 * aw; rig.browR.rotation.z += 0.16 * aw;
+        if (rig.cart) {
+          const up = smooth01(aw), pop = a.kWake < 0.7 ? 0.22 * Math.sin(clamp(a.kWake / 0.7, 0, 1) * PI) : 0;
+          setScale(rig.cart, up * (1 + pop));
+          rig.cart.position.y -= 0.18 * (1 - up);
+        }
         rig.cart.position.z += 0.05 * a.strike;
       },
     },
@@ -58375,18 +58762,20 @@ body { font-weight: 700; letter-spacing: 0; }
         kit.rcyl(0.085, 0.08, 0.24, { color: 0x5a3420, seg: 12, mat: 'leather' }).at(-LX, 0.12, 0),
         V.shoe(kit, [-LX, 0, -0.05], 0.13, 0.2, 0.08, 0x5a3420, 0x3a2214, { mat: 'leather' }),
       ]);
+      // v19: white ermine shoulder mantle (short round fur cape over the shoulders, covers the neck)
+      const ermine = kit.lathe([[0.1, SH + 0.13], [0.17, SH + 0.12], [0.27, SH + 0.07], [0.38, SH + 0.0], [0.45, SH - 0.1], [0.47, SH - 0.17], [0.44, SH - 0.2]], { seg: 16, color: FUR, mat: 'fur', scale: [1, 1, 0.92] });
       const robe = kit.lathe([[0, HIP - 0.2], [0.38, HIP - 0.2], [0.43, HIP - 0.08], [0.45, HIP + 0.1], [0.41, SH - 0.12], [0.32, SH - 0.02], [0.16, SH + 0.05], [0, SH + 0.06]], { seg: 20, color: 'team', mat: 'cloth', scale: [1, 1, 0.9] });
       rig.add('body', leg, leg.mirror(), robe,
         kit.torus(0.41, 0.06, { color: FUR, seg: [6, 22], mat: 'fur' }).rot(HP, 0, 0).scale(1, 1, 0.9).at(0, HIP - 0.17, 0),
         kit.box(0.1, SH - HIP + 0.12, 0.03, { color: GD, bevel: 0.012, mat: 'gold' }).rot(0.1, 0, 0).at(0, (HIP + SH) / 2 - 0.08, -0.4),
         kit.sphere(0.024, { color: GDD, seg: 7, mat: 'gold' }).at(0, HIP + 0.05, -0.425),
         kit.sphere(0.024, { color: GDD, seg: 7, mat: 'gold' }).at(0, HIP + 0.17, -0.42),
-        kit.torus(0.24, 0.085, { color: FUR, seg: [7, 20], mat: 'fur' }).rot(HP, 0, 0).at(0, SH + 0.02, 0.0),
+        ermine,
         kit.rcyl(0.06, 0.06, 0.02, { seg: 14, color: GD, mat: 'gold', bevel: 0.008 }).rot(HP, 0, 0).at(0, SH - 0.19, -0.33),
         kit.gem(0.035, { color: 'teamGlow', mat: 'gem', glow: 0.3 }).rot(HP, 0, 0).at(0, SH - 0.19, -0.35),
         kit.cylinder(0.07, 0.08, 0.08, { color: SKIN, seg: 10, mat: 'skin' }).at(0, SH + 0.08, 0));
       // big team cape from the shoulders to the ground (gold hem band)
-      rig.add('cape', cape(kit, { a0: -1.6, a1: 1.6, y0: SH + 0.04, y1: 0.03, r0: 0.3, r1: 0.66, sz: 0.85, n: 8, tatter: 0, folds: 4, fold: 0.06, color: 'team', inner: 'teamDark', seed: 11 }));
+      rig.add('cape', cape(kit, { a0: -1.3, a1: 1.3, y0: SH - 0.08, y1: 0.2, r0: 0.34, r1: 0.46, sz: 0.85, n: 7, tatter: 0, folds: 4, fold: 0.05, color: 'team', inner: 'teamDark', seed: 11 }));   // v19: shorter, narrower
 
       // ---- head: round jolly face, big round nose, rosy cheeks, bushy brows, short brown hair
       const head = V.heroHead(kit, rig, HY, R, { skin: SKIN, shade: 0xd08e68, iris: 0x4a6ab0, irisDark: 0x1e3070, irisLight: 0xa8c8f0, lash: 0x2a1610, brow: BEARD, browW: 2.0, browTilt: 0.56, browArch: 0.03, tilt: 0.12, open: 0.44, eyeR: 0.215, eyeX: 0.32,
@@ -58394,14 +58783,14 @@ body { font-weight: 700; letter-spacing: 0; }
         scalp: BEARD, hairline: 0.62, recede: 0.3, sideburn: -0.35, nape: -0.55 });
       const crown = [
         kit.cylinder(R * 1.0, R * 0.92, R * 0.55, { color: GD, seg: 22, open: true, double: GDD, mat: 'gold' }).at(0, HY + R * 0.98, 0),
-        kit.sphere(R * 0.9, { color: 'team', seg: 14, theta: [0, HP], mat: 'felt' }).at(0, HY + R * 1.05, 0),
+        kit.sphere(R * 0.9, { color: 'team', seg: 12, theta: [0, HP], mat: 'felt', scale: [1, 0.62, 1] }).at(0, HY + R * 1.05, 0),   // v19: low velvet cap (less team colour on top)
         kit.ring(R * 1.0, R * 0.09, { color: GD, seg: [5, 24], mat: 'gold' }).at(0, HY + R * 0.72, 0),
         kit.ring(R * 0.95, R * 0.07, { color: GD, seg: [5, 24], mat: 'gold' }).at(0, HY + R * 1.25, 0),
       ];
       for (let i = 0; i < 5; i++) {
         const aa = PI + i / 5 * TAU, cx = Math.sin(aa) * R * 0.97, cz = Math.cos(aa) * R * 0.97;
-        crown.push(kit.cone(R * 0.24, R * 0.62, { color: GD, seg: 6, mat: 'gold' }).rot(Math.cos(aa) * -0.12, 0, Math.sin(aa) * 0.12).at(cx, HY + R * 1.5, cz));
-        crown.push(kit.sphere(R * 0.11, { color: GD, seg: 8, mat: 'gold' }).at(cx * 1.04, HY + R * 1.86, cz * 1.04));
+        crown.push(kit.cone(R * 0.26, R * 0.7, { color: GD, seg: 6, mat: 'gold' }).rot(Math.cos(aa) * -0.12, 0, Math.sin(aa) * 0.12).at(cx, HY + R * 1.54, cz));
+        crown.push(kit.sphere(R * 0.12, { color: GD, seg: 8, mat: 'gold' }).at(cx * 1.05, HY + R * 1.94, cz * 1.05));
         crown.push(kit.gem(R * 0.13, { color: i === 0 ? 'teamGlow' : 'team', glow: 0.3 }).rot(HP, 0, -aa).at(Math.sin(aa) * R * 1.03, HY + R * 0.98, Math.cos(aa) * R * 1.03));
       }
       rig.add('head', head.parts, kit.merge(crown).rot(0.05, 0, -0.04));
@@ -58626,6 +59015,13 @@ body { font-weight: 700; letter-spacing: 0; }
  * ladder, no lava / embers. All v15 / v16 spires, spikes, fang merlons and buttresses are gone.
  * Geometry (PT / KT, footprints, mounts), pivots and the anim contract are unchanged. Budgets at
  * 'phone': princess 16.0k, king 23.0k, rubble 7.2k / 7.4k (v16: ~17k / ~26k).
+ *
+ * v19 "less team colour" (user: CR towers are grey / beige stone + wood, team colour only on small
+ * banners / flags / trim): the princess deck is bare planks (no team floor - the crew in team colour
+ * reads on the warm wood), no side valances, a shorter front / back valance + a smaller front banner,
+ * merlons 0.34 -> 0.3 high (the archer stands clear), slightly bigger team pennants; the king keeps
+ * one shorter team banner per face (v18 runner 0.8 x 1.2 -> 0.58 x 0.82). Geometry (PT / KT,
+ * footprints, mounts), pivots and towerCustom unchanged; phone tris princess 15.3k, king 17.8k.
  *
  * Model ids
  *   crown towers : princess-tower, king-tower, princess-tower-rubble, king-tower-rubble
@@ -59820,12 +60216,12 @@ body { font-weight: 700; letter-spacing: 0; }
       // pale cornice (overhangs) + the parapet wall up to the deck
       parts.push(band(kit, a + 0.02, a + 0.1, yC - 0.02, yP, TW.quoin, 0.08));
       parts.push(polyLathe(kit, [[a + 0.04, yP - 0.01], [a + 0.04, F + 0.04], [a - 0.2, F + 0.04]], { color: TW.quoinShade, mat: 'stone', rough: 0.8, rc: 0.08, open: true, crease: 50 }));
-      plankDeck(kit, a - 0.18, F, 1.86, 'teamDark').forEach(q => parts.push(q));   // CR: the team floor fills the princess deck (dark shade: the crew in team colour reads on it)
-      // CR crenellation: chunky white L corners + one small merlon per side
-      crenels(kit, a + 0.06, F + 0.02, 0.76, 0.36, 0.34, 1, { midW: 0.4, midH: 0.82 }).forEach(q => parts.push(q));
-      // team valance under the cornice on all four faces (the back one is split by the ladder)
-      const val = valance(kit, a + 0.02, yC - 0.03, 1.5, 0.24);
-      parts.push(val.clone().rot(0, HP, 0), val.clone().rot(0, -HP, 0));
+      // v19: bare plank deck (no team carpet - the crew in team colour reads on the warm wood, CR)
+      plankDeck(kit, a - 0.18, F, 0).forEach(q => parts.push(q));
+      // CR crenellation: chunky white L corners + one small merlon per side (v19: 0.34 -> 0.3 high,
+      // the archer stands clear of them under the steep battle camera)
+      crenels(kit, a + 0.06, F + 0.02, 0.76, 0.36, 0.3, 1, { midW: 0.4, midH: 0.8 }).forEach(q => parts.push(q));
+      // v19: no side valances any more (team colour only front / back: banner + short valance)
       // side arrow slits
       const sl = slit17(kit, a + 0.02, 0, 0.92, 0.1, 0.3);
       parts.push(sl.clone().rot(0, HP, 0), sl.clone().rot(0, -HP, 0));
@@ -59843,11 +60239,11 @@ body { font-weight: 700; letter-spacing: 0; }
       // banners: front = the team banner, back = the valance piece over the ladder (sways a little)
       rig.pivot('banF', 'body', [0, yC - 0.05, -a - PR - 0.08]);
       rig.pivot('banB', 'body', [0, yC - 0.03, a + PR + 0.06]);
-      rig.add('banF', valance(kit, a + 0.02, yC - 0.03, 1.5, 0.24), banner17(kit, a + 0.02, yC - 0.12, 0.5, 0.62));
-      rig.add('banB', valance(kit, a + 0.02, yC - 0.03, 1.5, 0.24).rot(0, Math.PI, 0));
+      rig.add('banF', valance(kit, a + 0.02, yC - 0.03, 1.1, 0.18), banner17(kit, a + 0.02, yC - 0.1, 0.4, 0.5));
+      rig.add('banB', valance(kit, a + 0.02, yC - 0.03, 0.9, 0.16).rot(0, Math.PI, 0));
       rig.pivot('flagA', 'body', [-fx, FY, -fx]);
       rig.pivot('flagB', 'body', [fx, FY, fx]);
-      const fl = pennant17(kit, 0.3, 0.17);
+      const fl = pennant17(kit, 0.36, 0.2);   // v19: a little bigger (the small team accents carry the team read)
       rig.add('flagA', fl.clone().at(-fx, FY, -fx));
       rig.add('flagB', fl.clone().rot(0, Math.PI, 0).at(fx, FY, fx));
       // lantern glass (front / back)
@@ -59913,12 +60309,12 @@ body { font-weight: 700; letter-spacing: 0; }
       // ONE long team runner per face, from the cornice down (front + back)
       rig.pivot('banF', 'body', [0, yC - 0.02, -a0 - PR - 0.1]);
       rig.pivot('banB', 'body', [0, yC - 0.02, a0 + PR + 0.1]);
-      const run = banner17(kit, a0 + 0.02, yC - 0.02, 0.8, 1.2, 0.04);
+      const run = banner17(kit, a0 + 0.02, yC - 0.02, 0.58, 0.82, 0.04);   // v19: shorter banner (v18 0.8 x 1.2 runner)
       rig.add('banF', run.clone());
       rig.add('banB', run.clone().rot(0, Math.PI, 0));
       rig.pivot('flagA', 'body', [-fx, FY, fx]);
       rig.pivot('flagB', 'body', [fx, FY, fx]);
-      const fl = pennant17(kit, 0.34, 0.19);
+      const fl = pennant17(kit, 0.4, 0.22);
       rig.add('flagA', fl.clone().rot(0, Math.PI, 0).at(-fx, FY, fx));
       rig.add('flagB', fl.clone().at(fx, FY, fx));
       // lantern glass, lit when the king wakes (coreF / coreB)
@@ -62615,6 +63011,23 @@ body { font-weight: 700; letter-spacing: 0; }
 /* Chaos Royale - 25-gfx-vfx.js (render3d)
  * CR.VFX: GPU-cheap effects for the 3D battle renderer (CR.Render3D).
  *
+ * v19 feel pass (impact like Clash Royale; short, clean, pooled - tests/test-v19-fx.js):
+ *   hits scale with the blow's damage (kd ~0.75..1.45); melee draws a ~0.1 s slash mark across the
+ *   target (_slashMark), heavy blows flick tiny stone chips, arrows / bullets a small dust puff.
+ *   'explosion' / 'bigExplosion' (fireball, rocket, bombs, meteors): white flash over an orange
+ *   core (fireFlash), flames, a ground flash disc (impDisc, ~0.2 s) + fast shock ring, dust thrown
+ *   out flat (landDust), debris + chips, a short light smoke (boomPuff instead of the 1.5 s
+ *   boomSmoke) and the faint scorch (<= 1.5 s). No white blob over the Arrows volley; zap / freeze
+ *   get a quick ground flash. fx.landImpact(x, z, r, strength, team, flyer, building, y): deploy
+ *   dust + ground flash on the frame the model touches down (renderer: CR.GFX.hooks.land; the
+ *   'deploy' event draws nothing when ctx.landHooked), heavy troops add chips + a tiny thump, at
+ *   most LAND_FRAME_MAX full landings per frame. fx.deathPuff(x, y, z, k, team, air): quick smoke
+ *   puff + a small soul glow floating up + team-light sparkles on the death animation's puff frame
+ *   (renderer: CR.GFX.hooks.poof via ctx.deferPoof; without the hook right away). Tower collapse
+ *   adds a ground flash, flat dust and a crown pop (gold stars), the rubble thump a flash + chips;
+ *   king activation a dust burst + chips + small thump. Shakes only on big events (fireball,
+ *   rocket, tower, king wake, very heavy landings), 150-300 ms (Render3D clamps the length).
+ *
  * v17 game feel ("juice", user request A):
  *   fx.damagePop(id, x, y, z, k, col)  crisp white-hot 4-point core (2-4 frames, no fade-in) + 2-3
  *     tiny spark streaks in the attacker's light team colour on every damaging hit (no numbers);
@@ -62779,6 +63192,8 @@ body { font-weight: 700; letter-spacing: 0; }
   // crown tower collapse stages (s after the tower fell): chunks, cave-in + dust wall, rubble thump, dust
   const POP_GAP = 0.09;
   const POP_FRAME_MAX = 10;
+  // v19 impact pass: full landing / death effects per frame (more = a light dust / smoke only)
+  const LAND_FRAME_MAX = 6, DEAD_FRAME_MAX = 6;
   const CRUMBLE_T = [0.12, 0.34, 0.62, 1.0];
   const WAVE_K = 0.6;    // v14 polish: champion slash crescent at 60 % of its v7 size (G8)   // v14 polish: ground stains (scorch / cracks) alive at once
   const S_POINT = 0, S_SPHERE = 1, S_DISC = 2, S_RING = 3, S_CYL = 4;
@@ -63386,7 +63801,7 @@ body { font-weight: 700; letter-spacing: 0; }
     embers: P({ n: 12, tile: T_GLOW, rad: 0.2, life0: 0.4, life1: 0.9, size0: 0.1, size1: 0.18, grow: 0.5, col: 0xffd060, col1: 0xff5010, sp0: 3, sp1: 7, up0: 2, up1: 5, grav: 6, drag: 1.2, fout: 0.4 }),
     boomSmoke: P({ n: 10, tile: T_SMOKE, add: 0, rad: 0.5, life0: 0.9, life1: 1.5, size0: 0.9, size1: 1.4, grow: 2.2, col: 0xa89c8c, col1: 0xd2c8b8, alpha: 0.38, sp0: 0.8, sp1: 2.4, up0: 1, up1: 2.6, drag: 1.4, spin0: -0.6, spin1: 0.6, delay: 0.06, fout: 0.6 }),
     shock: P({ n: 1, tile: T_RING, mode: M_GROUND, life0: 0.3, life1: 0.33, size0: 0.5, size1: 0.5, grow: 4, col: 0xffe0a0, alpha: 0.6, rad: 0, sp0: 0, sp1: 0, fin: 0.01, fout: 0.3, dy: 0.06 }),
-    scorch: P({ n: 1, tile: T_SCORCH, mode: M_GROUND, add: 0, life0: 1.3, life1: 1.5, size0: 2.0, size1: 2.2, grow: 1.05, col: 0x8a7656, alpha: 0.3, rad: 0, sp0: 0, sp1: 0, fin: 0.02, fout: 0.55, dy: 0.035, rot: 1 }),
+    scorch: P({ n: 1, tile: T_SCORCH, mode: M_GROUND, add: 0, life0: 1.35, life1: 1.5, size0: 2.0, size1: 2.2, grow: 1.05, col: 0x7c6848, alpha: 0.35, rad: 0, sp0: 0, sp1: 0, fin: 0.02, fout: 0.55, dy: 0.035, rot: 1 }),
     debris: P({ n: 10, tile: T_CHUNK, add: 0, rad: 0.3, life0: 0.7, life1: 1.2, size0: 0.14, size1: 0.26, grow: 1, col: 0x5a5048, col1: 0x3a322c, alpha: 1, sp0: 2.5, sp1: 6, up0: 3, up1: 7, grav: 18, drag: 0.5, spin0: -12, spin1: 12, bounce: 1, fin: 0.01, fout: 0.8 }),
     // electricity / ice / magic
     zapSparks: P({ n: 10, tile: T_STREAK, mode: M_STRETCH, life0: 0.12, life1: 0.25, size0: 0.08, size1: 0.13, grow: 0.5, col: 0xffffff, col1: 0x6fd8ff, sp0: 4, sp1: 9, up0: 0, up1: 2, grav: 3, drag: 3, stretch: 6, fout: 0.3 }),
@@ -63420,6 +63835,27 @@ body { font-weight: 700; letter-spacing: 0; }
     steam: P({ n: 3, tile: T_SMOKE, add: 0, rad: 0.04, life0: 0.4, life1: 0.6, size0: 0.22, size1: 0.3, grow: 2.4, col: 0xffffff, col1: 0xf4f0ea, alpha: 0.8, sp0: 0.6, sp1: 1.4, up0: 1.6, up1: 2.6, drag: 2, spin0: -1, spin1: 1, fin: 0.02, fout: 0.55 }),
     cloud: P({ n: 5, tile: T_SMOKE, add: 0, shape: S_DISC, rad: 0.4, life0: 0.9, life1: 1.1, size0: 0.8, size1: 1.0, grow: 0.25, col: 0x7d8496, col1: 0x9aa0ae, alpha: 0.88, sp0: 0, sp1: 0.15, up0: 0, up1: 0.05, drag: 3, spin0: -0.3, spin1: 0.3, fin: 0.15, fout: 0.35 }),
     drizzle: P({ n: 3, tile: T_STREAK, mode: M_STRETCH, rad: 0.25, life0: 0.3, life1: 0.42, size0: 0.04, size1: 0.06, grow: 0, col: 0xa8d4ff, col1: 0x6fa8ea, alpha: 0.9, sp0: 0, sp1: 0.1, up0: -3, up1: -2, grav: 10, drag: 0, stretch: 5, fin: 0.05, fout: 0.3 }),
+    // v19 impact pass (CR weight): every layer is short (<= 0.6 s, flashes <= 0.2 s), light and
+    // gone without a trace except the faint scorch. impDisc = a filled ground flash under an
+    // impact / landing that is gone in ~0.2 s (never a lasting ring); impRing = a thin fast ring
+    impDisc: P({ n: 1, tile: T_DISC, mode: M_GROUND, life0: 0.16, life1: 0.2, size0: 0.55, size1: 0.6, grow: 2.6, col: 0xfff6dc, col1: 0xffd9a0, alpha: 0.42, rad: 0, sp0: 0, sp1: 0, fin: 0.001, fout: 0.75, dy: 0.05 }),
+    impRing: P({ n: 1, tile: T_RING, mode: M_GROUND, life0: 0.2, life1: 0.22, size0: 0.5, size1: 0.5, grow: 3.4, col: 0xffffff, alpha: 0.6, rad: 0, sp0: 0, sp1: 0, fin: 0.001, fout: 0.55, dy: 0.06 }),
+    // explosion core: a hot orange fireball glow (white -> orange) under the white flash
+    fireFlash: P({ n: 1, tile: T_GLOW, life0: 0.2, life1: 0.24, size0: 1.7, size1: 1.9, grow: 1.35, col: 0xfff0b0, col1: 0xff8a2a, rad: 0, sp0: 0, sp1: 0, fin: 0.001, fout: 0.55 }),
+    // short light smoke for explosions (the old boomSmoke hid the blast for ~1.5 s)
+    boomPuff: P({ n: 6, tile: T_SMOKE, add: 0, rad: 0.45, life0: 0.45, life1: 0.8, size0: 0.7, size1: 1.0, grow: 1.9, col: 0xd8cfc0, col1: 0xebe5da, alpha: 0.34, sp0: 1.2, sp1: 2.8, up0: 0.8, up1: 2.0, drag: 2.6, spin0: -0.8, spin1: 0.8, delay: 0.05, fout: 0.6 }),
+    // ground dust thrown out flat in a ring (landings, blasts, tower falls)
+    landDust: P({ n: 10, tile: T_SMOKE, add: 0, shape: S_RING, rad: 0.3, life0: 0.32, life1: 0.55, size0: 0.32, size1: 0.5, grow: 2.0, col: 0xe8dec8, col1: 0xd2c4a6, alpha: 0.55, sp0: 2.2, sp1: 4.2, up0: 0.1, up1: 0.6, drag: 6, spin0: -1.2, spin1: 1.2, fin: 0.02, fout: 0.6 }),
+    // tiny stone / earth chips flicked off a heavy hit or a landing (bounce once, gone in ~0.5 s)
+    chips: P({ n: 4, tile: T_CHUNK, add: 0, rad: 0.1, life0: 0.35, life1: 0.55, size0: 0.05, size1: 0.09, grow: 1, col: 0xd8ccb2, col1: 0x9e9078, sp0: 2, sp1: 4.5, up0: 2, up1: 4.5, grav: 18, drag: 0.6, spin0: -14, spin1: 14, bounce: 1, fin: 0.001, fout: 0.5 }),
+    // arrow / bullet impact: a tiny dust puff
+    puffSmall: P({ n: 3, tile: T_SMOKE, add: 0, rad: 0.06, life0: 0.2, life1: 0.32, size0: 0.16, size1: 0.24, grow: 2.1, col: 0xf0ebe0, col1: 0xd6cdbd, alpha: 0.55, sp0: 0.6, sp1: 1.6, up0: 0.2, up1: 0.7, drag: 6, spin0: -2, spin1: 2, fin: 0.01, fout: 0.6 }),
+    // melee slash mark: a thin bright streak across the target for ~0.1 s
+    slashMark: P({ n: 1, tile: T_STREAK, mode: M_STRETCH, life0: 0.09, life1: 0.11, size0: 0.11, size1: 0.13, grow: 0.5, col: 0xffffff, col1: 0xfff4d0, rad: 0, sp0: 0, sp1: 0, stretch: 7, fin: 0.001, fout: 0.6 }),
+    // death: a small soul glow floating up + a few sparkles (CR "poof")
+    soul: P({ n: 1, tile: T_GLOW, life0: 0.5, life1: 0.58, size0: 0.42, size1: 0.48, grow: 0.45, col: 0xffffff, rad: 0, sp0: 0, sp1: 0, up0: 2.6, up1: 3.0, drag: 2.4, fin: 0.06, fout: 0.55 }),
+    soulSpark: P({ n: 4, tile: T_STAR4, rad: 0.15, life0: 0.3, life1: 0.5, size0: 0.12, size1: 0.2, grow: 0.3, col: 0xffffff, sp0: 0.6, sp1: 1.6, up0: 1.2, up1: 2.4, drag: 2.5, spin0: -5, spin1: 5, fin: 0.02, fout: 0.45 }),
+    deathSmoke: P({ n: 7, tile: T_SMOKE, add: 0, rad: 0.2, life0: 0.32, life1: 0.5, size0: 0.4, size1: 0.62, grow: 1.9, col: 0xf2eee6, col1: 0xc8c0b4, alpha: 0.7, sp0: 1.4, sp1: 2.8, up0: 0.3, up1: 1.2, drag: 5, spin0: -1.5, spin1: 1.5, fin: 0.01, fout: 0.55 }),
   };
   VFX.PRESETS = PRE;
 
@@ -63990,24 +64426,33 @@ body { font-weight: 700; letter-spacing: 0; }
         case 'cannonHit':
           E.emit('hitFlash', x, y, z, 1.1 * s); E.emit('shock', x, 0.07, z, 0.6 * s, 1, 0xfff0d0); E.emit('dust', x, y * 0.5, z, 0.45 * s, 6, 0xc8c0b0); E.emit('debris', x, y, z, 0.4 * s, 4); E.emit('sparks', x, y, z, 0.9 * s, 5); break;
         case 'explosion':
-          E.emit('boomFlash', x, y, z, s); E.emit('fireCore', x, y, z, s, 16); E.emit('embers', x, y, z, s, 14);
-          E.emit('boomSmoke', x, y + 0.2, z, s, 10); E.emit('shock', x, 0.06, z, s); E.emit('debris', x, 0.2, z, 0.8 * s, 10);
-          E.emit('scorch', x, 0, z, s * 0.85); E.emit('dustRing', x, 0.05, z, s * 1.1);
+          // v19 impact pass (CR fireball): white flash over a hot orange core, flames bursting out,
+          // a ground flash disc + fast shock ring, dust thrown out flat, debris + chips, a light
+          // short smoke puff and the faint scorch (fades in ~1.5 s)
+          E.emit('boomFlash', x, y, z, 0.6 * s); E.emit('fireFlash', x, y, z, 0.95 * s);
+          E.emit('fireCore', x, y, z, s, 16); E.emit('embers', x, y, z, 0.9 * s, 9);
+          E.emit('impDisc', x, 0.05, z, 0.95 * s); E.emit('shock', x, 0.06, z, s);
+          E.emit('landDust', x, 0.05, z, 0.7 * s, 12); E.emit('debris', x, 0.2, z, 0.75 * s, 8, 0x8a7a62, 0x5e5244);
+          E.emit('chips', x, 0.2, z, 0.9 * s, 6); E.emit('boomPuff', x, y + 0.2, z, s, 6);
+          E.emit('scorch', x, 0, z, s * 0.85);
           break;
         case 'bigExplosion':
-          E.emit('boomFlash', x, y, z, s * 1.4); E.emit('fireCore', x, y, z, s * 1.1, 26); E.emit('embers', x, y, z, s * 1.2, 22);
-          E.emit('boomSmoke', x, y + 0.3, z, s * 1.2, 16); E.emit('shock', x, 0.06, z, s * 1.2); E.emit('shock', x, 0.08, z, s * 0.7, 1, 0xffffff);
-          E.emit('debris', x, 0.2, z, s, 16); E.emit('scorch', x, 0, z, s * 1.1); E.emit('dustRing', x, 0.05, z, s * 1.4);
+          E.emit('boomFlash', x, y, z, s * 1.25); E.emit('fireFlash', x, y, z, s * 1.2); E.emit('fireCore', x, y, z, s * 1.1, 24); E.emit('embers', x, y, z, s * 1.1, 14);
+          E.emit('impDisc', x, 0.05, z, s * 1.2); E.emit('shock', x, 0.06, z, s * 1.2); E.emit('impRing', x, 0.08, z, s * 0.7);
+          E.emit('landDust', x, 0.05, z, s * 0.95, 16); E.emit('debris', x, 0.2, z, s, 12, 0x8a7a62, 0x5e5244); E.emit('chips', x, 0.2, z, s * 1.1, 8);
+          E.emit('boomPuff', x, y + 0.3, z, s * 1.15, 9); E.emit('scorch', x, 0, z, s * 1.1);
           break;
         case 'bomb':
           E.emit('boomFlash', x, y, z, s * 0.9); E.emit('fireCore', x, y, z, s * 0.8, 14); E.emit('boomSmoke', x, y, z, s * 0.9, 10);
           E.emit('shock', x, 0.06, z, s, 1, 0xfff0c0); E.emit('debris', x, 0.2, z, s * 0.7, 8); E.emit('scorch', x, 0, z, s * 0.8);
           break;
         case 'deploy':
-          E.emit('dust', x, 0.05, z, 0.7 * s, 10); E.emit('dustRing', x, 0.04, z, 0.7 * s); E.emit('embers', x, 0.1, z, 0.3 * s, 3); break;
+          // v19: a troop touching down (the renderer fires it on the model's landing frame):
+          // dust thrown out flat + a ground flash that is gone in ~0.2 s (no lasting ring)
+          E.emit('landDust', x, 0.05, z, 0.75 * s, 9); E.emit('impDisc', x, 0.05, z, 0.62 * s); E.emit('impRing', x, 0.06, z, 0.5 * s, 1, 0xfff4dc); break;
         case 'deployBig':
-          E.emit('dust', x, 0.05, z, s, 16); E.emit('dustRing', x, 0.04, z, s); E.emit('debris', x, 0.1, z, 0.6 * s, 6, 0x4a4038);
-          E.emit('shock', x, 0.05, z, 0.7 * s, 1, 0xc99a3c); E.emit('embers', x, 0.1, z, 0.5 * s, 6); break;
+          E.emit('landDust', x, 0.05, z, 0.9 * s, 14); E.emit('dust', x, 0.05, z, 0.7 * s, 6); E.emit('impDisc', x, 0.05, z, 0.8 * s);
+          E.emit('impRing', x, 0.06, z, 0.6 * s, 1, 0xfff0d0); E.emit('chips', x, 0.1, z, 0.8 * s, 6); break;
         case 'land':
           E.emit('dust', x, 0.05, z, 0.5 * s, 7); E.emit('dustRing', x, 0.04, z, 0.45 * s); break;
         case 'slam':
@@ -65295,8 +65740,9 @@ body { font-weight: 700; letter-spacing: 0; }
         if (i % 2 === 0) this.emit('sparks', px, 0.2, pz, 0.7, 3, 0xffffff, 0xd0b080);
         if (i % 3 === 0) this.emit('planks', px, 0.15, pz, 0.3, 2, 0xc89a60, 0x8a6038);
       }
-      this.emit('dustRing', x, 0.04, z, R * 0.95);
-      this.emit('shock', x, 0.06, z, R * 0.8, 1, 0xfff0d0);
+      // (v19: flat dust + one fast thin ring instead of a dust ring + shock per arrow wave)
+      this.emit('landDust', x, 0.05, z, R * 0.45, 10);
+      this.emit('impRing', x, 0.06, z, R * 0.55, 1, 0xfff4dc);
     }
 
     // ------------------------------------------------------------ v17 game feel
@@ -65324,6 +65770,65 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     /**
+     * v19 impact pass: a deployed unit touches down (renderer: CR.GFX.hooks.land on the model's
+     * landing frame). Dust thrown out flat + a ground flash that is gone in ~0.2 s, sized by the
+     * footprint r (tiles) and the landing strength (1 + model weight); heavy troops add chips and
+     * a tiny camera thump, buildings the bigger 'deployBig', flyers only a small air puff.
+     * Budget: LAND_FRAME_MAX full landings per frame (a skeleton army lands as one cloud).
+     */
+    landImpact(x, z, r, strength, team, flyer, building, y) {
+      if (this._landFrame !== this.frame) { this._landFrame = this.frame; this._landN = 0; }
+      const n = (this._landN | 0) + 1;
+      this._landN = n;
+      const st = strength > 0 ? strength : 1;
+      const s = clamp((r > 0 ? r : 0.5) * 1.5 * this.uk, 0.7, 2.6) * (0.85 + 0.15 * st);
+      if (flyer) {
+        if (n <= LAND_FRAME_MAX) this.emit('deathSmoke', x, y > 0 ? y : 2, z, 0.45 * s, 3);
+        return;
+      }
+      if (building) { this.burst('deployBig', x, 0, z, Math.max(1.2, s * 0.9)); this.shake(0.34, 0.18); return; }
+      if (n > LAND_FRAME_MAX) { if (n <= LAND_FRAME_MAX * 2) this.emit('landDust', x, 0.05, z, 0.6 * s, 3); return; }
+      this.burst('deploy', x, 0, z, s);
+      if (st >= 1.6) {
+        // heavy (giant, golem, P.E.K.K.A ...): chips + a little more dust + a small thump
+        this.emit('chips', x, 0.1, z, 0.8 * s, 5);
+        this.emit('dust', x, 0.05, z, 0.55 * s, 5);
+        if (st >= 1.8 && s >= 1.5) this.shake(0.34, 0.18);
+      }
+    }
+
+    /**
+     * v19 impact pass: CR-like death poof - a quick light smoke puff, a small soul glow that
+     * floats up and a few sparkles in the team's light colour (all gone in ~0.6 s). The renderer
+     * fires it on the frame the death animation shrinks the model into the puff
+     * (CR.GFX.hooks.poof); k = size (~ footprint), team = colour team.
+     */
+    deathPuff(x, y, z, k, team, air) {
+      if (this._deadFrame !== this.frame) { this._deadFrame = this.frame; this._deadN = 0; }
+      const n = (this._deadN | 0) + 1;
+      this._deadN = n;
+      const TC = TEAM[team === 1 ? 1 : 0];
+      const s = clamp(k > 0 ? k : 1, 0.6, 2.4);
+      this.emit('deathSmoke', x, y, z, s * (air ? 0.85 : 0.8), n > DEAD_FRAME_MAX ? 3 : -1);
+      if (n > DEAD_FRAME_MAX) return;
+      this.emit('soul', x, y + 0.15, z, clamp(s * 0.85, 0.65, 1.4), 1, 0xffffff, TC.light);
+      this.emit('soulSpark', x, y + 0.1, z, s * 0.8, this.crowd ? 2 : 4, 0xffffff, TC.light);
+      if (s >= 1.4 && !air) this.emit('landDust', x, 0.05, z, s * 0.7, 8);
+    }
+
+    /** v19 impact pass: a thin bright diagonal slash mark across a melee target (~0.1 s), drawn
+     *  across the blow direction (dx, dz = attacker -> target); heavy blows a bit longer. */
+    _slashMark(x, y, z, dx, dz, k, heavy) {
+      const d = Math.sqrt(dx * dx + dz * dz) || 1;
+      const sgn = (this.frame & 1) ? 1 : -1;
+      const vx = -dz / d * sgn, vz = dx / d * sgn;
+      const s = clamp(k, 0.6, 1.8);
+      const P = this.parts;
+      const i = P.one(x, y, z, vx * 0.6, (heavy ? -0.55 : 0.45) * sgn, vz * 0.6, heavy ? 0.12 : 0.1, 0.1 * s, 0.05 * s, 0xffffff, 0xfff0c8, 0.95, T_STREAK, M_STRETCH, 1, 0, 6, heavy ? 8.5 : 7);
+      P.fin[i] = 0.001; P.fout[i] = 0.6;
+    }
+
+    /**
      * v17: staged crown tower collapse (CR-like): cracks + stone chips at the top, the tower
      * shudders (renderer), stone chunks rain while it sinks into a rolling dust wall, a heavy
      * landing thump when the rubble settles, lingering dust. x, z = world centre, king = king
@@ -65337,12 +65842,17 @@ body { font-weight: 700; letter-spacing: 0; }
       this.emit('boomFlash', x, h * 0.75, z, s * 0.9, 1, 0xfff2d0);
       this.emit('sparks', x, h * 0.8, z, s, 12, 0xffffff, 0xffd080);
       this.emit('debris', x, h * 0.85, z, s * 0.7, 10, 0xd8cebc, 0xa69c8c);
+      // v19 impact pass: a quick ground flash + flat dust burst at the foot and a crown pop (gold
+      // stars jumping off the top)
+      this.emit('impDisc', x, 0.05, z, s * 1.3, 1, 0xfff4e0);
+      this.emit('landDust', x, 0.1, z, s * 0.9, 12);
+      this.emit('soulSpark', x, h * 0.9, z, s * 0.9, 8, 0xffffff, 0xffd23f);
       const L = this._later, t = this.t;
       L.push({ at: t + CRUMBLE_T[0], k: 'crumble', i: 0, x: x, y: h, z: z, s: s, c: c });
       L.push({ at: t + CRUMBLE_T[1], k: 'crumble', i: 1, x: x, y: h, z: z, s: s, c: c });
       L.push({ at: t + CRUMBLE_T[2], k: 'crumble', i: 2, x: x, y: h, z: z, s: s, c: c });
       L.push({ at: t + CRUMBLE_T[3], k: 'crumble', i: 3, x: x, y: h, z: z, s: s, c: c });
-      this.shake(king ? 1.0 : 0.7, king ? 0.6 : 0.45);
+      this.shake(king ? 1.0 : 0.7, king ? 0.3 : 0.26);
     }
     _crumbleStage(it) {
       const x = it.x, z = it.z, s = it.s, h = it.y;
@@ -65362,7 +65872,10 @@ body { font-weight: 700; letter-spacing: 0; }
         this.emit('shock', x, 0.06, z, s * 1.3, 1, 0xfff6e0);
         this.emit('dustRing', x, 0.05, z, s * 1.5);
         this.emit('debris', x, 0.4, z, s * 0.9, 12, 0xbcb2a2, 0x8e8474);
-        this.shake(0.45, 0.25);
+        this.emit('impDisc', x, 0.05, z, s * 1.1, 1, 0xfff0d8);
+        this.emit('landDust', x, 0.08, z, s * 1.0, 14);
+        this.emit('chips', x, 0.3, z, s, 8);
+        this.shake(0.42, 0.2);
       } else {
         // lingering dust + a few glints of the team colour
         this.emit('dustWall', x, 0.3, z, s * 0.7, 5);
@@ -65409,6 +65922,9 @@ body { font-weight: 700; letter-spacing: 0; }
           if (!ev.units || !ev.units.length) break;
           const card = ev.card ? cardOf(ev.card) : null;
           const big = card && card.type === 'building';
+          // v19: with the landing hook wired (renderer: CR.GFX.hooks.land) the dust comes on the
+          // frame each model touches down (landImpact), not while it is still in the air
+          if (ctx.landHooked) break;
           this.burst(big ? 'deployBig' : 'deploy', x, 0, z, big ? 1.4 : this.uk);
           break;
         }
@@ -65426,6 +65942,12 @@ body { font-weight: 700; letter-spacing: 0; }
           if (k) {
             this.burst('wake', k.x, k.y, k.z, 1.6);
             this.label('', k.x, k.y + 1.2, k.z, '#ffd23f', 2.0, 1.1, 'wake');
+            // v19 impact pass: the king tower jolts awake - stone dust puffs off its base, a few
+            // chips, a quick ground flash and a small camera thump
+            this.emit('landDust', k.x, 0.1, k.z, 1.6, 14);
+            this.emit('chips', k.x, k.y * 0.6, k.z, 1.4, 6);
+            this.emit('impDisc', k.x, 0.05, k.z, 2.2, 1, 0xfff2d0);
+            this.shake(0.4, 0.22);
           }
           break;
         }
@@ -65497,6 +66019,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const cat = src ? VFX.attackCat(src.unit) : 'melee';
       const k = tgt && (tgt.tower || tgt.building) ? 1.15 : this.uk;   // hit flashes follow the troop size
       const TC = TEAM[team === 1 ? 1 : 0];
+      // v19 impact pass: impacts scale with the damage of the blow (archer ~0.9 .. P.E.K.K.A ~1.45)
+      const dmg = +ev.dmg || 0;
+      const kd = dmg > 0 ? clamp(0.7 + Math.sqrt(dmg / 260) * 0.45, 0.75, 1.45) : 1;
       // v17 game feel: a crisp white damage pop on every damaging hit (throttled; no numbers)
       if (ev.dmg > 0 && kind !== 'death' && tgt) this.damagePop(ev.id, tx, hy, tz, tgt.tower ? 1.2 : k, TC.light);
       // v4: every damaging hit gets a team-tinted impact ring on the ground under the target, so
@@ -65518,11 +66043,15 @@ body { font-weight: 700; letter-spacing: 0; }
       }
       switch (kind) {
         case 'melee': {
-          const heavy = !!(src && HEAVY_MELEE[src.unit]);
+          const heavy = !!(src && HEAVY_MELEE[src.unit]) || dmg >= 450;
           const spin = !!(src && SPIN_MELEE[src.unit]);
-          if (heavy) this.burst('hitHeavy', tx, hy, tz, k);   // (v14 polish: no shock ring under the target)
-          else if (spin) this.burst('hit', tx, hy, tz, k, TC.light);   // (v14: no ring around the spinner)
-          else this.burst('hit', tx, hy, tz, k, TC.light);
+          if (heavy) this.burst('hitHeavy', tx, hy, tz, k * kd);   // (v14 polish: no shock ring under the target)
+          else if (spin) this.burst('hit', tx, hy, tz, k * kd, TC.light);   // (v14: no ring around the spinner)
+          else this.burst('hit', tx, hy, tz, k * kd, TC.light);
+          // v19 impact pass: a thin bright slash mark across the target (~0.1 s); heavy blows flick
+          // a few tiny stone chips off the ground
+          if (src && !spin) this._slashMark(tx, hy, tz, tx - src.x, tz - src.z, k * kd, heavy);
+          if (heavy && tgt && !tgt.air) this.emit('chips', tx, 0.15, tz, 0.8 * k * kd, this.crowd ? 2 : 4);
           if (src) {
             // swing smear around the attacker through the target (full circle for spinners)
             const dx = tx - src.x, dz = tz - src.z;
@@ -65553,8 +66082,8 @@ body { font-weight: 700; letter-spacing: 0; }
           else if (cat === 'shard' || cat === 'spirit' && src && src.unit === 'ice-spirit') this.burst('iceHit', tx, hy, tz, 1);
           else if (cat === 'orb') this.burst('orbHit', tx, hy, tz, 1, VFX.projStyle(src.unit).color);
           else if (cat === 'cannonball' || cat === 'bomb') this.burst('cannonHit', tx, hy, tz, 0.8);
-          else if (cat === 'arrow' || cat === 'dart' || cat === 'spear') this.burst('arrowHit', tx, hy, tz, k);
-          else this.burst('hitSmall', tx, hy, tz, k);
+          else if (cat === 'arrow' || cat === 'dart' || cat === 'spear') { this.burst('arrowHit', tx, hy, tz, k * kd); this.emit('puffSmall', tx, hy, tz, k * kd, this.crowd ? 2 : 3); }
+          else { this.burst('hitSmall', tx, hy, tz, k * kd); this.emit('puffSmall', tx, hy, tz, 0.9 * k * kd, this.crowd ? 1 : 2); }
           // attacker-team star on every ranged impact (tower arrows included)
           this.emit('hitStar', tx, hy, tz, 0.75 * k, 1, TC.light);
           break;
@@ -65601,10 +66130,12 @@ body { font-weight: 700; letter-spacing: 0; }
       if (unit === 'phoenix' || unit === 'phoenix-reborn') { this.burst('fireNova', x, y - 1.2, z, 1.2); return; }
       if (unit === 'phoenix-egg') { this.burst('poof', x, 0.4, z, 1, 0xffa040); return; }
       if (unit === 'balloon') { this.burst('poof', x, y, z, 1.1); this.emit('planks', x, y, z, 0.6, 6); return; }
-      if (unit === 'giant' || unit === 'giant-skeleton' || unit === 'pekka' || unit === 'mega-knight' || unit === 'royal-giant' || unit === 'electro-giant') {
-        this.burst('poof', x, y + 0.3, z, Math.max(1.4, k), TEAM[team].light); this.emit('dustRing', x, 0.05, z, Math.max(1.2, k)); return;
-      }
-      this.burst('poof', x, y, z, k * (ev.air ? 0.9 : 0.8), TEAM[team].light);
+      const big = unit === 'giant' || unit === 'giant-skeleton' || unit === 'pekka' || unit === 'mega-knight' || unit === 'royal-giant' || unit === 'electro-giant';
+      const pk = big ? Math.max(1.4, k) : k * (ev.air ? 1.1 : 1);
+      // v19 impact pass: the poof comes on the frame the death animation shrinks the model into it
+      // (renderer: CR.GFX.hooks.poof -> deathPuff); without the hook right away
+      if (ctx.deferPoof && ev.id && ctx.deferPoof(ev.id, pk, team, !!ev.air)) return;
+      this.deathPuff(x, big ? y + 0.3 : y, z, pk, team, !!ev.air);
     }
 
     _onSpell(ev, ctx, x, z, team) {
@@ -65615,8 +66146,8 @@ body { font-weight: 700; letter-spacing: 0; }
       // 15-tile rage), its lasting area disc still shows the real size
       const R = typeof ev.radius === 'number' && ev.radius > 0 ? Math.min(5, ev.radius) : 0;
       if (phase === 'cast') {
-        if (card === 'zap' || (kind === 'instant' && card.indexOf('zap') >= 0)) { this.burst('zap', x, 0, z, R || 2.5); this.shake(0.18, 0.15); this.flash(0xbff4ff, 0.12, 0.15); return; }
-        if (card === 'freeze') { this.burst('freeze', x, 0, z, R || 3); this.flash(0xdff8ff, 0.14, 0.25); return; }
+        if (card === 'zap' || (kind === 'instant' && card.indexOf('zap') >= 0)) { this.burst('zap', x, 0, z, R || 2.5); this.emit('impDisc', x, 0.05, z, (R || 2.5) * 0.8, 1, 0xdff8ff, 0x7fd8ff); this.shake(0.18, 0.15); this.flash(0xbff4ff, 0.12, 0.15); return; }
+        if (card === 'freeze') { this.burst('freeze', x, 0, z, R || 3); this.emit('impDisc', x, 0.05, z, (R || 3) * 0.8, 1, 0xf2fcff, 0xa8e8ff); this.flash(0xdff8ff, 0.14, 0.2); return; }
         if (kind === 'instant') { this.burst(R > 0 ? 'explosion' : 'hit', x, 0.4, z, R || 1); return; }
         if (kind === 'area') {
           const st = AREA_STYLE[card];
@@ -65652,12 +66183,15 @@ body { font-weight: 700; letter-spacing: 0; }
       }
       // impact - v4: a team-coloured shock ring + bright flash under every damaging spell (whose
       // spell hit where reads for both sides)
+      // (v19: not for arrows - a white blob over the volley - nor fireball / rocket, whose own
+      // flash + ground disc carry the blast)
       if (R > 0 && kind !== 'clone' && kind !== 'heal' && kind !== 'rage') {
-        this.emit('teamRing', x, 0.08, z, R * 1.1, 1, TEAM[team === 1 ? 1 : 0].main);
-        this.emit('boomFlash', x, 0.8, z, Math.min(2.2, 0.35 + R * 0.35), 1, 0xffffff);
+        // (v19: one team ring per spell, not one per arrow wave)
+        if (!(ev.wave > 0)) this.emit('teamRing', x, 0.08, z, R * 1.1, 1, TEAM[team === 1 ? 1 : 0].main);
+        if (card !== 'arrows' && card !== 'fireball' && card !== 'rocket') this.emit('boomFlash', x, 0.8, z, Math.min(2.2, 0.35 + R * 0.35), 1, 0xffffff);
       }
-      if (card === 'fireball') { this.burst('explosion', x, 0.5, z, R || 2.5); this.shake(0.4, 0.3); return; }
-      if (card === 'rocket') { this.burst('bigExplosion', x, 0.6, z, (R || 2) * 1.1); this.shake(0.8, 0.5); this.flash(0xfff0c0, 0.2, 0.25); return; }
+      if (card === 'fireball') { this.burst('explosion', x, 0.5, z, R || 2.5); this.shake(0.42, 0.24); return; }
+      if (card === 'rocket') { this.burst('bigExplosion', x, 0.6, z, (R || 2) * 1.1); this.shake(0.8, 0.3); this.flash(0xfff0c0, 0.16, 0.18); return; }
       if (card === 'arrows') { this.arrowRain(x, z, R || 4); return; }
       if (card === 'giant-snowball') { this.burst('snowball', x, 0, z, R || 2.5); this.shake(0.2, 0.2); return; }
       if (card === 'goblin-barrel') { this.burst('woodBurst', x, 0.5, z, 1.1); this.emit('shock', x, 0.06, z, 1.4, 1, 0xd9c7a0); return; }
@@ -66351,6 +66885,13 @@ body { font-weight: 700; letter-spacing: 0; }
  *   teamRings: true (opt-in), map 'rails' (+ aliases 'schienen', ...).
  *   v15: mood default = dusk (below), 'day' = the v14 warm meadow look, 'grim' = full v10 lights.
  *
+ * v19 feel pass (impact): camera shake master switch SHAKE_ON (the app has no shake setting;
+ *  options.shake / reduced motion still apply) and every shake lasts SHAKE_DUR_MIN..MAX (150-320 ms).
+ *  CR.GFX.hooks.land / .poof (gfx-core) are routed to the renderer whose scene holds the instance
+ *  (installGfxHooks, LIVE_R): _onLand -> CR.VFX landImpact (deploy dust on the touch-down frame; the
+ *  kit's own dust disc is switched off), _onPoof -> the death poof CR.VFX deferred via
+ *  ctx.deferPoof (fallback in _finishDie). Feel constants in Render3D.feel.
+ *
  * v18 (user: "wie Clash Royale am Handy": whole screen, field + decoration above / below, only whole
  * tiles, narrower river, scenery spilling over the edges, a bit darker; flat map; simpler king tower):
  *  - Framing: the hand panel may overlay a full-screen canvas - options.bottomInset (else the
@@ -66755,6 +67296,35 @@ body { font-weight: 700; letter-spacing: 0; }
     o.z = Math.sin(el * 0.062 + 1.3) * env * 0.5;
     return o;
   }
+  // v19 impact pass: camera shake master switch (the app has no shake setting; options.shake and
+  // prefers-reduced-motion still turn it off per renderer) and the shake length window (CR: a short
+  // 150-300 ms thump, never a long rumble)
+  const SHAKE_ON = true;
+  const SHAKE_DUR_MIN = 0.15, SHAKE_DUR_MAX = 0.32;
+  // v19 impact pass: CR.GFX.hooks (gfx-core: land on the frame a deploy drop touches down, poof on
+  // the frame the death animation shrinks into the puff) -> the live renderer whose scene holds the
+  // instance (several renderers may exist: battle, card previews). Installed once, chained.
+  const LIVE_R = [];
+  function installGfxHooks() {
+    const GX = CR.GFX;
+    if (!GX || !GX.hooks || GX._r3dHooks) return !!(GX && GX._r3dHooks);
+    const H = GX.hooks, pLand = H.land, pPoof = H.poof;
+    H.land = function (inst, st) { if (!gfxHook(inst, 0, st) && typeof pLand === 'function') pLand(inst, st); };
+    H.poof = function (inst) { if (!gfxHook(inst, 1, 0) && typeof pPoof === 'function') pPoof(inst); };
+    GX._r3dHooks = true;
+    return true;
+  }
+  function gfxHook(inst, kind, st) {
+    const o = inst && inst.object3d, p = o ? o.parent : null;
+    if (!p) return false;
+    for (let i = 0; i < LIVE_R.length; i++) {
+      const r = LIVE_R[i];
+      if (r.scene !== p) continue;
+      try { if (kind === 0) r._onLand(inst, st); else r._onPoof(inst); } catch (e) { /* hooks never break the frame */ }
+      return true;
+    }
+    return false;
+  }
   // Crown tower collapse on the model (CRUMBLE_S s): shudder, then the body sinks + squashes +
   // tilts into the dust; the rubble pops in at RUBBLE_AT (overshoot) and the body is gone at
   // BODY_GONE. Matches the CR.VFX towerCrumble stages (0.12 / 0.34 / 0.62 / 1.0 s).
@@ -66824,7 +67394,8 @@ body { font-weight: 700; letter-spacing: 0; }
   const PRINCESS_VIS = 1.0;
   const KING_VIS = 1.0;
   const KING_H = 1.0;         // (v12 drew the king 8 % lower; v14 uses the real proportions)
-  const CREW_H = [1.86, 1.67];  // v14 polish: tower crews x1.15 (ART-REVIEW-V14 G5, CR crews fill the deck): [king, princess archer] -> tops ~4.1 / ~3.7
+  const CREW_H = [1.86, 1.78];  // v19: princess archer a bit larger (was 1.67)
+  // v14 polish: tower crews x1.15 (ART-REVIEW-V14 G5, CR crews fill the deck): [king, princess archer] -> tops ~4.1 / ~3.7
                                 // (CR: they stand on the deck, inside its screen area: ~77 / ~64 pt)
   const CREW_VIS = [1.15, 1.3]; // fallback crew scale when the crew model cannot be measured
   const TOWER_REF_FOOT = [3.27, 4.38];   // measured base of the 3x3 / 4x4 crown tower models (v2 props)
@@ -69235,6 +69806,7 @@ body { font-weight: 700; letter-spacing: 0; }
     this.abil = ''; this.abilMs = -1e9; this.abilN = 0;   // v6 card ability (kind), its start (ms), combo hit
     this.e.fdx = 0; this.e.fdz = -1;                      // v7: world facing of the unit (VFX aim)
     this.under = false; this.look = 0;                    // v12: underground in the tunnel, ghost look (0 none, 1 tunnel, 2 clone)
+    this.poofReq = false; this.poofK = 1; this.poofTeam = 0; this.poofAir = false;   // v19: deferred death poof
   }
   /** v12: a unit view is underground in the tunnel map's tunnel (view.unit.tunnel === true or
    *  .underground; never air units, never the Miner's deploy tunnel which only sets fx 32). */
@@ -69399,7 +69971,18 @@ body { font-weight: 700; letter-spacing: 0; }
         at: function (x, y) { return self._entAt(x, y); },
         kingTop: function (s) { return self._kingTop(s); },
         zone: function (home) { return self._zoneWorld(home); },
+        // v19 impact pass: deploy dust on the landing frame / death poof on the puff frame
+        landHooked: false,
+        deferPoof: function (id, k, team, air) { return self._deferPoof(id, k, team, air); },
       };
+      this._hooked = false;
+      if (this.fx && installGfxHooks()) {
+        this._hooked = true;
+        this._ctx.landHooked = true;
+        LIVE_R.push(this);
+        // the renderer draws the landing dust itself (CR.VFX landImpact) - no second dust disc
+        if (CR.GFX.options) CR.GFX.options.dust = false;
+      }
 
       // overlay canvas (2D HUD)
       this.overlay = null; this.octx = null;
@@ -72272,6 +72855,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (this._destroyed) return;
       this.reset();
       this._destroyed = true;
+      { const li = LIVE_R.indexOf(this); if (li >= 0) LIVE_R.splice(li, 1); }   // v19: GFX hook routing
       const self = this;
       this._towers.forEach(function (tm) { self._undressTower(tm); });
       this._clearGhostUnits();
@@ -72469,11 +73053,11 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     _shake(amp, dur) {
-      if (!this.options.shake || this.reduced) return;
+      if (!SHAKE_ON || !this.options.shake || this.reduced) return;
       // v17: only big impacts shake, and subtly (Render3D.feel.shakeAmp)
       amp = shakeAmp(amp);
       if (!(amp > 0)) return;
-      dur = clamp(+dur || 0.2, 0.12, 0.5);
+      dur = clamp(+dur || 0.2, SHAKE_DUR_MIN, SHAKE_DUR_MAX);   // v19: 150-300 ms thumps
       const now = this.now;
       const left = this._shakeT0 + this._shakeDur * 1000 - now;
       if (left > 0 && this._shakeAmp * (left / (this._shakeDur * 1000)) > amp) return;
@@ -73196,6 +73780,7 @@ body { font-weight: 700; letter-spacing: 0; }
       m.seen = this.frame; m.born = now; m.dying = false;
       m.hitFlag = false; m.lastHitMs = -1e9; m.hurt = false; m.lastCur = null;
       m.lastProg = 0; m.lastZ = u.z || 0; m.lastFx = u.fx | 0; m.lastState = u.state; m.deployTotal = 0;
+      m.poofReq = false;   // v19: death poof deferred to the model's puff frame (_deferPoof / _onPoof)
       m.lockId = 0; m.lockT = 0; m.speed = 0; m.vx = 0; m.vz = 0; m.abil = ''; m.abilMs = -1e9;
       m.st.ability = ''; m.st.abilityT = -1; m.st.champReady = false; m.st.champActive = false;
       m.under = false; m.look = 0; m.ride = false; m.rideMs = 0;
@@ -73680,12 +74265,48 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     _finishDie(m) {
+      // v19: the death animation ended without reaching its puff frame (old kit, cut short): poof now
+      if (m.poofReq) this._poofNow(m, m.inst);
       m.dieDone = false; m.dying = false;
       this._releaseUnit(m, true);
     }
 
+    // ---- v19 impact pass: CR.GFX.hooks (installGfxHooks) -> CR.VFX landImpact / deathPuff
+    /** A deployed model touched down (gfx-core land hook, st = 1 + model weight). */
+    _onLand(inst, st) {
+      if (!this.fx) return;
+      const L = this._unitList;
+      for (let i = 0; i < L.length; i++) {
+        const m = L[i];
+        if (m.inst !== inst) continue;
+        if (m.unit === 'mega-knight') return;   // (its deploy slam is its own spell effect)
+        this.fx.landImpact(m.e.x, m.e.z, m.rv || m.e.r, st, m.cside, !!inst.isFlyer, !!inst.isBuilding, m.e.y + (+inst.lift || 0));
+        return;
+      }
+    }
+    /** A dying model shrinks into its puff (gfx-core poof hook): the deferred death poof. */
+    _onPoof(inst) {
+      const L = this._dying;
+      for (let i = 0; i < L.length; i++) if (L[i].inst === inst) { if (L[i].poofReq) this._poofNow(L[i], inst); return; }
+    }
+    _poofNow(m, inst) {
+      m.poofReq = false;
+      if (!this.fx) return;
+      const y = (m.e.air ? 0 : m.e.y) + (inst && +inst.lift > 0 ? +inst.lift : (m.e.air ? m.e.y : 0)) + m.h * 0.32;
+      this.fx.deathPuff(m.e.x, y, m.e.z, m.poofK, m.poofTeam, m.poofAir);
+    }
+    /** CR.VFX asks to defer a unit's death poof to its puff frame; false = draw it right away. */
+    _deferPoof(id, k, team, air) {
+      if (!this._hooked) return false;
+      const m = this._units.get(id);
+      if (!m || !m.inst || m.inst instanceof FallbackUnit || m.dying) return false;
+      m.poofReq = true; m.poofK = k; m.poofTeam = team; m.poofAir = air;
+      return true;
+    }
+
     _releaseUnit(m, now) {
       void now;
+      m.poofReq = false;
       if (m.li >= 0) this._unlistUnit(m, m.li);
       if (m.inst) {
         Batcher.restore(m.meshes, m.inst);
@@ -75006,7 +75627,7 @@ body { font-weight: 700; letter-spacing: 0; }
   // v15 polish helpers (pure; headless tests): HP bar damage chunk
   Render3D.bars = { chunk: barChunk, HOLD: BAR_HOLD, DRAIN: BAR_DRAIN };
   Render3D.feel = { shakeAmp: shakeAmp, shakeOffset: shakeOffset, crumble: crumble, crewPose: crewPose, crewMood: crewMood,
-    SHAKE_MIN: SHAKE_MIN, SHAKE_MAX: SHAKE_MAX, CRUMBLE_S: CRUMBLE_S, RUBBLE_AT: RUBBLE_AT, BODY_GONE: BODY_GONE, ANGRY_S: ANGRY_S, MOOD_EXPR: MOOD_EXPR };
+    SHAKE_MIN: SHAKE_MIN, SHAKE_MAX: SHAKE_MAX, SHAKE_ON: SHAKE_ON, SHAKE_DUR_MIN: SHAKE_DUR_MIN, SHAKE_DUR_MAX: SHAKE_DUR_MAX, CRUMBLE_S: CRUMBLE_S, RUBBLE_AT: RUBBLE_AT, BODY_GONE: BODY_GONE, ANGRY_S: ANGRY_S, MOOD_EXPR: MOOD_EXPR };
   CR.Render3D = Render3D;
 })(globalThis.CR || (globalThis.CR = {}));
 
@@ -77573,6 +78194,10 @@ body { font-weight: 700; letter-spacing: 0; }
  * Wraps CR.GFX.portrait(): for these cards and plain card-art requests (no pose) it returns a
  * PNG data URL with the figure cut out of its white background on a coloured card backdrop.
  * Battle models are unchanged; the 2D renderer (which passes a pose) keeps the 3D cut-out.
+ * v19: every other card's plain card-art request (no pose / bg / style / format) is rendered as a
+ * transparent 3D cut-out and composited CR-style (rarity backdrop, light, outline, rim, framing),
+ * see CR.CardArt (pure helpers: rarityOf, kindOf, frame, toneLUT, gradePixels, alphaBounds).
+ * CR.CardArt.off = true restores the old renderer look (call CR.GFX.clearPortraits / reload).
  */
 (function (CR) {
   'use strict';
@@ -77661,6 +78286,336 @@ body { font-weight: 700; letter-spacing: 0; }
     });
   }
 
+  // =====================================================================================
+  // v19 CR-style card art for every other card (rendered 3D portraits).
+  // The 3D portrait is requested as a transparent cut-out (bg: false, no contact shadow, a bit
+  // denser than the output so the bigger framing stays sharp), then composited in 2D:
+  //   backdrop per rarity (common blue/teal, rare orange, epic purple, legendary icy teal with a
+  //   faint rainbow sheen, champion gold) + soft radial light behind the head + vignette,
+  //   figure graded (a touch more contrast / saturation), a soft dark outline and a light rim
+  //   edge on the upper-right silhouette, framed big and slightly cut at the bottom (troops),
+  //   less for groups / buildings, centred for spells.
+  // Cached per card id + side + size; built lazily on request, the steps yield to the event
+  // loop (no long jank). Requests with a pose (2D renderer sprites) or an explicit bg / style /
+  // format go straight to the original renderer, untouched.
+  // =====================================================================================
+  const V19 = {};
+  // rgb stops: top / mid / bottom of the backdrop, glow (radial light), rim (light edge),
+  // ink (outline colour)
+  V19.PALETTE = {
+    common: { top: [112, 214, 246], mid: [40, 146, 210], bot: [14, 60, 122], glow: [214, 246, 255], rim: [226, 248, 255], ink: [8, 22, 48] },
+    rare: { top: [255, 208, 118], mid: [242, 140, 40], bot: [132, 52, 10], glow: [255, 240, 190], rim: [255, 242, 204], ink: [44, 18, 4] },
+    epic: { top: [222, 162, 255], mid: [150, 76, 224], bot: [56, 18, 114], glow: [248, 222, 255], rim: [244, 226, 255], ink: [26, 8, 48] },
+    legendary: { top: [196, 252, 255], mid: [74, 198, 222], bot: [18, 90, 124], glow: [242, 255, 255], rim: [236, 255, 255], ink: [6, 30, 44], sheen: true },
+    champion: { top: [255, 238, 150], mid: [236, 170, 42], bot: [122, 66, 8], glow: [255, 250, 214], rim: [255, 246, 200], ink: [40, 22, 2], rays: true },
+  };
+  // framing per kind: top = free space above the figure (fraction of H), show = fraction of the
+  // figure height that stays visible (the rest is cut at the bottom), maxW = max figure width
+  // (fraction of W), cy = vertical centre for centred kinds
+  V19.FRAMING = {
+    troop: { top: 0.065, show: 0.86, maxW: 1.04 },
+    group: { top: 0.09, show: 0.92, maxW: 1.1 },
+    building: { top: 0.1, show: 0.95, maxW: 0.94 },
+    spell: { centre: true, fit: 0.8, cy: 0.5 },
+  };
+  V19.GRADE = { contrast: 1.1, sat: 1.16, lift: 0.01 };
+  V19.SRC_K = 1.25;          // cut-out density relative to the output (sharp after the zoom)
+  V19.SRC_MAX = 1400;        // cap of the cut-out height in px (GPU memory on phones)
+
+  function findCardData(id) {
+    const D = CR.DATA;
+    if (!D || !Array.isArray(D.cards)) return null;
+    for (let i = 0; i < D.cards.length; i++) { const c = D.cards[i]; if (c && c.id === id) return c; }
+    return null;
+  }
+  /** Rarity of a card id ('common' when unknown). */
+  V19.rarityOf = function (id) {
+    const c = findCardData(String(id));
+    return c && V19.PALETTE[c.rarity] ? c.rarity : 'common';
+  };
+  /** Framing kind of a card id: 'spell' | 'building' | 'group' | 'troop'. */
+  V19.kindOf = function (id) {
+    const c = findCardData(String(id));
+    if (!c) return 'troop';
+    if (c.type === 'spell') return 'spell';
+    if (c.type === 'building') return 'building';
+    const s = Array.isArray(c.summon) && c.summon[0];
+    return s && (s.count || 1) > 1 ? 'group' : 'troop';
+  };
+  /** 256-entry tone curve: contrast around mid grey (smooth S, no clipping of the ends). */
+  V19.toneLUT = function (contrast, lift) {
+    const k = contrast === undefined ? V19.GRADE.contrast : contrast, l = lift === undefined ? V19.GRADE.lift : lift;
+    const lut = new Uint8ClampedArray(256);
+    for (let i = 0; i < 256; i++) {
+      const x = i / 255;
+      // blend of a linear contrast and a smoothstep S-curve keeps the ends from clipping hard
+      const lin = (x - 0.5) * k + 0.5, s = x * x * (3 - 2 * x);
+      let y = lin * 0.6 + (x + (s - x) * (k - 1) * 2.2) * 0.4 + l * (1 - x);
+      y = y < 0 ? 0 : y > 1 ? 1 : y;
+      lut[i] = Math.round(y * 255);
+    }
+    return lut;
+  };
+  /** Grades RGBA pixels in place (skips transparent ones): tone LUT, then saturation. */
+  V19.gradePixels = function (px, lut, sat) {
+    const sa = sat === undefined ? V19.GRADE.sat : sat;
+    for (let o = 0; o < px.length; o += 4) {
+      if (px[o + 3] === 0) continue;
+      const r = lut[px[o]], g = lut[px[o + 1]], b = lut[px[o + 2]];
+      const y = 0.299 * r + 0.587 * g + 0.114 * b;
+      px[o] = y + (r - y) * sa; px[o + 1] = y + (g - y) * sa; px[o + 2] = y + (b - y) * sa;
+    }
+    return px;
+  };
+  /** Alpha bounds of RGBA pixels: {x, y, w, h, cx (alpha-weighted centre x), cut (touches the
+   *  bottom edge)} or null when empty. */
+  V19.alphaBounds = function (px, W, H, thr) {
+    const t = thr === undefined ? 24 : thr;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1, sx = 0, sa = 0;
+    for (let y = 0; y < H; y++) {
+      let o = y * W * 4 + 3;
+      for (let x = 0; x < W; x++, o += 4) {
+        const a = px[o];
+        if (a <= t) continue;
+        if (x < x0) x0 = x; if (x > x1) x1 = x;
+        if (y < y0) y0 = y; if (y > y1) y1 = y;
+        sx += x * a; sa += a;
+      }
+    }
+    if (x1 < 0) return null;
+    return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1, cx: sx / sa, cut: y1 >= H - 2 };
+  };
+  /** Placement of the figure (source bounds b) in an outW x outH card: {s, dx, dy} so that the
+   *  source pixel (x, y) lands at (dx + x * s, dy + y * s). */
+  V19.frame = function (b, outW, outH, kind) {
+    const F = V19.FRAMING[kind] || V19.FRAMING.troop;
+    if (F.centre) {
+      const s = Math.min(outW * F.fit / b.w, outH * F.fit / b.h);
+      return { s, dx: outW / 2 - (b.x + b.w / 2) * s, dy: outH * F.cy - (b.y + b.h / 2) * s };
+    }
+    const show = b.cut ? 1 : F.show;
+    let s = outH * (1 - F.top) / (b.h * show);
+    s = Math.min(s, outW * F.maxW / b.w);
+    // horizontal: between the box centre and the mass centre (a long weapon does not push the
+    // body off-centre), kept inside the card when the figure is narrower than it
+    const mid = (b.x + b.w / 2) * 0.45 + b.cx * 0.55;
+    let dx = outW / 2 - mid * s;
+    const l = dx + b.x * s, r = dx + (b.x + b.w) * s;
+    if (b.w * s <= outW) { if (l < 0) dx -= l; else if (r > outW) dx -= r - outW; }
+    // bottom-anchored: the visible part ends at the card bottom; width-limited (wide) figures
+    // move up by half of the free space so flyers / wide groups do not hug the bottom
+    const free = Math.max(0, outH * (1 - F.top) - b.h * show * s);
+    const dy = outH - (b.y + b.h * show) * s - free * 0.5;
+    return { s, dx, dy };
+  };
+  /** Cut-out render size for an output of w x h CSS px (density 2): {density, w, h}. */
+  V19.srcSize = function (w, h) {
+    const dens = Math.min(2 * V19.SRC_K, V19.SRC_MAX / Math.max(1, h));
+    return { density: Math.max(1, dens), w: Math.round(w * Math.max(1, dens)), h: Math.round(h * Math.max(1, dens)) };
+  };
+  function rgba(c, a) { return 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a + ')'; }
+
+  // ---- canvas helpers (browser only)
+  let MC = null;
+  const MCQ = [];
+  function yieldTask() {
+    return new Promise(function (resolve) {
+      if (typeof G.MessageChannel === 'undefined') { G.setTimeout(resolve, 0); return; }
+      if (!MC) { MC = new G.MessageChannel(); MC.port1.onmessage = function () { const f = MCQ.shift(); if (f) f(); }; }
+      MCQ.push(resolve);
+      MC.port2.postMessage(0);
+    });
+  }
+  function newCanvas(w, h) { const c = G.document.createElement('canvas'); c.width = w; c.height = h; return c; }
+  function decode(url) {
+    return new Promise(function (resolve, reject) {
+      const im = new G.Image();
+      im.onload = function () { resolve(im); };
+      im.onerror = reject;
+      im.src = url;
+    });
+  }
+  function smooth(g) { g.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high'; }
+
+  /** Rarity backdrop: vertical gradient, soft light behind the head, rays / sheen, vignette. */
+  function paintBackdrop(g, W, H, pal, hx, hy) {
+    let gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, rgba(pal.top, 1)); gr.addColorStop(0.5, rgba(pal.mid, 1)); gr.addColorStop(1, rgba(pal.bot, 1));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    const D = Math.hypot(W, H);
+    if (pal.rays) {
+      // champion: a few very soft gold rays fanning out behind the head
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const n = 10;
+      for (let i = 0; i < n; i++) {
+        const a0 = -Math.PI + (i + 0.5) / n * Math.PI * 2, wd = 0.11;
+        const lg = g.createRadialGradient(hx, hy, 0, hx, hy, D * 0.8);
+        lg.addColorStop(0, rgba(pal.glow, 0.16)); lg.addColorStop(1, rgba(pal.glow, 0));
+        g.fillStyle = lg;
+        g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, D * 0.8, a0 - wd, a0 + wd); g.closePath(); g.fill();
+      }
+      g.restore();
+    }
+    // soft light behind head / shoulders
+    gr = g.createRadialGradient(hx, hy, 0, hx, hy, W * 0.78);
+    gr.addColorStop(0, rgba(pal.glow, 0.9)); gr.addColorStop(0.28, rgba(pal.glow, 0.45)); gr.addColorStop(1, rgba(pal.glow, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    if (pal.sheen) {
+      // legendary: a faint diagonal rainbow sheen over the icy teal
+      g.save(); g.globalCompositeOperation = 'soft-light';
+      gr = g.createLinearGradient(0, H * 0.1, W, H * 0.75);
+      gr.addColorStop(0, 'rgba(255,110,200,0.9)'); gr.addColorStop(0.3, 'rgba(255,226,110,0.85)'); gr.addColorStop(0.55, 'rgba(110,255,180,0.8)');
+      gr.addColorStop(0.8, 'rgba(110,160,255,0.9)'); gr.addColorStop(1, 'rgba(210,120,255,0.85)');
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      g.restore();
+    }
+    // vignette (edges darker, the frame sits on top)
+    gr = g.createRadialGradient(W * 0.5, H * 0.42, D * 0.22, W * 0.5, H * 0.46, D * 0.62);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.65, rgba(pal.ink, 0.22)); gr.addColorStop(1, rgba(pal.ink, 0.55));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  }
+
+  /** Grades the figure canvas: ctx.filter (GPU) where supported, else the LUT pixel loop. */
+  function gradeLayer(src, fr, W, H) {
+    const F = newCanvas(W, H);
+    let g = F.getContext('2d');
+    smooth(g);
+    const GR = V19.GRADE;
+    if (V19.useFilter !== false && typeof g.filter === 'string') {
+      g.filter = 'contrast(' + GR.contrast + ') saturate(' + GR.sat + ') brightness(' + (1 + GR.lift * 2) + ')';
+      g.drawImage(src, fr.dx, fr.dy, src.width * fr.s, src.height * fr.s);
+      if (g.filter !== 'none') { g.filter = 'none'; return F; }
+    }
+    g = F.getContext('2d', { willReadFrequently: true });
+    g.drawImage(src, fr.dx, fr.dy, src.width * fr.s, src.height * fr.s);
+    const d = g.getImageData(0, 0, W, H);
+    V19.gradePixels(d.data, V19.LUT || (V19.LUT = V19.toneLUT()));
+    g.putImageData(d, 0, 0);
+    return F;
+  }
+  /** Light rim on the upper-right silhouette edge (silhouette minus itself shifted down-left). */
+  function addRim(F, W, H, pal) {
+    const r = Math.max(1.5, W * 0.008);
+    const R = newCanvas(W, H), rg = R.getContext('2d');
+    rg.drawImage(F, 0, 0);
+    rg.globalCompositeOperation = 'source-in';
+    rg.fillStyle = rgba(pal.rim, 1); rg.fillRect(0, 0, W, H);
+    rg.globalCompositeOperation = 'destination-out';
+    rg.drawImage(F, -r, r * 0.9);
+    const g = F.getContext('2d');
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.62;
+    g.drawImage(R, 0, 0);
+    g.restore();
+    R.width = R.height = 1;
+  }
+
+  /** Alpha bounds of an image from a 1/4 size copy (cheap; +-4 source px is plenty). */
+  function imageBounds(im) {
+    const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height, k = 4;
+    const sw = Math.max(1, Math.round(iw / k)), sh = Math.max(1, Math.round(ih / k));
+    const c = newCanvas(sw, sh), g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(im, 0, 0, sw, sh);
+    const b = V19.alphaBounds(g.getImageData(0, 0, sw, sh).data, sw, sh, 40);
+    c.width = c.height = 1;
+    if (!b) return null;
+    const fx = iw / sw, fy = ih / sh;
+    return { x: b.x * fx, y: b.y * fy, w: b.w * fx, h: b.h * fy, cx: (b.cx + 0.5) * fx, cut: b.cut };
+  }
+
+  /** JPEG of a canvas: async toBlob -> blob: URL (encoding off the main thread) where available,
+   *  else a data URL. The UI accepts both (blob URLs live for the session, like the cache). */
+  function encodeJpeg(C) {
+    const U = G.URL;
+    if (V19.blob !== false && typeof C.toBlob === 'function' && U && typeof U.createObjectURL === 'function') {
+      return new Promise(function (resolve) {
+        C.toBlob(function (blob) {
+          if (blob) { try { resolve(U.createObjectURL(blob)); return; } catch (e) { /* fall back */ } }
+          resolve(C.toDataURL('image/jpeg', 0.92));
+        }, 'image/jpeg', 0.92);
+      });
+    }
+    return Promise.resolve(C.toDataURL('image/jpeg', 0.92));
+  }
+
+  /** Card art (JPEG blob / data URL) from a transparent cut-out data URL. Every step yields. */
+  function composeCutout(id, url, w, h) {
+    const W = w * 2, H = h * 2;     // same output size as the original renderer (density 2)
+    const pal = V19.PALETTE[V19.rarityOf(id)], kind = V19.kindOf(id);
+    const prof = {}, now = function () { return G.performance ? G.performance.now() : Date.now(); };
+    let t = 0, im = null, b = null, fr = null, fig = null, C = null;
+    return decode(url).then(function (x) {
+      im = x;
+      return yieldTask();
+    }).then(function () {
+      t = now();
+      b = imageBounds(im);
+      if (!b) throw new Error('empty portrait');
+      fr = V19.frame(b, W, H, kind);
+      V19.info[id] = { b, fr, src: [im.naturalWidth || im.width, im.naturalHeight || im.height], kind, prof };
+      prof.bounds = now() - t;
+      return yieldTask();
+    }).then(function () {
+      t = now();
+      fig = gradeLayer(im, fr, W, H);
+      im = null;
+      prof.grade = now() - t;
+      return yieldTask();
+    }).then(function () {
+      t = now();
+      addRim(fig, W, H, pal);
+      prof.rim = now() - t;
+      return yieldTask();
+    }).then(function () {
+      t = now();
+      C = newCanvas(W, H);
+      const g = C.getContext('2d');
+      smooth(g);
+      // light centre: head of the figure (spells: the middle of the object)
+      const hx = Math.max(W * 0.3, Math.min(W * 0.7, fr.dx + (b.x + b.w / 2) * fr.s));
+      const hy = kind === 'spell' ? H * 0.48 : Math.max(H * 0.18, Math.min(H * 0.5, fr.dy + (b.y + b.h * 0.22) * fr.s));
+      paintBackdrop(g, W, H, pal, hx, hy);
+      // soft dark outline: crisp 8-way ring of the inked silhouette + a soft halo
+      const ol = Math.max(1.5, W * 0.0055);
+      const S = newCanvas(W, H), s2 = S.getContext('2d');
+      s2.drawImage(fig, 0, 0);
+      s2.globalCompositeOperation = 'source-in';
+      s2.fillStyle = rgba(pal.ink, 1); s2.fillRect(0, 0, W, H);
+      g.save();
+      g.globalAlpha = 0.22;
+      for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * Math.PI * 2; g.drawImage(S, Math.cos(a) * ol * 2.6, Math.sin(a) * ol * 2.6); }
+      g.globalAlpha = 0.85;
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; g.drawImage(S, Math.cos(a) * ol, Math.sin(a) * ol); }
+      g.restore();
+      g.drawImage(fig, 0, 0);
+      // gentle darkening of the bottom edge (the name / elixir sit on the frame there)
+      const gr = g.createLinearGradient(0, H * 0.8, 0, H);
+      gr.addColorStop(0, rgba(pal.ink, 0)); gr.addColorStop(1, rgba(pal.ink, 0.28));
+      g.fillStyle = gr; g.fillRect(0, H * 0.8, W, H * 0.2);
+      fig.width = fig.height = 1; S.width = S.height = 1;
+      prof.paint = now() - t;
+      return yieldTask();
+    }).then(function () {
+      t = now();
+      return encodeJpeg(C).then(function (out) {
+        C.width = C.height = 1;
+        prof.encode = now() - t;
+        return out;
+      });
+    });
+  }
+
+  const cache19 = {};
+  V19.info = {};   // id -> last framing (debug / tools)
+  V19.composeCutout = composeCutout;
+  V19.cache = cache19;
+  /** True for plain card-art requests (no pose / explicit backdrop / style / format). */
+  V19.wants = function (opts) {
+    const o = opts || {};
+    if (V19.off || o.pose || o.bg !== undefined || o.style || o.format || o.raw) return false;
+    const X = CR.GFX, cb = X && X.config ? X.config.portraitBackdrop : 'auto';
+    return cb !== false;
+  };
+
   function install() {
     const GFX = CR.GFX;
     if (!GFX || typeof GFX.portrait !== 'function' || GFX.portrait.__cardArt) return;
@@ -77673,13 +78628,32 @@ body { font-weight: 700; letter-spacing: 0; }
         if (!cache[key]) cache[key] = compose(id, w, h).catch(function () { delete cache[key]; return orig.call(GFX, id, opts); });
         return cache[key];
       }
+      if (G.document && G.Image && V19.wants(o)) {
+        const w = Math.max(16, Math.round(o.w || 256)), h = Math.max(16, Math.round(o.h || 320)), side = o.side ? 1 : 0;
+        const key = id + '|' + side + '|' + w + 'x' + h + '|' + (o.count || '') + '|' + (o.zoom || '') + '|' + (o.yaw === undefined ? '' : o.yaw);
+        if (cache19[key]) return cache19[key];
+        const ss = V19.srcSize(w, h);
+        const ro = Object.assign({}, o, { w, h, side, bg: false, shadow: false, nocache: true, density: ss.density, style: V19.style || 'hero' });
+        const p = Promise.resolve(orig.call(GFX, id, ro)).then(function (url) {
+          if (!url) return orig.call(GFX, id, opts);
+          return composeCutout(String(id), url, w, h).catch(function (e) {
+            if (G.console) G.console.warn('card art ' + id + ': ' + (e && e.message ? e.message : e));
+            return orig.call(GFX, id, opts);
+          });
+        });
+        cache19[key] = p;
+        p.then(function (v) { if (!v) delete cache19[key]; }, function () { delete cache19[key]; });
+        return p;
+      }
       return orig.apply(GFX, arguments);
     };
     wrapped.__cardArt = true;
+    wrapped.__orig = orig;
     GFX.portrait = wrapped;
   }
   install();
   CR.installCardArt = install;
+  CR.CardArt = V19;
 })(globalThis.CR || (globalThis.CR = {}));
 
 </script>
