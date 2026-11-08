@@ -8176,6 +8176,8 @@ body { font-weight: 700; letter-spacing: 0; }
  *   CR.Arena.deployGrid(side, sim, card?)   -> Uint8Array(18*32), 1 = tile deployable (row-major, y*18+x)
  *   CR.Arena.isDeployable(side, x, y, card, sim) -> boolean (x,y raw; snapped internally)
  *   CR.Arena.checkDeploy(side, x, y, card, sim)  -> {ok, reason, x, y} (snapped position)
+ *   CR.Arena.snapDeploy(side, x, y, card, sim)   -> v21: like checkDeploy, but an invalid drop moves
+ *                                               to the nearest valid tile ({..., snapped: true})
  *   CR.Arena.pocketOpen(side, lane, sim)    -> boolean
  *   CR.Arena.waypoint(px,py,r,gx,gy,jumps,rects,out,nav?) -> out {x,y}: next ground waypoint
  *   CR.Arena.newNav()                       -> per-troop routing memory for waypoint (hysteresis)
@@ -8251,6 +8253,13 @@ body { font-weight: 700; letter-spacing: 0; }
  *   rails map is retired: CR.RULES.arena.maps.rails.retired = true, still buildable by setMap('rails')
  *   but not listed. CR.Arena.MAPS (selectable maps only: classic, hill, tunnel, flat),
  *   CR.Arena.SELECTABLE [ids], CR.Arena.isSelectable(id).
+ *
+ * v21 (user request, docs/V21-FORTRESS.md): new map 'fortress' ("Festung", touchdown: the plain
+ *   field): the flat map with ONE long tower per side instead of three. CR.RULES.arena.maps.fortress
+ *   .fortress = {x, y, size, depth, guns: [{dx, dy}]} (side 0), stats CR.RULES.towers.fortress.
+ *   CR.Arena.towerLayout(mapId?) -> per-map layout (mapId optional: that map's layout without
+ *   switching, for menu previews); on 'fortress' two entries {id 1 | 4, kind: 'king', fortress: true,
+ *   lane -1, size 8, depth 2.5, guns: [{x, y, lane}] (absolute)}. CR.Arena.FORTRESS = that block | null.
  */
 (function (CR) {
   'use strict';
@@ -8357,6 +8366,39 @@ body { font-weight: 700; letter-spacing: 0; }
     if (maps.rails) maps.rails.retired = true;
     if (!maps.flat) maps.flat = { id: 'flat', name: 'Flach', river: false };
   })();
+  // ---------------------------------------------------------------------------
+  // v21 map 'fortress' / "Festung" (user request: "ein Tower anstelle 3", docs/V21-FORTRESS.md):
+  // the flat open field of 'flat' (no river / bridges / ridge, middle band y 15..17 nobody's deploy
+  // ground, back-row corners) with ONE long crown tower per side instead of king + 2 princess
+  // towers: twice as long as the King Tower (8 wide along x), shallower (2.5 deep) and further back
+  // (flush with the back line: side 0 tiles x 5..13, y 0..2.5). It is the side's "king" for the
+  // rules (towerKind 'king', fortress: true): always active, destroying it = 3 crowns = win,
+  // tiebreak by its HP. It shoots from two guns near its ends (one target each, princess-like
+  // stats, range measured from the gun), so both lanes are defended at once. Touchdown on
+  // 'fortress' = the plain touchdown field (no towers anyway).
+  // ---------------------------------------------------------------------------
+  (function () {
+    const A = CR.RULES.arena, maps = A.maps || (A.maps = {});
+    if (!maps.fortress) {
+      maps.fortress = {
+        id: 'fortress', name: 'Festung', river: false,
+        // Side-0 geometry (side 1 mirrored): centre, width (x), depth (y); guns = offsets of the
+        // two shooters from the centre (their ranges are measured from these points).
+        fortress: { x: 9, y: 1.25, size: 8, depth: 2.5, guns: [{ dx: -2.75, dy: 0 }, { dx: 2.75, dy: 0 }] },
+        // One tower = no crown before it falls: a 1:00 overtime (2x elixir, 3x in the last 30 s),
+        // then the tiebreak by tower HP (docs/V21-FORTRESS.md, keeps the match length classic-like).
+        clock: { overtime: 60, overtimeSegments: [{ from: 0, phase: 'overtime', mult: 2 }, { from: 30, phase: 'triple', mult: 3 }] },
+      };
+    }
+    const T = CR.RULES.towers;
+    // Tuned with bot matches (docs/V21-FORTRESS.md): King Tower HP (King + Princess = 7900 made a
+    // third of the matches longer than classic: no crown can be won before the tower falls); each
+    // gun shoots like a princess tower, range 7.8 from the gun so a Musketeer (6) cannot out-range
+    // the tower from the front middle or the front corners.
+    if (T && !T.fortress) {
+      T.fortress = { hp: 4800, damage: 109, hitSpeed: 0.8, firstHit: 0.5, range: 7.8, projectileSpeed: 10.0, crewRadius: 0.75 };
+    }
+  })();
   // Touchdown field variants of the maps ('classic' = flat field, 'hill' = field + v5 ridge).
   (function () {
     const A = CR.RULES.arena, maps = A.maps || (A.maps = {});
@@ -8373,6 +8415,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (maps.rails && !A.tdMaps.rails) A.tdMaps.rails = { id: 'rails', name: 'Touchdown-Schienen', river: false, touchdown: true, rails: maps.rails.rails };
     // v18: the flat map in touchdown = the plain touchdown field.
     if (maps.flat && !A.tdMaps.flat) A.tdMaps.flat = { id: 'flat', name: 'Touchdown-Flach', river: false, touchdown: true };
+    // v21: the fortress map in touchdown = the plain touchdown field (Touchdown has no towers).
+    if (maps.fortress && !A.tdMaps.fortress) A.tdMaps.fortress = { id: 'fortress', name: 'Touchdown-Feld', river: false, touchdown: true };
   })();
   Arena.mode = 'standard';
   Arena.touchdown = false;
@@ -8464,6 +8508,8 @@ body { font-weight: 700; letter-spacing: 0; }
     } else Arena.TUNNEL = null;
     Arena.OBSTACLES = obs;
     Arena.RAILS = buildRails(M.rails || null, Arena.hasRiver ? Arena.RIVER : null);
+    // v21: the fortress map's tower block (null on every other map and in touchdown).
+    Arena.FORTRESS = !td && M.fortress ? M.fortress : null;
     Arena._layout = null;
   };
 
@@ -8619,6 +8665,12 @@ body { font-weight: 700; letter-spacing: 0; }
       'Gebäude brauchen etwas Abstand zu einem Loch, damit daneben immer ein Weg frei bleibt.',
       'Im Tunnel kämpfen nur Truppen, die gerade unten sind, gegeneinander. Von oben kann sie niemand treffen – auch keine Zauber und keine Türme –, und sie selbst greifen nichts oben an.',
     ],
+    fortress: [
+      'Festung: Die flache, offene Wiese der Karte „Flach“ – aber jede Seite hat nur einen einzigen Turm statt drei.',
+      'Die Festung ist doppelt so lang wie ein Königsturm, schmaler und steht ganz hinten an der Grundlinie. An beiden Enden schießt je ein Schütze – so sind beide Seiten der Arena verteidigt.',
+      'Die Festung ist von Anfang an wach. Fällt sie, gibt es sofort 3 Kronen und den Sieg. Steht nach der Verlängerung noch keine, gewinnt die Festung mit mehr Trefferpunkten.',
+      'Deine Hälfte ist wie auf „Flach“: Der Streifen in der Mitte gehört keinem – dort kann niemand Truppen oder Gebäude setzen (Zauber gehen überall).',
+    ],
     flat: [
       'Flach: Die ganze Arena ist eine flache, offene Wiese – kein Fluss, keine Brücken, kein Hügel, keine Löcher. Jede Seite hat ihre Türme wie gewohnt.',
       'Bodentruppen laufen überall geradeaus über das Feld – ohne Brücken gibt es keine Engstellen, jeder Angriff kann von überall kommen.',
@@ -8771,10 +8823,33 @@ body { font-weight: 700; letter-spacing: 0; }
    * v14 (Clash Royale): princess size = hitSize 3, king size = hitSize = depth = hitDepth 4
    * (CR.RULES.towers). x0..y1 / hx0..hy1 use size along x and depth along y.
    */
-  Arena.towerLayout = function () {
+  Arena.towerLayout = function (mapId) {
     const A = CR.RULES.arena, T = CR.RULES.towers;
     const W = Arena.W, H = Arena.H;
     const out = [];
+    // v21: per-map tower layout. A map with a `fortress` block ('fortress') has ONE long tower per
+    // side (towerKind 'king', fortress: true, ids 1 / 4 like the kings) with two guns
+    // [{x, y, lane}] (absolute, side 1 mirrored); every other map keeps the classic three towers.
+    // mapId (optional): the layout of that map instead of the current one (menu previews).
+    const mm = (A.maps || {})[mapId === undefined || mapId === null ? Arena.map : mapId];
+    const F = mm && mm.fortress;
+    if (F) {
+      const fs = F.size > 0 ? F.size : 8, fd = F.depth > 0 ? F.depth : 2.5;
+      for (let side = 0; side < 2; side++) {
+        const cx = side === 0 ? F.x : W - F.x, cy = side === 0 ? F.y : H - F.y;
+        const o = { id: 1 + side * 3, side: side, kind: 'king', fortress: true, lane: -1, x: cx, y: cy, guns: [] };
+        o.size = fs; o.hitSize = fs; o.depth = fd; o.hitDepth = fd;
+        o.x0 = o.hx0 = cx - fs / 2; o.x1 = o.hx1 = cx + fs / 2;
+        o.y0 = o.hy0 = cy - fd / 2; o.y1 = o.hy1 = cy + fd / 2;
+        const gs = Array.isArray(F.guns) && F.guns.length ? F.guns : [{ dx: -fs / 3, dy: 0 }, { dx: fs / 3, dy: 0 }];
+        for (let i = 0; i < gs.length; i++) {
+          const gx = side === 0 ? cx + gs[i].dx : cx - gs[i].dx, gy = side === 0 ? cy + (gs[i].dy || 0) : cy - (gs[i].dy || 0);
+          o.guns.push({ x: gx, y: gy, lane: Arena.laneOf(gx, side) });
+        }
+        out.push(o);
+      }
+      return out;
+    }
     // size / hitSize = width (x), depth / hitDepth = extent along y (v12 king: 3 x 2.5).
     function entry(o, size, hit, depth, hitDepth) {
       o.size = size; o.hitSize = hit; o.depth = depth; o.hitDepth = hitDepth;
@@ -9163,6 +9238,54 @@ body { font-weight: 700; letter-spacing: 0; }
     return Arena.checkDeploy(side, x, y, card, sim).ok;
   };
 
+  /**
+   * v21 (Clash Royale feel): where a drop at raw (x, y) really lands. A valid spot -> checkDeploy's
+   * snapped tile; an invalid one (enemy half, river / plateau band, outside, on a tower / building)
+   * -> the nearest valid tile (building: footprint) of the deploy grid. {ok, reason, x, y, snapped}:
+   * ok false only for non-finite input or when no tile at all is free.
+   */
+  Arena.snapDeploy = function (side, x, y, card, sim) {
+    if (!isFinite(x) || !isFinite(y)) return { ok: false, reason: 'bounds', x: x, y: y, snapped: false };
+    const d = Arena.checkDeploy(side, x, y, card, sim);
+    if (d.ok) { d.snapped = false; return d; }
+    const c = cardOf(card);
+    const W = Arena.W, H = Arena.H, C = Arena.COLS, Rw = Arena.ROWS;
+    const cx = CR.clamp(x, 0, W), cy = CR.clamp(y, 0, H);
+    const grid = Arena.deployGrid(side, sim, c);
+    const f = c && c.type === 'building' ? Arena.footprintOf(c) : 0;
+    let bx = 0, by = 0, best = Infinity;
+    if (f > 0) {
+      // footprint centres on the building grid (even: tile corners, odd: tile centres)
+      const off = f % 2 === 0 ? 0 : 0.5, half = f / 2;
+      for (let py = half; py <= H - half + 1e-9; py += 1) {
+        for (let px = half; px <= W - half + 1e-9; px += 1) {
+          const sx = Math.floor(px - off) + off, sy = Math.floor(py - off) + off;
+          const dd = (sx - cx) * (sx - cx) + (sy - cy) * (sy - cy);
+          if (dd >= best) continue;
+          let ok = true;
+          const x0 = Math.round(sx - half), y0 = Math.round(sy - half);
+          for (let iy = 0; iy < f && ok; iy++) for (let ix = 0; ix < f && ok; ix++) {
+            const tx = x0 + ix, ty = y0 + iy;
+            if (tx < 0 || ty < 0 || tx >= C || ty >= Rw || !grid[ty * C + tx]) ok = false;
+          }
+          if (ok) { best = dd; bx = sx; by = sy; }
+        }
+      }
+    } else {
+      for (let ty = 0; ty < Rw; ty++) for (let tx = 0; tx < C; tx++) {
+        if (!grid[ty * C + tx]) continue;
+        const sx = tx + 0.5, sy = ty + 0.5;
+        const dd = (sx - cx) * (sx - cx) + (sy - cy) * (sy - cy);
+        if (dd < best) { best = dd; bx = sx; by = sy; }
+      }
+    }
+    if (best === Infinity) return { ok: false, reason: d.reason, x: d.x, y: d.y, snapped: false };
+    const r = Arena.checkDeploy(side, bx, by, c, sim);
+    if (!r.ok) return { ok: false, reason: d.reason, x: d.x, y: d.y, snapped: false };
+    r.snapped = true;
+    return r;
+  };
+
   // ---------------------------------------------------------------------------
   // Ground routing
   //
@@ -9460,6 +9583,10 @@ body { font-weight: 700; letter-spacing: 0; }
  * v18: map 'flat' (Flach: flat open field, crown towers, no river / bridges / hill / holes / rails;
  *   every mode, 1v1 / 2v2) needs no sim code of its own; 'rails' is retired from the selections but
  *   still runs when a cfg names it (sim.rails stays null on every other map).
+ * v21: map 'fortress' (Festung, docs/V21-FORTRESS.md): CR.Arena.towerLayout() gives ONE long tower
+ *   per side (towerKind 'king' + fortress, always active, two guns - CR.Units.thinkGuns), so the king
+ *   rules (3 crowns on destruction, tiebreak) apply unchanged; view.towers[k] adds fortress: true,
+ *   gunT [target ids], gunAp [wind-up 0..1] per gun.
  *
  * Tick order (per tick): commands -> elixir -> clock -> deploy completions ->
  * units/towers AI (+ collision, v14: + mine carts) -> projectiles -> areas -> deaths/death effects ->
@@ -9497,20 +9624,23 @@ body { font-weight: 700; letter-spacing: 0; }
  *   sim.touchdownGoal(u, out) = where a troop without target walks (straight into the end zone).
  *
  * v7 CHAMPIONS (docs/V7-CARDS.md, Clash Royale champion rules; v20: 10 champions): a card with rarity
- *   'champion' puts ONE champion on the field per player; while it lives the card does not cycle (it
- *   leaves hand + queue and returns to the back of the queue when the champion dies or is removed by
- *   a touchdown reset), a second champion card cannot be played ('champion_active'). v20: a deck may
+ *   'champion' puts a champion on the field. v21 (user decision, current Clash Royale): NO champion
+ *   limit on the field - a player may have any number of champions alive at once, champion cards
+ *   cycle like every other card (no hold-until-death, no 'champion_active' refusal). v20: a deck may
  *   hold any number of champions (CR.RULES.cards.maxChampionsPerDeck = 8, Sim.maxChampions(),
  *   sanitizeDeck). Ability data: Sim.championAbility(cardId) = the Schwarzklingen-Meister's slash
  *   (unit special.ability) or the card's CR.ABILITIES entry (v13 kinds, engine Units.useAbility).
- *   The owner activates it with command {type:'champion_ability'} (validated: champion alive and
+ *   The owner activates it with command {type:'champion_ability', unitId?} (v21: unitId = which of
+ *   the player's living champions; omitted = the newest one) (validated: champion alive and
  *   deployed, nothing running, cooldown over, a target for targeted kinds, elixir incl. queued plays;
  *   reasons no_champion, champion_deploying, champion_riding, champion_busy, champion_cooldown,
  *   no_target, not_enough_elixir, chaos_pause), applied next tick: CR.Units.championAbility starts
  *   it (slash: events {t:'ability', kind:'champion_slash', phase:'windup'|'launch', ...}; other kinds:
  *   {t:'ability', active: true, kind, phase, ...}), then the cost is paid and the cooldown (game
- *   seconds, frozen in C.H.A.O.S pauses) starts. sim.players[i].champion = { unit, unitId, card,
- *   cooldownLeft } | null. view.players[i].champion = { unitId, card, unit, kind, name, ready, cost,
+ *   seconds, frozen in C.H.A.O.S pauses) starts; every champion has its own cooldown.
+ *   sim.players[i].champions = [{ unit, unitId, card, cooldownLeft }] (oldest first), .champion = the
+ *   newest entry | null (compat). view.players[i].champions = [champion views] (oldest first, v21),
+ *   view.players[i].champion = the newest one | null: { unitId, card, unit, kind, name, ready, cost,
  *   cooldown, cooldownLeft, active, deploying, canUse, noTarget? } | null (ready = deployed, nothing
  *   running, cooldown over; canUse = ready + target + enough elixir). view.units[k].champion = true
  *   for it, .ability = 'slash' while the wind-up runs, .act = kind while a v13 kind runs. Events
@@ -9557,6 +9687,8 @@ body { font-weight: 700; letter-spacing: 0; }
   'use strict';
 
   const EPS = 1e-6;
+  // v21: placement refusals that _canPlaySnap turns into a play on the nearest valid tile
+  const PLACE_REASONS = { out_of_bounds: 1, invalid_zone: 1, invalid_river: 1, invalid_hill: 1, blocked_place: 1 };
 
   // ---------------------------------------------------------------------------
   // Card lookup
@@ -9653,11 +9785,14 @@ body { font-weight: 700; letter-spacing: 0; }
       const RC = CR.RULES.clock, RE = CR.RULES.elixir, TD = CR.RULES.touchdown;
       const isTd = this.mode === 'touchdown';
       const cs = typeof opt.clockScale === 'number' && opt.clockScale > 0 ? opt.clockScale : 1;
+      // v21: a map may shorten the overtime (CR.RULES.arena.maps[id].clock {overtime, overtimeSegments},
+      // tower modes only: 'fortress' - one tower, no crown can be won before it falls).
+      const MC = !isTd && CR.Arena.MAP && CR.Arena.MAP.clock ? CR.Arena.MAP.clock : null;
       this.clockCfg = {
         regulation: (typeof opt.regulation === 'number' ? opt.regulation : (isTd ? TD.regulation : RC.regulation)) * cs,
-        overtime: (typeof opt.overtime === 'number' ? opt.overtime : (isTd ? TD.overtime : RC.overtime)) * cs,
+        overtime: (typeof opt.overtime === 'number' ? opt.overtime : (isTd ? TD.overtime : (MC && typeof MC.overtime === 'number' ? MC.overtime : RC.overtime))) * cs,
         segments: RC.segments.map(function (s) { return { from: s.from * cs, phase: s.phase, mult: s.mult }; }),
-        otSegments: RC.overtimeSegments.map(function (s) { return { from: s.from * cs, phase: s.phase, mult: s.mult }; }),
+        otSegments: (MC && MC.overtimeSegments ? MC.overtimeSegments : RC.overtimeSegments).map(function (s) { return { from: s.from * cs, phase: s.phase, mult: s.mult }; }),
       };
       this.overtime = false;
       this.phase = this.clockCfg.segments[0].phase;
@@ -9701,7 +9836,8 @@ body { font-weight: 700; letter-spacing: 0; }
           elixir: typeof opt.startElixir === 'number' ? opt.startElixir : RE.start,
           crowns: 0,
           chaos: null,
-          champion: null,   // v7: { unit, unitId, card, cooldownLeft } while the champion lives
+          champion: null,   // v7: newest entry of `champions` (compat) | null
+          champions: [],    // v21: every living champion { unit, unitId, card, cooldownLeft }, oldest first
           bot: !!pc.bot,
           stats: { elixirSpent: 0, played: 0 },
         };
@@ -9968,7 +10104,6 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!card) return { ok: false, reason: 'card_unknown' };
       if (card.disabled) return { ok: false, reason: 'card_disabled' };
       if (!Sim.cardAllowed(id, this.mode)) return { ok: false, reason: 'card_banned', card: id };
-      if (card.rarity === 'champion' && p.champion) return { ok: false, reason: 'champion_active', card: id };
       const cost = typeof card.elixir === 'number' ? card.elixir : 0;
       const avail = this.options.infiniteElixir ? Infinity : p.elixir - (reserved || 0);
       const nx = Number(x), ny = Number(y);
@@ -9980,6 +10115,23 @@ body { font-weight: 700; letter-spacing: 0; }
       }
       if (avail + EPS < cost) return { ok: false, reason: 'not_enough_elixir', x: d.x, y: d.y, card: id, cost: cost };
       return { ok: true, reason: null, x: d.x, y: d.y, card: id, cost: cost };
+    }
+
+    /**
+     * v21 (Clash Royale feel, user decision): canPlay, but a drop on an invalid spot (enemy half,
+     * river, outside the field, on a tower / building) is never refused - it lands on the nearest
+     * valid tile (CR.Arena.snapDeploy). The result then carries snapped: true and the final x, y.
+     * canPlay itself stays the strict check (AI, tests, deploy-zone queries).
+     */
+    _canPlaySnap(player, handIndex, x, y, reserved) {
+      const r = this.canPlay(player, handIndex, x, y, reserved);
+      if (r.ok || !PLACE_REASONS[r.reason] || !CR.Arena || typeof CR.Arena.snapDeploy !== 'function') return r;
+      const p = this.players[player];
+      const s = CR.Arena.snapDeploy(p.side, Number(x), Number(y), Sim.cardById(p.hand[Number(handIndex)]), this);
+      if (!s || !s.ok) return r;
+      const r2 = this.canPlay(player, handIndex, s.x, s.y, reserved);
+      if (r2.ok || !PLACE_REASONS[r2.reason]) r2.snapped = true;
+      return PLACE_REASONS[r2.reason] ? r : r2;
     }
 
     /** Queue a command of player `player` (== side in 1v1) for the next tick. Returns {ok, reason}. */
@@ -10001,10 +10153,12 @@ body { font-weight: 700; letter-spacing: 0; }
           const hand = this.players[side].hand;
           const hi = Number(cmd.hand);
           if (cmd.card && hi >= 0 && hi < hand.length && hand[hi] !== cmd.card) return { ok: false, reason: 'card_changed' };
-          const r = this.canPlay(side, cmd.hand, cmd.x, cmd.y, reserved);
+          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, reserved);
           if (!r.ok) return r;
-          this.cmdQueue.push({ side: side, cmd: { type: 'play', hand: Number(cmd.hand), x: Number(cmd.x), y: Number(cmd.y), card: r.card }, cost: r.cost });
-          return { ok: true, reason: null, x: r.x, y: r.y, card: r.card };
+          // v21: a drop on an invalid tile was moved to the nearest valid one (r.snapped)
+          const qx = r.snapped ? r.x : Number(cmd.x), qy = r.snapped ? r.y : Number(cmd.y);
+          this.cmdQueue.push({ side: side, cmd: { type: 'play', hand: Number(cmd.hand), x: qx, y: qy, card: r.card }, cost: r.cost });
+          return { ok: true, reason: null, x: r.x, y: r.y, card: r.card, snapped: !!r.snapped };
         }
         case 'chaos_pick':
         case 'chaos_use': {
@@ -10019,24 +10173,27 @@ body { font-weight: 700; letter-spacing: 0; }
         }
         case 'champion_ability': {
           if (this.isPaused()) return { ok: false, reason: 'chaos_pause' };
+          // v21: several champions per player - cmd.unitId picks one (omitted: the newest)
+          const ce = this._champEntry(side, cmd.unitId);
+          if (!ce) return { ok: false, reason: 'no_champion' };
           let reserved = 0;
           for (const q of this.cmdQueue) {
             if (q.side !== side) continue;
-            if (q.cmd.type === 'champion_ability') return { ok: false, reason: 'champion_busy' };
+            if (q.cmd.type === 'champion_ability' && q.cmd.unitId === ce.unitId) return { ok: false, reason: 'champion_busy' };
             reserved += q.cost || 0;
           }
-          const r = this.canUseChampion(side, reserved);
+          const r = this.canUseChampion(side, reserved, ce.unitId);
           if (!r.ok) return r;
-          this.cmdQueue.push({ side: side, cmd: { type: 'champion_ability' }, cost: r.cost });
-          return { ok: true, reason: null, cost: r.cost };
+          this.cmdQueue.push({ side: side, cmd: { type: 'champion_ability', unitId: ce.unitId }, cost: r.cost });
+          return { ok: true, reason: null, cost: r.cost, unitId: ce.unitId };
         }
         case 'unit_ability': {
           // v13 legacy (old online peers): v20 has champion abilities only - a tap on the own
           // champion is its champion ability, anything else has no ability.
           const uid = Number(cmd.unitId);
-          const ch = this.players[side].champion;
+          const ch = this._champEntry(side, uid);
           if (!ch || ch.unitId !== uid) return { ok: false, reason: 'no_ability', unitId: uid };
-          return this.command(player, { type: 'champion_ability' });
+          return this.command(player, { type: 'champion_ability', unitId: uid });
         }
         case 'emote': {
           this.cmdQueue.push({ side: side, cmd: { type: 'emote', id: cmd.id } });
@@ -10056,15 +10213,15 @@ body { font-weight: 700; letter-spacing: 0; }
         // During a C.H.A.O.S pick pause plays queued before the pause wait for the battle to resume.
         if (paused && cmd.type === 'play') { this.cmdQueue.push(item); continue; }
         if (cmd.type === 'play') {
-          const r = this.canPlay(side, cmd.hand, cmd.x, cmd.y, 0);
+          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, 0);
           if (!r.ok) { this.emit('reject', { side: this.players[side].side, player: side, reason: r.reason, hand: cmd.hand }); continue; }
           if (cmd.card && cmd.card !== r.card) { this.emit('reject', { side: this.players[side].side, player: side, reason: 'card_changed', hand: cmd.hand }); continue; }
           this._play(side, cmd.hand, r.x, r.y);
         } else if (cmd.type === 'champion_ability') {
           if (paused) { this.cmdQueue.push(item); continue; }
-          const r = this.canUseChampion(side, 0);
-          if (!r.ok) { this.emit('reject', { side: this.players[side].side, player: side, reason: r.reason, ability: true }); continue; }
-          this._championAbility(side);
+          const r = this.canUseChampion(side, 0, cmd.unitId);
+          if (!r.ok) { this.emit('reject', { side: this.players[side].side, player: side, reason: r.reason, ability: true, unitId: cmd.unitId }); continue; }
+          this._championAbility(side, cmd.unitId);
         } else if (cmd.type === 'chaos_pick' || cmd.type === 'chaos_use') {
           this._chaosCommand(side, cmd);
         } else if (cmd.type === 'emote') {
@@ -10101,13 +10258,11 @@ body { font-weight: 700; letter-spacing: 0; }
       const prevOwner = this._owner;
       this._owner = player;
       // Card cycle: next card fills the slot, the played card goes to the back of the queue.
-      // v7: a champion card is held out of the cycle while its champion lives (see _registerChampion).
+      // v21: champion cards cycle normally too (no hold while the champion lives).
       const champ = card.rarity === 'champion';
       if (p.queue.length) {
         p.hand[slot] = p.queue.shift();
-        if (!champ) p.queue.push(id);
-      } else if (champ) {
-        p.hand.splice(slot, 1);
+        p.queue.push(id);
       }
       const C = this.chaos;
       const tier = C && typeof C.tierOf === 'function' ? (C.tierOf(player, id) || 0) : 0;
@@ -10136,9 +10291,10 @@ body { font-weight: 700; letter-spacing: 0; }
       let u = null;
       for (let i = 0; i < units.length && !u; i++) if (units[i] && !units[i].dead && units[i].unit === main && CR.Units.championDef(units[i])) u = units[i];
       for (let i = 0; i < units.length && !u; i++) if (units[i] && !units[i].dead && CR.Units.championDef(units[i])) u = units[i];
-      if (!u) { this._returnCard(p, card.id); return null; }
+      if (!u) return null;
       u.champOwner = player;
       p.champion = { unit: u, unitId: u.id, card: card.id, cooldownLeft: 0 };
+      p.champions.push(p.champion);   // v21: any number of champions alive at once
       this.emit('champion', { side: p.side, player: player, unitId: u.id, card: card.id, unit: u.unit, phase: 'deploy' });
       return u;
     }
@@ -10149,14 +10305,30 @@ body { font-weight: 700; letter-spacing: 0; }
       else p.queue.push(cardId);
     }
 
-    /** The champion of `player` is gone (death, touchdown reset): release its card. */
-    _releaseChampion(player, why) {
+    /** v21: champion entry of `player` with unit id `unitId` (omitted / not a number: the newest). */
+    _champEntry(player, unitId) {
       const p = this.players[player];
-      const ch = p && p.champion;
-      if (!ch) return;
-      p.champion = null;
+      const cs = p && p.champions;
+      if (!cs || !cs.length) return null;
+      if (unitId === undefined || unitId === null || unitId === '') return cs[cs.length - 1];
+      const id = Number(unitId);
+      for (let i = 0; i < cs.length; i++) if (cs[i].unitId === id) return cs[i];
+      return null;
+    }
+
+    /** A champion of `player` is gone (death of `unit`, touchdown reset: all of them). v21: its
+     *  card already cycled normally, nothing goes back to the hand. */
+    _releaseChampion(player, why, unit) {
+      const p = this.players[player];
+      if (!p || !p.champions.length) return;
+      if (!unit) { while (p.champions.length) this._releaseChampion(player, why, p.champions[p.champions.length - 1].unit); return; }
+      let k = -1;
+      for (let i = 0; i < p.champions.length; i++) if (p.champions[i].unit === unit) { k = i; break; }
+      if (k < 0) return;
+      const ch = p.champions[k];
+      p.champions.splice(k, 1);
+      p.champion = p.champions.length ? p.champions[p.champions.length - 1] : null;
       if (ch.unit) ch.unit.champOwner = -1;
-      this._returnCard(p, ch.card);
       this.emit('champion', { side: p.side, player: player, unitId: ch.unitId, card: ch.card, unit: ch.unit ? ch.unit.unit : null, phase: 'down', reason: why || 'death' });
     }
 
@@ -10168,13 +10340,13 @@ body { font-weight: 700; letter-spacing: 0; }
 
     /**
      * May `player` activate the champion ability now? `reserved` = elixir already bound by queued
-     * commands. {ok, reason, cost}.
+     * commands, `unitId` (v21) = which champion (omitted: the newest). {ok, reason, cost}.
      */
-    canUseChampion(player, reserved) {
+    canUseChampion(player, reserved, unitId) {
       if (this.over) return { ok: false, reason: 'game_over' };
       if (!this.isPlayer(player)) return { ok: false, reason: 'bad_side' };
       const p = this.players[player];
-      const ch = p.champion;
+      const ch = this._champEntry(player, unitId);
       const u = ch && ch.unit;
       if (!u || u.dead) return { ok: false, reason: 'no_champion' };
       const ab = CR.Units.championDef(u) || {};
@@ -10191,16 +10363,18 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     /** Execute a validated champion ability: pay, start the cooldown, trigger the unit. */
-    _championAbility(player) {
+    _championAbility(player, unitId) {
       const p = this.players[player];
-      const ch = p.champion, u = ch.unit;
+      const ch = this._champEntry(player, unitId);
+      if (!ch || !ch.unit) return false;
+      const u = ch.unit;
       const ab = CR.Units.championDef(u) || {};
       const cost = typeof ab.cost === 'number' ? ab.cost : 0;
       const prev = this._owner;
       this._owner = player;
       const ok = CR.Units.championAbility(this, u);
       this._owner = prev;
-      if (!ok) { this.emit('reject', { side: p.side, player: player, reason: 'no_target', ability: true }); return false; }
+      if (!ok) { this.emit('reject', { side: p.side, player: player, reason: 'no_target', ability: true, unitId: ch.unitId }); return false; }
       if (!this.options.infiniteElixir) p.elixir = Math.max(0, p.elixir - cost);
       this.stats[p.side].elixirSpent += cost;
       p.stats.elixirSpent += cost;
@@ -10210,13 +10384,13 @@ body { font-weight: 700; letter-spacing: 0; }
 
     _championCooldowns() {
       for (let i = 0; i < this.players.length; i++) {
-        const ch = this.players[i].champion;
-        if (ch && ch.cooldownLeft > 0) ch.cooldownLeft = Math.max(0, ch.cooldownLeft - this.dt);
+        const cs = this.players[i].champions;
+        for (let k = 0; k < cs.length; k++) if (cs[k].cooldownLeft > 0) cs[k].cooldownLeft = Math.max(0, cs[k].cooldownLeft - this.dt);
       }
     }
 
-    _championView(i) {
-      const p = this.players[i], ch = p.champion;
+    _championView(i, entry) {
+      const p = this.players[i], ch = entry || p.champion;
       if (!ch || !ch.unit) return null;
       const u = ch.unit;
       const ab = CR.Units.championDef(u) || {};
@@ -10486,7 +10660,7 @@ body { font-weight: 700; letter-spacing: 0; }
           u.alive = false;
           any = true;
           this._owner = u.owner;
-          if (u.champOwner >= 0) this._releaseChampion(u.champOwner, 'death');
+          if (u.champOwner >= 0) this._releaseChampion(u.champOwner, 'death', u);
           // v14: a rider that dies leaves its seat; over the river its death effects (spawns) land
           // on the nearer bank, never in the water.
           if (u.riding) this._dropRider(u);
@@ -10636,7 +10810,7 @@ body { font-weight: 700; letter-spacing: 0; }
     _touchdownReset() {
       const T = this.touchdown;
       const removed = this.units.length;
-      for (let i = 0; i < this.players.length; i++) if (this.players[i].champion) this._releaseChampion(i, 'reset');
+      for (let i = 0; i < this.players.length; i++) if (this.players[i].champions.length) this._releaseChampion(i, 'reset');
       for (let i = 0; i < this.units.length; i++) {
         const u = this.units[i];
         u.dead = true; u.deathDone = true; u.alive = false; u.noDeathEffects = true; u.silentDeath = true; u.target = null;
@@ -10713,6 +10887,7 @@ body { font-weight: 700; letter-spacing: 0; }
         crowns: this.crowns[p.side],
         chaos: this._chaosView(i),
         champion: this._championView(i),
+        champions: p.champions.map((ch) => this._championView(i, ch)).filter(Boolean),   // v21: all living champions
         abilities: [],   // v13 ability bar (legacy field): v20 has champion abilities only (view.players[i].champion)
       }));
       const towers = this.towers.map(function (t) {
@@ -10721,12 +10896,19 @@ body { font-weight: 700; letter-spacing: 0; }
         if (t.freezeUntil > now + EPS) fx |= 2;
         if (t.slowUntil > now + EPS) fx |= 4;
         if (t.rageUntil > now + EPS) fx |= 8;
-        return {
+        const tv = {
           id: t.id, side: t.side, kind: t.towerKind, lane: t.lane, x: t.x, y: t.y,
           hp: Math.ceil(t.hp), maxHp: t.maxHp, active: !!t.active, alive: !!t.alive,
           size: t.size, depth: t.depth, targetId: t.target && t.alive ? t.target.id : 0, fx: fx,
           attackProg: t.atk > t.s.loadTime && t.s.firstHit > 0 ? r3(Math.min(1, (t.atk - t.s.loadTime) / t.s.firstHit)) : 0,
         };
+        // v21 fortress tower: flag + per-gun target ids / wind-up (renderers aim both crews).
+        if (t.guns) {
+          tv.fortress = true;
+          tv.gunT = t.guns.map(function (g) { return g.target && t.alive && !g.target.dead ? g.target.id : 0; });
+          tv.gunAp = t.guns.map(function (g) { return g.atk > t.s.loadTime && t.s.firstHit > 0 ? r3(Math.min(1, (g.atk - t.s.loadTime) / t.s.firstHit)) : 0; });
+        }
+        return tv;
       });
       const units = [];
       for (let i = 0; i < this.units.length; i++) {
@@ -11357,16 +11539,18 @@ body { font-weight: 700; letter-spacing: 0; }
   /** Create a crown tower entity from a CR.Arena.towerLayout() entry. */
   Units.createTower = function (sim, L) {
     const T = CR.RULES.towers;
-    const base = L.kind === 'king' ? T.king : T.princess;
+    // v21 'fortress' map: one long tower per side (towerKind 'king', L.fortress) with its own stats.
+    const fort = !!(L.fortress && T.fortress);
+    const base = fort ? T.fortress : (L.kind === 'king' ? T.king : T.princess);
     const DT = CR.DATA && CR.DATA.towers;
-    const dataT = DT ? (L.kind === 'king' ? (DT.king || DT['king-tower']) : (DT.princess || DT['princess-tower'])) : null;
-    const ov = T.override ? T.override[L.kind] : null;
+    const dataT = fort ? (DT && DT.fortress) || null : (DT ? (L.kind === 'king' ? (DT.king || DT['king-tower']) : (DT.princess || DT['princess-tower'])) : null);
+    const ov = T.override ? T.override[fort ? 'fortress' : L.kind] : null;
     const st = Object.assign({}, base, dataT || {}, ov || {});
     const hitSpeed = Math.max(0.05, num(st.hitSpeed, 1));
     const firstHit = CR.clamp(num(st.firstHit, hitSpeed * 0.5), 0, hitSpeed);
     const hitSize = L.hitSize > 0 ? L.hitSize : L.size;
     let s = {
-      id: L.kind === 'king' ? 'king-tower' : 'princess-tower', name: L.kind,
+      id: fort ? 'fortress-tower' : (L.kind === 'king' ? 'king-tower' : 'princess-tower'), name: fort ? 'fortress' : L.kind,
       hp: num(st.hp, 3000), shield: 0, damage: num(st.damage, 100), ct: null,
       hitSpeed: hitSpeed, firstHit: firstHit, loadTime: hitSpeed - firstHit, loadFirstHit: false,
       range: num(st.range, 7), minRange: 0, sightRange: num(st.range, 7), sightClip: 0, speed: 0,
@@ -11387,7 +11571,9 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     const u = baseEntity(sim, L.side, L.x, L.y);
     u.id = L.id;
-    u.unit = s.id;
+    // v21: the fortress crews are tower archers - its shots are princess-tower arrows for the
+    // renderers / sound (projectile kind = u.unit); the stats keep their own id 'fortress-tower'.
+    u.unit = fort ? 'princess-tower' : s.id;
     u.s = s;
     u.tower = true;
     u.building = true;
@@ -11411,6 +11597,17 @@ body { font-weight: 700; letter-spacing: 0; }
     u.atk = s.loadTime;
     u.active = L.kind !== 'king';
     u.activeAt = 0;
+    if (fort) {
+      // v21: always awake; two guns near the ends, each with its own target / reload / facing.
+      // The tower thinks once per gun (thinkGuns): position, target and attack state are swapped
+      // in, so ranges are measured from the gun and shots start there.
+      u.fortress = true;
+      u.active = true;
+      const cr = num(st.crewRadius, 0.75);
+      u.guns = (L.guns || []).map(function (g, i) {
+        return { i: i, x: g.x, y: g.y, lane: g.lane, r: cr, target: null, atk: s.loadTime, locked: false, reacquire: false, rampT: 0, dir: u.dir, state: 'idle' };
+      });
+    }
     return u;
   };
 
@@ -11516,6 +11713,10 @@ body { font-weight: 700; letter-spacing: 0; }
       if (t === exclude || !canTarget(u, t) || deployingBlocked(t, sim)) continue;
       const d = gap(u, t);
       if (d > maxGap + EPS || d < lo) continue;
+      // v21 hill: a ground-only troop sees an air unit only while standing on the plateau - it takes
+      // it only within its attack range (chasing it off the plateau would drop it again at once:
+      // target flip-flop, the troop pressed in place at the slope).
+      if (t.air && !u.s.targetsAir && !airAtGround(t) && d > u.s.range + EPS) continue;
       // Sight clip: buildings-targeting troops ignore targets far behind them.
       if (clip > 0 && !u.building && (t.y - u.y) * fwd < -clip) continue;
       if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && best && t.id < best.id)) { bestD = d; best = t; }
@@ -11612,6 +11813,8 @@ body { font-weight: 700; letter-spacing: 0; }
     u.chargeDist = 0;
     u.combo = 0;        // v6 Kung-Fu-Legende: stun / freeze / knockback break the punch combo
     u.lockStacks = 0;   // v12 Cyborg-Jäger: ... and the target lock
+    // v21 fortress tower: a reset (Zap, stun, freeze) resets both guns.
+    if (u.guns) for (let i = 0; i < u.guns.length; i++) { const g = u.guns[i]; g.atk = 0; g.locked = false; g.reacquire = true; g.rampT = 0; }
   }
   Units.resetAttack = resetAttack;
 
@@ -13278,6 +13481,7 @@ body { font-weight: 700; letter-spacing: 0; }
    * in their own layer.
    */
   Units.think = function (sim, u) {
+    if (u.guns) { thinkGuns(sim, u); return; }   // v21 fortress tower: one think per gun
     if (!CR.Arena.TUNNEL || u.building || u.air) { think(sim, u); return; }
     tunnelBefore(sim, u);
     if (u.underground) { Units.layer = 1; Units.layerSrc = u; }
@@ -13285,6 +13489,49 @@ body { font-weight: 700; letter-spacing: 0; }
     Units.layer = 0; Units.layerSrc = null;
     tunnelAfter(sim, u);
   };
+
+  /**
+   * v21 fortress tower (map 'fortress', docs/V21-FORTRESS.md): the long tower thinks once per gun.
+   * Each gun's position (+ crew radius), target, reload, lock and facing are swapped into the
+   * tower for its turn, so its range / sight are measured from the gun and its shots start there;
+   * afterwards the tower gets its own position back and, for the view and other readers, the
+   * target / wind-up of the gun furthest into its attack (state 'attacking' when any gun fights).
+   * Stuns / freezes / slows / rage act on the whole tower (both guns); resetAttack resets both.
+   */
+  function thinkGuns(sim, u) {
+    const gs = u.guns;
+    const x = u.x, y = u.y, r = u.r;
+    let best = null, fighting = false;
+    for (let i = 0; i < gs.length; i++) {
+      const g = gs[i];
+      u.x = g.x; u.y = g.y; u.r = g.r;
+      u.target = g.target; u.atk = g.atk; u.locked = g.locked; u.reacquire = g.reacquire; u.rampT = g.rampT; u.dir = g.dir;
+      u.gun = i;
+      think(sim, u);
+      g.target = u.target; g.atk = u.atk; g.locked = u.locked; g.reacquire = u.reacquire; g.rampT = u.rampT; g.dir = u.dir;
+      g.state = u.state;
+      if (g.state === 'attacking') fighting = true;
+      if (g.target && (!best || !best.target || g.atk > best.atk)) best = g;
+      else if (!best) best = g;
+      if (u.dead) break;
+    }
+    u.x = x; u.y = y; u.r = r; u.gun = -1;
+    if (best) { u.target = best.target; u.atk = best.atk; u.locked = best.locked; u.dir = best.dir; }
+    u.state = fighting ? 'attacking' : 'idle';
+  }
+  Units.thinkGuns = thinkGuns;
+
+  /** v21: where a troop heads for a target: the nearest point of a long fortress tower's box (kept
+   *  half a tile inside its ends), else the target's centre. */
+  function aimAt(u, t, out) {
+    if (t.fortress && t.x1 !== undefined) {
+      out.x = CR.clamp(u.x, Math.min(t.x, t.x0 + 0.5), Math.max(t.x, t.x1 - 0.5));
+      out.y = CR.clamp(u.y, t.y0, t.y1);
+    } else { out.x = t.x; out.y = t.y; }
+    return out;
+  }
+  Units.aimAt = aimAt;
+  const AIM = { x: 0, y: 0 };
 
   // ===========================================================================
   // v12 tunnel map (CR.Arena.TUNNEL): plan, enter, walk underground, exit
@@ -13515,7 +13762,8 @@ body { font-weight: 700; letter-spacing: 0; }
           const dd = wrapA(want - d0);
           if (dd > SLOT_TURN) want = d0 + SLOT_TURN; else if (dd < -SLOT_TURN) want = d0 - SLOT_TURN;
           u.dir = wrapA(want);
-        } else m = moveToward(sim, u, t.x, t.y, rangeStop(g, s.range));
+        } else if (t.fortress) { aimAt(u, t, AIM); m = moveToward(sim, u, AIM.x, AIM.y, rangeStop(g, s.range)); }
+        else m = moveToward(sim, u, t.x, t.y, rangeStop(g, s.range));
         u.state = m > 0 ? 'moving' : 'idle';
         accumulateCharge(u, m);
       } else u.state = 'idle';
@@ -13560,7 +13808,9 @@ body { font-weight: 700; letter-spacing: 0; }
       u.state = 'idle'; return;
     }
     const g = gap(u, tw);
-    const m = moveToward(sim, u, tw.x, tw.y, rangeStop(g, Math.max(u.s.range, 0.1)));
+    // v21: a long fortress tower is approached at its nearest point, not its centre.
+    if (tw.fortress) aimAt(u, tw, AIM); else { AIM.x = tw.x; AIM.y = tw.y; }
+    const m = moveToward(sim, u, AIM.x, AIM.y, rangeStop(g, Math.max(u.s.range, 0.1)));
     u.state = m > 0 ? 'moving' : 'idle';
     accumulateCharge(u, m);
   }
@@ -15365,7 +15615,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const sim = st.sim, H = sim.hooks;
     const towerMult = num(st.opt.chaosTowerHp, RULES.towerHpMult);
     H.modifyStats.push(function (s, side, cardId, unitId) {
-      if ((unitId === 'princess-tower' || unitId === 'king-tower') && !cardId && towerMult !== 1) s.hp = s.hp * towerMult;
+      if ((unitId === 'princess-tower' || unitId === 'king-tower' || unitId === 'fortress-tower') && !cardId && towerMult !== 1) s.hp = s.hp * towerMult;
     });
     H.onUnitSpawn.push(function (u) { onSpawn(st, u); });
     H.onAttack.push(function (u, t, hit) {
@@ -17868,6 +18118,9 @@ body { font-weight: 700; letter-spacing: 0; }
  *
  * v18 flat map (view.map === 'flat'): no river / bridges / tunnel / trams - the generic open-field
  * play of the hill and tunnel maps (straight lane pushes, buildings in the usual spot) applies.
+ * v21 fortress map (view.map === 'fortress', docs/V21-FORTRESS.md): the generic open-field play; one
+ * long tower per side (kind 'king') - no princess to pick a weak lane from, heavy tanks start just
+ * beside the front of the own fortress (x 4 / 14, y 4) instead of behind the king.
  * v12 tunnel map (view.map === 'tunnel', docs/V12-TUNNEL.md): enemies in the tunnel (view unit
  * .tunnel) are never spell targets and count as threats at the own hole where they will come up;
  * tryPush sends a tunnel-capable troop (CR.Arena.tunnelEligible) behind the own hole now and then
@@ -17885,8 +18138,9 @@ body { font-weight: 700; letter-spacing: 0; }
  * own station or coming there (40 % of the pushes; this.railPlays counts them); the troop itself then
  * decides to ride (CR.Rails.plan). Touchdown on 'rails' does the same at the deploy line.
  *
- * v7 champions (docs/V7-CARDS.md): tryChampion() runs first on every think in both modes. When
- * view.players[me].champion is ready and affordable, the bot predicts the slash wave (towards the
+ * v7 champions (docs/V7-CARDS.md): tryChampion() runs first on every think in both modes (v21: for
+ * every living champion, view.players[me].champions; champion cards are played like any card). When
+ * a champion is ready and affordable, the bot predicts the slash wave (towards the
  * champion's target, else straight ahead; ability data from CR.Sim.championAbility) and fires
  * {type:'champion_ability'} when the line holds enough value (sum of min(hp, damage) of enemy troops
  * and buildings + the reduced crown tower damage) or at least 3 enemies; the threshold falls with
@@ -18059,7 +18313,6 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < me.hand.length; i++) {
         const c = cardOf(me.hand[i]);
         if (!c || c.disabled || (c.elixir || 0) > me.elixir + 1e-6) continue;
-        if (c.rarity === 'champion' && me.champion) continue;   // only one champion on the field (v7)
         out.push({ i: i, c: c });
       }
       return out;
@@ -18162,7 +18415,8 @@ body { font-weight: 700; letter-spacing: 0; }
       const u = unitOf(tank.c);
       // Heavy tanks start in the back to build a push, fast building-hunters go to the bridge.
       if (u && u.buildingsOnly && (u.speed || 1) >= 1.5) return this.play(sim, tank.i, bx, 13.5);
-      if (cardHp(tank.c) >= 2500) return this.play(sim, tank.i, weak === 0 ? 6 : 12, 1.5);
+      // (v21 fortress map: the long tower fills the back rows x 5..13 - start just beside its front)
+      if (cardHp(tank.c) >= 2500) return view.map === 'fortress' ? this.play(sim, tank.i, weak === 0 ? 4 : 14, 4) : this.play(sim, tank.i, weak === 0 ? 6 : 12, 1.5);
       return this.play(sim, tank.i, bx, 12.5);
     }
   }
@@ -18435,10 +18689,18 @@ body { font-weight: 700; letter-spacing: 0; }
     return { value: value, n: n };
   };
 
-  /** Fire the champion ability when it pays off: the slash wave by its line value, the other
-   *  champions' kinds (v20) by the per-kind rules of abilityWorth. */
+  /** Fire champion abilities when they pay off (v21: every living champion of the bot, each with
+   *  its own cooldown - view.players[me].champions, older views: .champion only). */
   AI.prototype.tryChampion = function (sim, view, me) {
-    const ch = me.champion;
+    const list = Array.isArray(me.champions) && me.champions.length ? me.champions : (me.champion ? [me.champion] : null);
+    if (!list) return false;
+    let any = false;
+    for (let i = 0; i < list.length; i++) if (this.tryChampionOne(sim, view, me, list[i])) any = true;
+    return any;
+  };
+  /** One champion `ch` (champion view): the slash wave by its line value, the other champions'
+   *  kinds (v20) by the per-kind rules of abilityWorth. */
+  AI.prototype.tryChampionOne = function (sim, view, me, ch) {
     if (!ch || !ch.ready || !(ch.canUse === undefined ? me.elixir + 1e-6 >= ch.cost : ch.canUse)) return false;
     let cu = null;
     for (const u of view.units) if (u.id === ch.unitId) { cu = u; break; }
@@ -18450,7 +18712,7 @@ body { font-weight: 700; letter-spacing: 0; }
       try { ok = this.abilityWorth(view, cu, ab); } catch (e) { ok = false; }
       if (!ok) return false;
       if ((this.cfg.tapChance || 1) < 1 && this.rng() > this.cfg.tapChance) return false;
-      const r2 = sim.command(this.player, { type: 'champion_ability' });
+      const r2 = sim.command(this.player, { type: 'champion_ability', unitId: ch.unitId });
       if (r2 && r2.ok) { this.tapUses = (this.tapUses || 0) + 1; return true; }
       return false;
     }
@@ -18459,7 +18721,7 @@ body { font-weight: 700; letter-spacing: 0; }
     let need = this.cfg.abilityValue || 600;
     if (cu.maxHp > 0 && cu.hp < cu.maxHp * 0.3) need *= 0.5;   // use it before the champion falls
     if (line.value < need && line.n < 3) return false;
-    const r = sim.command(this.player, { type: 'champion_ability' });
+    const r = sim.command(this.player, { type: 'champion_ability', unitId: ch.unitId });
     return !!(r && r.ok);
   };
 
@@ -18680,6 +18942,9 @@ body { font-weight: 700; letter-spacing: 0; }
  *
  * v13 tap abilities: command {type:'unit_ability', unitId} (sanitizeCommand: positive integer id);
  * view.players[i].abilities and view.units[k].act travel as generic extras (no table change).
+ * v21: any number of champions per player - command {type:'champion_ability', unitId?}
+ * (sanitizeCommand keeps a positive integer unitId; none = the newest champion), the new
+ * view.players[i].champions list travels as a generic player extra like .champion.
  *
  * v12: mode 'classic' (Klassisch, ohne C.H.A.O.S) is a regular menu choice and travels like the
  * others; map 'tunnel' joins 'classic' | 'hill' (lobby, host blob, start info). The unit flag
@@ -18691,6 +18956,8 @@ body { font-weight: 700; letter-spacing: 0; }
  * MAPS / MM_KEYS any more, a host's own choice (hostGame opts.map, hs.setMap, startDraft /
  * startBattle cfg.map) goes through pickMap (retired / unknown -> 'classic'); sanitizeMap (decode
  * of a received host blob) still accepts 'rails' (LEGACY_MAPS). CR.Net.MAPS / pickMap exported.
+ * v21: map 'fortress' (Festung, one long tower per side) joins the same lists; its view towers carry
+ * the extras fortress / gunT / gunAp (generic tower extras, strings in the table).
  * v16: view.rails = { trams, carts (same list: sent once, `trams` restored on decode), gates, open,
  * left, period, green, red } (air trams beside the field, red / green gates); 'rail' events add
  * phase 'gate' with `open` / `left`; essentialExtras keeps trams + gates + clock.
@@ -19145,9 +19412,13 @@ body { font-weight: 700; letter-spacing: 0; }
         }
         return out;
       }
-      case 'champion_ability':
-        // v7: the champion's ability (the sim validates: champion alive, elixir, cooldown)
-        return { type: 'champion_ability' };
+      case 'champion_ability': {
+        // v7: the champion's ability (the sim validates: champion alive, elixir, cooldown).
+        // v21: unitId = which of the player's champions (omitted: the newest - old peers).
+        if (c.unitId === undefined || c.unitId === null) return { type: 'champion_ability' };
+        const cu = intIn(c.unitId, 1, 1e9);
+        return cu === null ? { type: 'champion_ability' } : { type: 'champion_ability', unitId: cu };
+      }
       case 'unit_ability': {
         // v13: tap ability of one own unit (the sim validates owner, cooldown, elixir, target)
         const uid = intIn(c.unitId, 1, 1e9);
@@ -19390,6 +19661,8 @@ body { font-weight: 700; letter-spacing: 0; }
     'trams', 'gates', 'gate', 'open', 'left', 'rail', 'arriveIn', 'from', 'period', 'green', 'red',
     // v18: the flat open map
     'flat',
+    // v21: the fortress map (one long tower per side: view tower extras fortress / gunT / gunAp)
+    'fortress', 'gunT', 'gunAp',
   ];
 
   function cardIdsOf(cards) {
@@ -22325,7 +22598,8 @@ body { font-weight: 700; letter-spacing: 0; }
 
   // v12: + the tunnel map, v14: + 'rails' (Schienen), v18: 'rails' retired (no longer selectable:
   // lobby, matchmaking keys, random map of an 'egal' host) and the flat open map 'flat' (Flach).
-  const MAPS = ['classic', 'hill', 'tunnel', 'flat'];
+  // v21: + 'fortress' (Festung: the flat field with one long tower per side).
+  const MAPS = ['classic', 'hill', 'tunnel', 'flat', 'fortress'];
   // Retired map ids a received lobby blob / start info may still name (decode tolerance: the
   // engine can still build them, CR.Arena.setMap('rails')); a host never picks one itself.
   const LEGACY_MAPS = ['rails'];
@@ -25700,6 +25974,71 @@ body { font-weight: 700; letter-spacing: 0; }
     }
   }
 
+  /**
+   * v21 fortress tower (map 'fortress'): a long low stone wall-fort, origin = footprint centre, in
+   * tiles. hw / hd = half width / half depth of the footprint, gx = x of the two gun platforms.
+   */
+  function paintFortress(g, T, state, hw, hd, gx) {
+    g.fillStyle = 'rgba(0,0,0,0.26)';
+    fillEllipse(g, 0.25, hd * 0.55, hw + 0.4, hd * 0.75);
+    let gr = g.createLinearGradient(0, -hd * 0.55, 0, hd * 0.75);
+    gr.addColorStop(0, state === 2 ? '#8f939b' : '#c5c8d0');
+    gr.addColorStop(1, state === 2 ? '#5f636b' : '#7f848e');
+    rrect(g, -hw - 0.15, -hd * 0.55, hw * 2 + 0.3, hd * 1.3, 0.35);
+    g.fillStyle = gr;
+    g.fill();
+    g.lineWidth = 0.06;
+    g.strokeStyle = '#4f545d';
+    g.stroke();
+    if (state === 2) {
+      for (let i = -1; i <= 1; i++) { g.save(); g.translate(i * gx, 0); paintRubble(g, false, T); g.restore(); }
+      return;
+    }
+    // long wall
+    const wt = -1.75, wb = hd * 0.55;
+    gr = g.createLinearGradient(0, wt, 0, wb);
+    gr.addColorStop(0, '#e3dbcf');
+    gr.addColorStop(1, '#8b847a');
+    rrect(g, -hw + 0.1, wt, hw * 2 - 0.2, wb - wt, 0.14);
+    g.fillStyle = gr;
+    g.fill();
+    g.strokeStyle = '#5c564c';
+    g.lineWidth = 0.06;
+    g.stroke();
+    g.strokeStyle = 'rgba(70,58,46,0.24)';
+    g.lineWidth = 0.035;
+    g.beginPath();
+    let row = 0;
+    for (let yy = wt + 0.42; yy < wb - 0.12; yy += 0.42, row++) {
+      g.moveTo(-hw + 0.16, yy); g.lineTo(hw - 0.16, yy);
+      for (let xx = -hw + ((row & 1) ? 0.32 : 0.62); xx < hw - 0.2; xx += 0.62) { g.moveTo(xx, yy); g.lineTo(xx, yy + 0.42); }
+    }
+    g.stroke();
+    // battlements
+    g.fillStyle = '#cfc7ba';
+    for (let xx = -hw + 0.25; xx < hw - 0.3; xx += 0.62) { rrect(g, xx, wt - 0.26, 0.36, 0.3, 0.05); g.fill(); }
+    // wooden gun platforms at both ends + team banners between them
+    for (let k = -1; k <= 1; k += 2) {
+      g.fillStyle = '#7a5230';
+      rrect(g, k * gx - 0.75, wt - 0.5, 1.5, 0.42, 0.08);
+      g.fill();
+      g.strokeStyle = '#4a311b';
+      g.lineWidth = 0.05;
+      g.stroke();
+    }
+    paintBanner(g, -gx * 0.45, wt + 0.25, 0.45, 1.1, T);
+    paintBanner(g, gx * 0.45, wt + 0.25, 0.45, 1.1, T);
+    // gate
+    g.fillStyle = '#3a2c22';
+    g.beginPath();
+    g.moveTo(-0.45, wb);
+    g.lineTo(-0.45, wb - 0.55);
+    g.arc(0, wb - 0.55, 0.45, Math.PI, 0);
+    g.lineTo(0.45, wb);
+    g.closePath();
+    g.fill();
+  }
+
   function paintRubble(g, king, T) {
     const span = king ? 1.7 : 1.2;
     // scorch
@@ -26437,6 +26776,17 @@ body { font-weight: 700; letter-spacing: 0; }
         const size = L.size > 0 ? L.size : (king ? 4 : 3);
         const px = this._bx + L.x * this._mx, py = this._by + L.y * this._my;
         const half = (size / 2 + (king ? 0.35 : 0.22)) * ts;
+        if (L.fortress) {
+          // v21 fortress: one long slab (size along x, depth along y), no plaza ring
+          const hx = (size / 2 + 0.2) * ts, hy = ((L.depth > 0 ? L.depth : size) / 2 + 0.2) * ts;
+          rrect(g, px - hx, py - hy, hx * 2, hy * 2, 0.4 * ts);
+          g.fillStyle = '#9fa3ab';
+          g.fill();
+          g.strokeStyle = '#626771';
+          g.lineWidth = Math.max(1, 0.06 * ts);
+          g.stroke();
+          continue;
+        }
         if (king) {
           // outer plaza ring
           rrect(g, px - half - 0.25 * ts, py - half - 0.25 * ts, (half + 0.25 * ts) * 2, (half + 0.25 * ts) * 2, 0.6 * ts);
@@ -26963,8 +27313,14 @@ body { font-weight: 700; letter-spacing: 0; }
         r.size = t.size > 0 ? t.size : (t.kind === 'king' ? 4 : 3);
         r.rad = r.size / 2; r.a = 1; r.team = this._team(t.side);
         r.sort = r.py + 0.2 * ts; r.deploy = false;
-        r.top = r.py - (t.kind === 'king' ? 3.2 : 3.0) * ts;
+        r.top = r.py - (t.fortress ? 2.4 : (t.kind === 'king' ? 3.2 : 3.0)) * ts;
         const ap = +t.attackProg || 0;
+        if (t.fortress) {
+          // v21: per-gun recoil memo (gunAp drops when a gun fired)
+          if (!m.gShot) { m.gShot = [-1e9, -1e9]; m.gProg = [0, 0]; m.gAim = [NaN, NaN]; }
+          const ga = t.gunAp || EMPTY;
+          for (let k = 0; k < 2; k++) { const v = +ga[k] || 0; if (m.gProg[k] > 0.5 && v < m.gProg[k] - 0.3) m.gShot[k] = now; m.gProg[k] = v; }
+        }
         if (m.lastProg > 0.5 && ap < m.lastProg - 0.3) m.shotMs = now;
         m.lastProg = ap;
         if ((t.fx & 1) && !(m.lastFx & 1)) m.stunMs = now;
@@ -27255,8 +27611,9 @@ body { font-weight: 700; letter-spacing: 0; }
         const t = tw[i];
         const king = t.kind === 'king';
         const s = t.size > 0 ? t.size : (king ? ((T && T.king && T.king.size) || 4) : ((T && T.princess && T.princess.size) || 3));
+        const dp = t.fortress && t.depth > 0 ? t.depth : s;   // v21: the fortress is shallower than wide
         st.push({ id: t.id, side: t.side, kind: t.kind, lane: t.lane, alive: !!t.alive, x: t.x, y: t.y, size: s,
-          x0: t.x - s / 2, y0: t.y - s / 2, x1: t.x + s / 2, y1: t.y + s / 2 });
+          x0: t.x - s / 2, y0: t.y - dp / 2, x1: t.x + s / 2, y1: t.y + dp / 2 });
       }
       const us = cur.units || EMPTY;
       for (let i = 0; i < us.length; i++) {
@@ -27543,6 +27900,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
     // ---------------------------------------------------------------- towers
     _drawTower(r, now) {
+      if (r.e && r.e.fortress) { this._drawFortress(r, now); return; }
       const ctx = this.ctx, ts = this.ts, t = r.e, m = r.m;
       const king = t.kind === 'king';
       const state = !t.alive ? 2 : (king ? (t.active ? 1 : 0) : 0);
@@ -27578,6 +27936,59 @@ body { font-weight: 700; letter-spacing: 0; }
         ctx.fill();
         ctx.globalAlpha = 1;
       }
+    }
+
+    /** v21 fortress tower: cached long-fort sprite + an archer turret on each gun platform. */
+    _drawFortress(r, now) {
+      const ctx = this.ctx, ts = this.ts, t = r.e, m = r.m, d = this.dpr;
+      const state = t.alive ? 1 : 2;
+      const size = t.size > 0 ? t.size : 8, depth = t.depth > 0 ? t.depth : 2.5;
+      const F = CR.Arena && CR.Arena.FORTRESS;
+      const gx = F && F.guns && F.guns[1] ? Math.abs(F.guns[1].dx) : size / 3;
+      const key = 'f' + r.team + state + size + depth;
+      let spr = this._towerSpr[key];
+      if (!spr) {
+        const hw = size / 2, hd = depth / 2;
+        const bx0 = -hw - 0.6, bx1 = hw + 0.8, by0 = -2.6, by1 = hd + 0.9;
+        const w = (bx1 - bx0) * ts, h = (by1 - by0) * ts;
+        const cv = makeCanvas(w * d, h * d);
+        if (!cv) return;
+        const g = cv.getContext('2d');
+        g.setTransform(d * ts, 0, 0, d * ts, -bx0 * ts * d, -by0 * ts * d);
+        g.lineJoin = 'round';
+        paintFortress(g, TEAM[r.team], state, hw, hd, gx);
+        spr = { cv: cv, ox: -bx0 * ts, oy: -by0 * ts, w: w, h: h };
+        this._towerSpr[key] = spr;
+      }
+      ctx.globalAlpha = 1;
+      ctx.drawImage(spr.cv, r.px - spr.ox, r.py - spr.oy, spr.w, spr.h);
+      if (state === 2) return;
+      const hf = 1 - (now - m.hitMs) / 150;
+      if (hf > 0) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = hf * 0.28;
+        ctx.drawImage(spr.cv, r.px - spr.ox, r.py - spr.oy, spr.w, spr.h);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+      }
+      // the two archers: _drawTurret with the gun's screen x, its target and recoil memo swapped in
+      if (!m.gShot) { m.gShot = [-1e9, -1e9]; m.gProg = [0, 0]; m.gAim = [NaN, NaN]; }
+      const px = r.px, py = r.py, aim = m.aim, shot = m.shotMs;
+      const gt = t.gunT || EMPTY, ga = t.gunAp || EMPTY;
+      const ge = this._gunE || (this._gunE = { targetId: 0, attackProg: 0 });   // scratch entity (views stay untouched)
+      // screen direction of +x (sim) for this view (side 1 sees the arena rotated)
+      const sx = this._mx >= 0 ? 1 : -1;
+      for (let k = 0; k < 2; k++) {
+        r.px = px + (k === 0 ? -gx : gx) * ts * sx;
+        r.py = py + 0.83 * ts;   // turret sits on the low wall (cy = py - 1.75 ts)
+        ge.targetId = gt[k] | 0; ge.attackProg = +ga[k] || 0;
+        r.e = ge;
+        m.aim = m.gAim[k]; m.shotMs = m.gShot[k];
+        this._drawTurret(r, false, now);
+        m.gAim[k] = m.aim;
+      }
+      r.e = t; r.px = px; r.py = py; m.aim = aim; m.shotMs = shot;
+      this._resetT();
     }
 
     _drawTurret(r, king, now) {
@@ -28109,8 +28520,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const ctx = this.ctx, ts = this.ts, t = r.e, m = r.m;
       if (!t.alive) return;
       const king = t.kind === 'king';
-      const bw = (king ? 2.9 : 2.35) * ts, bh = Math.max(8, (king ? 0.48 : 0.42) * ts);
-      let cy = r.py + (king ? -2.98 : -2.92) * ts;
+      const fort = !!t.fortress;   // v21: wider bar right above the low fortress wall
+      const bw = (fort ? 3.6 : (king ? 2.9 : 2.35)) * ts, bh = Math.max(8, (king ? 0.48 : 0.42) * ts);
+      let cy = r.py + (fort ? -2.55 : (king ? -2.98 : -2.92)) * ts;
       if (cy - bh / 2 < 2) cy = 2 + bh / 2;
       const x0 = r.px - bw / 2, y0 = cy - bh / 2;
       const maxHp = +t.maxHp || 0, hp = Math.max(0, +t.hp || 0);
@@ -28858,6 +29270,9 @@ body { font-weight: 700; letter-spacing: 0; }
  * (4) new map "Flach" ('flat': completely flat open field without river and bridges, normal
  * towers; CR.Arena.maps.flat) in MAPS with preview SVG (grass rows, a faint dashed middle zone,
  * towers) and Touchdown sub-label, gated by f.flat (UI.allowedMap), rules text UI.flatRuleTexts.
+ * v21: map "Festung" ('fortress': the flat field with ONE long tower per side) in MAPS (preview from
+ * CR.Arena.towerLayout(id) - every preview now draws its own map's towers), gated by f.fortress /
+ * ctl.canFortress, rules text UI.fortressRuleTexts; 5 maps use the 2-column has-4 grid (+ has-many).
  *
  * v13: (1) Touchdown needs a BUILDING in every deck: UI.deckForMode -> UI.ensureBuilding puts
  * one in the last slot for the battle only (German hint in the menu panes and both lobbies via
@@ -28919,6 +29334,16 @@ body { font-weight: 700; letter-spacing: 0; }
  * champion cards get a gold frame + gem (no endless red aura); the button dims while the ability has
  * no target (view champion.noTarget). The v13 tap-ability bar (UI.abilityButtons, 'unit_ability') is
  * removed - view.players[me].abilities is always [].
+ *
+ * v21 NO STOP SIGN (user: "Ich kann manchmal nichts setzen ... das soll es niemals geben"): the
+ * battle never shows a stop / no-entry sign. Drops on invalid spots snap to the nearest valid tile
+ * (snapFor -> CR.Arena.snapDeploy, ghost included; the sim does the same for net guests); not enough
+ * elixir -> the cost drop wiggles + the elixir bar pulses (reject / showMessage 'is-elixir');
+ * transient refusals (UI.isSilentReason: slot in flight, hand changed, upgrade pick, touchdown reset,
+ * online wait) are silent; showMessage 'is-deny' only fills the hidden screen-reader status
+ * (srStatus). Champions (no limit any more): one button per living champion (champBtns, from
+ * view.players[me].champions), stacked bottom right, newest at the bottom, smaller from 3 and two
+ * columns from 5 champions; each sends {type:'champion_ability', unitId}.
  *
  * v4 (user feedback): the battle screen is sized like Clash Royale on the phone (arena fills
  * the screen above a compact CR card panel, top info + crowns float on the arena) and shows NO
@@ -28997,6 +29422,8 @@ body { font-weight: 700; letter-spacing: 0; }
     // v18: completely flat open field - no river, no bridges, normal towers (CR.Arena maps.flat).
     // (v14 'rails' / "Schienen" is retired: no longer selectable, a stored choice becomes 'classic')
     { id: 'flat', label: 'Flach', sub: 'Offenes Feld ohne Fluss' },
+    // v21: the flat field with ONE long tower per side instead of three (CR.Arena maps.fortress)
+    { id: 'fortress', label: 'Festung', sub: 'Ein langer Turm statt drei' },
   ];
   const MAP_IDS = MAPS.map(function (m) { return m.id; });
   // v6: game modes (CR.Sim({mode})): C.H.A.O.S (crown towers + upgrades) or Touchdown (the CR
@@ -29182,6 +29609,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (id === 'hill' && !(f && f.hill)) return 'classic';
     if (id === 'tunnel' && !(f && f.tunnel)) return 'classic';
     if (id === 'flat' && !(f && f.flat)) return 'classic';
+    if (id === 'fortress' && !(f && f.fortress)) return 'classic';
     return id;
   };
   /** Is this map selectable with these features? */
@@ -30024,6 +30452,14 @@ body { font-weight: 700; letter-spacing: 0; }
   };
 
   UI.isElixirReason = function (reason) { return String(reason || '').toLowerCase().indexOf('elixir') >= 0; };
+  /** v21: refusal reasons of the placement itself (tile / zone) - snapped away by CR.Arena.snapDeploy. */
+  UI.isPlaceReason = function (reason) {
+    return /^(out_of_bounds|invalid_zone|invalid_river|invalid_hill|blocked_place|bounds|zone|river|hill|blocked)$/.test(String(reason || ''));
+  };
+  /** v21: transient refusals the HUD swallows silently (the card simply stays in the hand). */
+  UI.isSilentReason = function (reason) {
+    return /^(pending|hand_slot_pending|card_changed|chaos_pause|td_reset|net_wait|wait|hand|over|game_over|bad_hand_slot|intro|error|)$/.test(String(reason || ''));
+  };
 
   // C.H.A.O.S view helpers. The chaos module defines the exact data; these accept the common
   // shapes (ids or objects) so the picker keeps working when details change.
@@ -31153,7 +31589,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (mode === 'touchdown') return tdPreviewSvg(id);
     let b = '<rect x="0" y="0" width="18" height="32" rx="1.2" fill="#5fae3a"/>' +
       '<path d="M0 4h18M0 8h18M0 12h18M0 20h18M0 24h18M0 28h18" stroke="#6cbc44" stroke-width="2"/>';
-    if (id === 'flat') {
+    if (id === 'flat' || id === 'fortress') {
       // v18: one open lawn - the middle rows are grass too (no river, no bridges); a faint dashed
       // line marks the halfway band (y 15..17) nobody may deploy on
       b += '<rect class="flat-mid" x="0" y="15" width="18" height="2" fill="#6cbc44"/>' +
@@ -31180,8 +31616,11 @@ body { font-weight: 700; letter-spacing: 0; }
     // v12: the towers come from CR.Arena.towerLayout() (CR-like layout: king further back and
     // shallower), else the classic static positions.
     let lay = null;
-    try { lay = CR.Arena && typeof CR.Arena.towerLayout === 'function' ? CR.Arena.towerLayout() : null; } catch (e) { lay = null; }
-    const okLay = Array.isArray(lay) && lay.length >= 6 && lay.every(function (t) { return t && [t.x0, t.y0, t.x1, t.y1].every(Number.isFinite) && t.x1 > t.x0 && t.y1 > t.y0; });
+    // v21: the layout of THIS map (towerLayout(id)), not the current arena's - 'fortress' has one
+    // long tower per side.
+    try { lay = CR.Arena && typeof CR.Arena.towerLayout === 'function' ? CR.Arena.towerLayout(id) : null; } catch (e) { lay = null; }
+    if (id === 'fortress' && !(Array.isArray(lay) && lay.length === 2)) lay = [{ side: 0, kind: 'king', x: 9, y: 1.25, x0: 5, y0: 0, x1: 13, y1: 2.5 }, { side: 1, kind: 'king', x: 9, y: 30.75, x0: 5, y0: 29.5, x1: 13, y1: 32 }];
+    const okLay = Array.isArray(lay) && lay.length >= (id === 'fortress' ? 2 : 6) && lay.every(function (t) { return t && [t.x0, t.y0, t.x1, t.y1].every(Number.isFinite) && t.x1 > t.x0 && t.y1 > t.y0; });
     if (okLay) {
       for (let i = 0; i < lay.length; i++) {
         const t = lay[i];
@@ -31265,6 +31704,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (mode !== 'touchdown') return m.sub;
     if (m.id === 'tunnel') return 'Football-Feld mit Tunnel';
     if (m.id === 'flat') return 'Offenes Football-Feld';
+    if (m.id === 'fortress') return 'Offenes Football-Feld';
     return m.id === 'hill' ? 'Feld mit Hügel in der Mitte' : 'Football-Feld mit Endzonen';
   }
   UI.mapSub = function (id, mode) { const m = MAPS.filter(function (x) { return x.id === UI.normMap(id); })[0]; return mapSub(m, mode); };
@@ -31274,7 +31714,7 @@ body { font-weight: 700; letter-spacing: 0; }
   function mapPicker(value, onChange, opts) {
     const o = opts || NONE;
     let mode = o.mode === 'touchdown' ? 'touchdown' : 'chaos';
-    const el = h('div', { class: 'map-pick' + (o.compact ? ' is-compact' : '') + (MAPS.length > 2 ? ' has-' + MAPS.length : ''), role: 'radiogroup', 'aria-label': 'Karte' });
+    const el = h('div', { class: 'map-pick' + (o.compact ? ' is-compact' : '') + (MAPS.length > 2 ? ' has-' + Math.min(4, MAPS.length) + (MAPS.length > 4 ? ' has-many' : '') : ''), role: 'radiogroup', 'aria-label': 'Karte' });
     const isOff = function (id) { return !!(o.disabled && o.disabled(id, mode)); };
     const prevs = [];
     const subs = [];
@@ -32129,6 +32569,7 @@ body { font-weight: 700; letter-spacing: 0; }
       f.hill ? null : hint(notes.hill || 'Die Hügel-Karte ist gerade nicht verfügbar.', 'info'),
       f.tunnel ? null : hint(notes.tunnel || 'Die Tunnel-Karte ist gerade nicht verfügbar.', 'info'),
       f.flat ? null : hint(notes.flat || 'Die Karte „Flach“ ist gerade nicht verfügbar.', 'info'),
+      f.fortress ? null : hint(notes.fortress || 'Die Karte „Festung“ ist gerade nicht verfügbar.', 'info'),
       fightBtn,
       f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.'),
     ]);
@@ -32876,7 +33317,14 @@ body { font-weight: 700; letter-spacing: 0; }
       '<b>Hügel</b>: überall Rasen, kein Fluss und keine Brücken. Quer über die Mitte zieht sich ein Hügel, so hoch, wie Lufteinheiten fliegen. Bodentruppen können ihn überall überqueren.',
       'Bergauf laufen Bodentruppen <b>langsamer</b>, bergab und oben auf dem Hügel ganz normal.',
       'Oben auf dem Hügel stehen Bodentruppen auf <b>gleicher Höhe wie Lufteinheiten</b>: Dort treffen auch Nahkämpfer fliegende Gegner. Und fliegt eine Lufteinheit über dem Hügel, können sie auch Bodenkämpfer angreifen, die sonst nur Bodenziele treffen.',
-    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts());
+    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts(), UI.fortressRuleTexts());
+  };
+  /** v21: the fortress map (Festung) for the rules screen. */
+  UI.fortressRuleTexts = function () {
+    return [
+      '<b>Festung</b>: das offene Feld von „Flach“ – aber jede Seite hat nur <b>einen Turm statt drei</b>. Die Festung ist doppelt so lang wie ein Königsturm, schmaler und steht ganz hinten an der Grundlinie.',
+      'An beiden Enden schießt je ein Schütze, so sind beide Seiten verteidigt. Die Festung ist von Anfang an wach. Fällt sie, gibt es sofort <b>3 Kronen</b> und den Sieg; sonst entscheidet nach einer kurzen Verlängerung (1 Minute) die Festung mit mehr Trefferpunkten.',
+    ];
   };
   /** v18: the flat map (Flach) for the rules screen. */
   UI.flatRuleTexts = function () {
@@ -33419,7 +33867,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const teamSeg = segmented(TEAM_SIZES.map(function (t) { return { id: t.id, label: t.label, disabled: t.id === 2 && !can2 }; }),
       can2 ? teamSize : 1, function (id) { if (ctl.onTeamSize) ctl.onTeamSize(id); }, 'seg seg-sm seg-team');
     // v6: game mode (C.H.A.O.S / Touchdown + switch; v12: + Klassisch) - the map previews follow it
-    const lobbyFeat = { touchdown: !!ctl.canTouchdown, hill: !!ctl.canHill, tunnel: !!ctl.canTunnel, flat: !!ctl.canFlat };
+    const lobbyFeat = { touchdown: !!ctl.canTouchdown, hill: !!ctl.canHill, tunnel: !!ctl.canTunnel, flat: !!ctl.canFlat, fortress: !!ctl.canFortress };
     let gMode = UI.allowedGameMode(ctl.gameMode, lobbyFeat);
     let gChaos = !!ctl.tdChaos;
     let gDraft = ctl.tdDraft !== false;
@@ -34462,46 +34910,62 @@ body { font-weight: 700; letter-spacing: 0; }
     let mateN = -1;
 
     // v7: champion ability button (like CR champions): shown while the own champion is on the
-    // field (view.players[me].champion); portrait + elixir cost, cooldown ring, glow when ready.
-    // Wordless (the German text is the accessible label only).
-    const champArt = h('span', { class: 'card-art' }, h('span', { class: 'art-ini' }));
-    const champCost = h('b', null, '');
-    const champRing = h('span', { class: 'champ-ring', 'aria-hidden': 'true' });
-    const champSecs = h('span', { class: 'champ-secs', 'aria-hidden': 'true' }, '');
-    const champBtn = h('button', { class: 'champ-btn', type: 'button', hidden: true, 'aria-label': 'Champion-Fähigkeit' },
-      [h('span', { class: 'champ-face' }, [champArt, h('span', { class: 'card-shine' })]), champRing, champSecs, h('span', { class: 'champ-cost' }, [h('i'), champCost]), h('span', { class: 'champ-burst', 'aria-hidden': 'true' })]);
-    const champ = { card: null, unitId: null, cdMax: 0, sig: '', cost: 0, ready: false, noTarget: false, sentAt: -1e9 };
-    champBtn.addEventListener('click', function (e) {
-      if (e) e.stopPropagation();
-      const c = champ;
+    // field; portrait + elixir cost, cooldown ring, glow when ready. Wordless (the German text is
+    // the accessible label only). v21: ONE BUTTON PER LIVING CHAMPION (no champion limit,
+    // view.players[me].champions, oldest first): stacked bottom right above the hand, the newest
+    // at the bottom; from 3 champions on the buttons shrink, from 5 on they form two columns, so
+    // every button stays reachable without covering the hand. Each button fires its own unit
+    // ({type:'champion_ability', unitId}).
+    const champBtns = [];       // active buttons (order of view.players[me].champions)
+    const champPool = [];       // released buttons for reuse
+    let champLayoutSig = '';
+    function makeChampBtn() {
+      const art = h('span', { class: 'card-art' }, h('span', { class: 'art-ini' }));
+      const costB = h('b', null, '');
+      const ring = h('span', { class: 'champ-ring', 'aria-hidden': 'true' });
+      const secs = h('span', { class: 'champ-secs', 'aria-hidden': 'true' }, '');
+      const el = h('button', { class: 'champ-btn', type: 'button', hidden: true, 'aria-label': 'Champion-Fähigkeit' },
+        [h('span', { class: 'champ-face' }, [art, h('span', { class: 'card-shine' })]), ring, secs, h('span', { class: 'champ-cost' }, [h('i'), costB]), h('span', { class: 'champ-burst', 'aria-hidden': 'true' })]);
+      const c = { el: el, art: art, costB: costB, ring: ring, secs: secs, card: null, unitId: null, cdMax: 0, sig: '', cost: 0, ready: false, noTarget: false, sentAt: -1e9 };
+      el.addEventListener('click', function (e) {
+        if (e) e.stopPropagation();
+        champTap(c);
+      });
+      el.addEventListener('pointerdown', function (e) { if (e) e.stopPropagation(); });
+      return c;
+    }
+    /** Tap on a champion button: fire that champion's ability. Never a stop sign - a refused tap
+     *  only wiggles the button (not enough elixir: the elixir bar pulses as well). */
+    function champTap(c) {
+      const champBtn = c.el;
       if (!c.card) return;
       if (!c.ready || elixirNow + 1e-6 < c.cost || c.noTarget) {
         replay(champBtn, 'shake');
-        Sound.play('deny');
         if (!c.ready) return;
-        if (c.noTarget && elixirNow + 1e-6 >= c.cost) { showMessage(UI.reasonText('no_target'), 'is-deny'); return; }
-        showMessage(UI.reasonText('not_enough_elixir'), 'is-elixir');
+        if (c.noTarget && elixirNow + 1e-6 >= c.cost) { srStatus(UI.reasonText('no_target')); return; }
+        flashElixir();
+        srStatus(UI.reasonText('not_enough_elixir'));
         return;
       }
       if (now() - c.sentAt < 400) return;
       c.sentAt = now();
-      const r = sendCommand({ type: 'champion_ability' });
+      const r = sendCommand({ type: 'champion_ability', unitId: c.unitId });
       if (r && r.ok === false) {
         // refused by the local authority (cooldown, wind-up, pause): wordless shake
         replay(champBtn, 'shake');
-        Sound.play('deny');
-        if (UI.isElixirReason(r.reason)) showMessage(UI.reasonText(r.reason), 'is-elixir');
+        if (UI.isElixirReason(r.reason)) flashElixir();
         return;
       }
       replay(champBtn, 'fire');
       vibrate([14, 30, 24]);
-    });
-    champBtn.addEventListener('pointerdown', function (e) { if (e) e.stopPropagation(); });
+    }
+    const champCol = h('div', { class: 'champ-col' });   // holds the absolutely placed buttons
+    champCol.style.display = 'contents';
 
     // v20: the v13 tap-ability bar is gone - every ability is a champion ability (champion button);
     // view.players[me].abilities is always [] and the HUD never sends 'unit_ability'.
 
-    const arenaWrap = h('div', { class: 'arena-wrap' }, [canvas, hudTop, crownCol, tdReset, oppBadges, ownBadges, mateEx, champBtn, emotePop, chaosMini, chaosOv, waitEl, netBanner]);
+    const arenaWrap = h('div', { class: 'arena-wrap' }, [canvas, hudTop, crownCol, tdReset, oppBadges, ownBadges, mateEx, champCol, emotePop, chaosMini, chaosOv, waitEl, netBanner]);
     // (v17: the first-battle hint box joins the arena once the BattleScreen helpers exist)
 
     // ---- hand (v4, CR layout): [emote / next] [four cards with the cost at the bottom]
@@ -34741,16 +35205,37 @@ body { font-weight: 700; letter-spacing: 0; }
       const p = view && view.players && view.players[me];
       return p && p.hand ? (p.hand[slot] || null) : null;
     }
-    /** Placement position like the real game (tile grid / building footprint), via CR.Arena. */
+    /** Placement position like the real game (tile grid / building footprint), via CR.Arena.
+     *  v21 (Clash Royale): a drop on an invalid spot (enemy half, river, outside, on a tower /
+     *  building) lands on the nearest valid tile (CR.Arena.snapDeploy) - the ghost shows it there
+     *  and the play goes out there, never refused. Cached per card / raw half-tile / view. */
     const snapped = { x: 0, y: 0 };
+    const snapMemo = { id: null, kx: NaN, ky: NaN, v: null, x: 0, y: 0 };
+    function placeSim() {
+      try {
+        if (driver.sim && driver.sim.towers) return driver.sim;                       // local authority
+        if (typeof driver.pseudoSim === 'function' && view) return driver.pseudoSim(view);   // guest snapshot
+      } catch (e) { /* static layout */ }
+      return null;
+    }
     function snapFor(cardId, x, y) {
       snapped.x = x; snapped.y = y;
-      if (CR.Arena && typeof CR.Arena.snap === 'function') {
-        try {
-          const p = CR.Arena.snap(x, y, UI.catalog().byId[cardId] || cardId);
-          if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) { snapped.x = p.x; snapped.y = p.y; }
-        } catch (e) { /* keep raw position */ }
-      }
+      const A = CR.Arena;
+      if (!A || !Number.isFinite(x) || !Number.isFinite(y)) return snapped;
+      const card = UI.catalog().byId[cardId] || cardId;
+      const kx = Math.floor(x * 2), ky = Math.floor(y * 2);
+      const m = snapMemo;
+      if (m.id === cardId && m.kx === kx && m.ky === ky && m.v === view) { snapped.x = m.x; snapped.y = m.y; return snapped; }
+      try {
+        let p = null;
+        if (typeof A.snapDeploy === 'function') {
+          p = A.snapDeploy(side, x, y, card, placeSim());
+          if (p && !p.ok) p = null;
+        }
+        if (!p && typeof A.snap === 'function') p = A.snap(x, y, card);
+        if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) { snapped.x = p.x; snapped.y = p.y; }
+      } catch (e) { /* keep raw position */ }
+      m.id = cardId; m.kx = kx; m.ky = ky; m.v = view; m.x = snapped.x; m.y = snapped.y;
       return snapped;
     }
     function checkPlay(slot, x, y) {
@@ -34760,17 +35245,35 @@ body { font-weight: 700; letter-spacing: 0; }
       return r || { ok: false, reason: '' };
     }
 
-    /** v4: no words during the battle - a short icon signal (elixir drop / no-entry sign /
-     *  warning); the text only goes to screen readers. kind: 'elixir' | 'deny' | 'warn'. */
+    /** v4: no words during the battle. v21 (user: "das soll es niemals geben"): there is NO
+     *  stop / no-entry sign any more. 'is-elixir' -> the elixir bar pulses, 'is-deny' -> nothing
+     *  visible; both only update the hidden screen-reader status. 'is-warn' (real problems: bot
+     *  error, upgrade lost) keeps its short warning icon. */
     function showMessage(text, cls) {
       if (destroyed || !text) return;
-      if (msgEl) remove(msgEl);
       const kind = /is-elixir/.test(cls || '') ? 'elixir' : (/is-deny/.test(cls || '') ? 'deny' : 'warn');
-      msgEl = h('div', { class: 'battle-msg is-' + kind, role: 'status', 'aria-label': String(text) },
-        kind === 'elixir' ? [h('span', { class: 'bm-drop' }, h('i')), icon('noEntry', 'bm-x')] : icon(kind === 'deny' ? 'noEntry' : 'warn', 'bm-ico'));
+      if (kind !== 'warn') {
+        if (kind === 'elixir') flashElixir();
+        srStatus(text);
+        return;
+      }
+      if (msgEl) remove(msgEl);
+      msgEl = h('div', { class: 'battle-msg is-warn', role: 'status', 'aria-label': String(text) }, icon('warn', 'bm-ico'));
       arenaWrap.appendChild(msgEl);
       const el = msgEl;
       G.setTimeout(function () { if (msgEl === el) { remove(el); msgEl = null; } }, 1600);
+    }
+    /** v21: polite screen-reader status (visually hidden, never a sign in the arena). */
+    const srEl = h('div', { class: 'sr-status', role: 'status', 'aria-live': 'polite' }, '');
+    srEl.style.cssText = 'position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;pointer-events:none;';
+    let srLast = '', srT = 0;
+    function srStatus(text) {
+      if (destroyed || !text) return;
+      const t = String(text), n = now();
+      if (t === srLast && n - srT < 1500) return;   // no repeated announcements while dragging
+      srLast = t; srT = n;
+      if (!srEl.parentNode) arenaWrap.appendChild(srEl);
+      srEl.textContent = t;
     }
 
     // ---- intro: VS splash, then the "Kampf!" banner
@@ -34837,13 +35340,23 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     function flashElixir() { replayClass(elixirEl, 'flash'); }
 
+    /** v21: a play that could not go out. Never a stop sign: not enough elixir -> the cost drop
+     *  wiggles and the elixir bar pulses (Clash Royale); transient states (play of this slot still
+     *  in flight, hand changed, upgrade pick / touchdown pause, online wait, game over) -> the card
+     *  just comes back silently; anything else -> a short wiggle of the card. */
     function reject(slot, reason) {
-      shakeSlot(slot);
-      const elix = UI.isElixirReason(reason);
-      if (elix) { flashElixir(); shakeCost(slot); }
-      showMessage(UI.reasonText(reason), elix ? 'is-elixir' : 'is-deny');
-      Sound.play('deny');
-      vibrate([8, 40, 8]);
+      const s = slots[slot];
+      if (s && s.outT) { G.clearTimeout(s.outT); s.outT = 0; }
+      if (s) s.el.classList.remove('is-out');
+      if (UI.isElixirReason(reason)) {
+        flashElixir(); shakeCost(slot);
+        srStatus(UI.reasonText(reason));
+        vibrate(8);
+        return;
+      }
+      if (UI.isSilentReason(reason)) return;
+      if (s) replayClass(s.el, 'shake');
+      srStatus(UI.reasonText(reason));
     }
 
     function attemptPlay(slot, x, y, cardId) {
@@ -35260,20 +35773,68 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     // ---- per-frame HUD update
-    /** v7: champion button from view.players[me].champion = { unitId, card, ready, cost,
-     *  cooldownLeft, active } | null. */
+    /** v7/v21: champion buttons from view.players[me].champions (older views: .champion only),
+     *  each { unitId, card, ready, cost, cooldownLeft, active, ... }; one button per champion. */
     function updateChampion(cur) {
-      const ch = cur.players[me] && cur.players[me].champion;
-      const c = champ;
-      if (!ch || !ch.card) {
-        if (c.card) { c.card = null; c.unitId = null; c.cdMax = 0; c.sig = ''; champBtn.hidden = true; }
-        return;
+      const pl = cur.players[me];
+      const list = pl && Array.isArray(pl.champions) ? pl.champions : (pl && pl.champion ? [pl.champion] : EMPTY);
+      // release buttons of champions that are gone
+      for (let i = champBtns.length - 1; i >= 0; i--) {
+        const b = champBtns[i];
+        let alive = false;
+        for (let k = 0; k < list.length; k++) if (list[k] && list[k].unitId === b.unitId && list[k].card === b.card) { alive = true; break; }
+        if (alive) continue;
+        champBtns.splice(i, 1);
+        b.card = null; b.unitId = null; b.cdMax = 0; b.sig = ''; b.el.hidden = true;
+        b.el.classList.remove('appear', 'ping', 'shake', 'fire');
+        if (b.el.parentNode) b.el.parentNode.removeChild(b.el);
+        champPool.push(b);
       }
+      // buttons in view order (oldest first; new champions get a button)
+      let order = '';
+      for (let k = 0; k < list.length; k++) {
+        const ch = list[k];
+        if (!ch || !ch.card) continue;
+        let b = null;
+        for (let i = 0; i < champBtns.length; i++) if (champBtns[i].unitId === ch.unitId) { b = champBtns[i]; break; }
+        if (!b) {
+          b = champPool.pop() || makeChampBtn();
+          champBtns.push(b);
+          champCol.appendChild(b.el);
+        }
+        order += ch.unitId + ',';
+        updateChampBtn(b, ch);
+      }
+      if (champBtns.length > 1) champBtns.sort(function (x, y) { return order.indexOf(x.unitId + ',') - order.indexOf(y.unitId + ','); });
+      layoutChampBtns(order);
+    }
+    /** v21: stack the buttons bottom right (newest at the bottom); smaller / two columns when many. */
+    function layoutChampBtns(order) {
+      const n = champBtns.length;
+      const sig = n + '|' + order;
+      if (sig === champLayoutSig) return;
+      champLayoutSig = sig;
+      const cols = n <= 4 ? 1 : 2;
+      const rows = Math.ceil(n / cols);
+      const k = rows <= 2 ? 1 : (rows === 3 ? 0.8 : 0.66);
+      for (let i = 0; i < n; i++) {
+        const el = champBtns[i].el;
+        const j = n - 1 - i;                    // 0 = newest (bottom)
+        const row = Math.floor(j / cols), col = j % cols;
+        if (k < 1) el.style.setProperty('--s', 'calc(clamp(58px, 16.5vw, 76px) * ' + k + ')');
+        else el.style.removeProperty('--s');
+        el.style.bottom = 'calc(var(--s) * 0.22 + 6px + ' + row + ' * (var(--s) * 1.12 + 4px))';
+        el.style.right = col ? 'calc(var(--safe-r, 0px) + 14px + var(--s) * 1.08)' : '';
+      }
+    }
+    function updateChampBtn(c, ch) {
+      const champBtn = c.el, champArt = c.art;
       if (c.card !== ch.card || c.unitId !== ch.unitId) {
         const first = !c.card;
         c.card = ch.card;
         c.unitId = ch.unitId;
         c.cdMax = 0;
+        c.sig = '';
         const inf = UI.cardInfo(ch.card);
         champBtn.style.setProperty('--cc', inf.color);
         champArt.style.setProperty('--cc', inf.color);
@@ -35307,9 +35868,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const st0 = c.sig ? c.sig.split('|')[1] : '';   // ready, poor, active, deploying, noTarget flags
       const wasReady = st0.charAt(0) === '1' && st0.charAt(1) === '0' && st0.charAt(4) !== '1';
       c.sig = sig;
-      champCost.textContent = String(cost);
-      champRing.style.setProperty('--cd', k + '%');
-      champSecs.textContent = secs > 0 ? String(secs) : '';
+      c.costB.textContent = String(cost);
+      c.ring.style.setProperty('--cd', k + '%');
+      c.secs.textContent = secs > 0 ? String(secs) : '';
       champBtn.classList.toggle('is-ready', ready && !poor && !c.noTarget);
       champBtn.classList.toggle('is-notarget', ready && !poor && c.noTarget);
       champBtn.classList.toggle('is-poor', ready && poor);
@@ -35658,14 +36219,17 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!id) return null;
       const p = snapFor(id, src.x, src.y);
       const chk = checkPlay(slot, p.x, p.y);
-      if (src === drag) drag.valid = !!chk.ok;
+      // v21: the ghost turns red only for a spot that really cannot take the card (snapDeploy
+      // found no free tile) - never for elixir / transient states (no red, no stop sign)
+      const placeOk = chk.ok || !UI.isPlaceReason(chk.reason);
+      if (src === drag) drag.valid = placeOk;
       dragOut.cardId = id;
       dragOut.card = id;
       dragOut.hand = slot;
       dragOut.slot = slot;
       dragOut.x = p.x;
       dragOut.y = p.y;
-      dragOut.valid = !!chk.ok;
+      dragOut.valid = placeOk;
       dragOut.reason = chk.ok ? '' : String(chk.reason || '');
       return dragOut;
     }
@@ -35789,9 +36353,10 @@ body { font-weight: 700; letter-spacing: 0; }
                   shakeSlot(ev.hand);
                   if (typeof driver.onReject === 'function') driver.onReject(ev.hand);
                 }
-                if (ev.ability && champ.unitId != null && ev.unitId === champ.unitId) replay(champBtn, 'shake');   // v20: ability refused
-                showMessage(UI.reasonText(ev.reason), UI.isElixirReason(ev.reason) ? 'is-elixir' : 'is-deny');
-                Sound.play('deny');
+                if (ev.ability) for (let k = 0; k < champBtns.length; k++) if (ev.unitId == null || ev.unitId === champBtns[k].unitId) replay(champBtns[k].el, 'shake');   // v20: ability refused
+                // v21: never a stop sign - elixir: the bar pulses, everything else stays silent
+                if (UI.isElixirReason(ev.reason)) flashElixir();
+                srStatus(UI.reasonText(ev.reason));
               }
               break;
             case 'tower_down':
@@ -35914,6 +36479,8 @@ body { font-weight: 700; letter-spacing: 0; }
  * older host's battle still plays. New map 'flat' (Flach, open field without river): probe f.flat
  * (a sim on 'flat' must report it and have no river), ctl.canFlat for the host lobby; a crashing
  * match on it greys the map for the session.
+ * v21: map 'fortress' (Festung, docs/V21-FORTRESS.md: the flat field with one long tower per side):
+ * PICK_MAPS, probe f.fortress (2 view towers, both fortress), ctl.canFortress, greyed after a crash.
  *
  * v14 perf: the host's LocalDriver renders the view hs.tick(sim) returns on snapshot ticks (the
  * same state, already built for the guests) instead of a second sim.view().
@@ -36191,7 +36758,7 @@ body { font-weight: 700; letter-spacing: 0; }
   };
   /** v12: selectable map id 'classic' | 'hill' | 'tunnel' | (v18) 'flat' (anything else, also the
    *  retired v14 'rails': 'classic'). Used for the host's own choices. */
-  const PICK_MAPS = ['hill', 'tunnel', 'flat'];
+  const PICK_MAPS = ['hill', 'tunnel', 'flat', 'fortress'];   // v21: + 'fortress' (Festung)
   function pickMap(m) { return PICK_MAPS.indexOf(m) >= 0 ? m : 'classic'; }
   App.pickMap = pickMap;
   /** Decode of a received / running map: the selectable ones plus the retired 'rails' (an older
@@ -37237,6 +37804,7 @@ body { font-weight: 700; letter-spacing: 0; }
     // v12: a crashing match on the tunnel map greys that map for this session
     if (this.cfg.map === 'tunnel' && typeof app.disableFeature === 'function') app.disableFeature('tunnel', 'Die Tunnel-Karte ist nach einem Fehler für diese Sitzung deaktiviert.');
     if (this.cfg.map === 'flat' && typeof app.disableFeature === 'function') app.disableFeature('flat', 'Die Karte „Flach“ ist nach einem Fehler für diese Sitzung deaktiviert.');
+    if (this.cfg.map === 'fortress' && typeof app.disableFeature === 'function') app.disableFeature('fortress', 'Die Karte „Festung“ ist nach einem Fehler für diese Sitzung deaktiviert.');
     app.dialog({
       title: 'Spielfehler',
       text: 'Der Kampf musste abgebrochen werden.' + (chaos ? ' C.H.A.O.S ist vorerst deaktiviert.' : '') + '\n(' + msg + ')',
@@ -37480,7 +38048,7 @@ body { font-weight: 700; letter-spacing: 0; }
     // ---------------------------------------------------------------- features
 
     function detectFeatures() {
-      const f = { data: false, play: false, ai: false, net: false, match: false, chaos: false, gfx3d: false, hill: false, tunnel: false, flat: false, team2: false, touchdown: false, draft: false, audio: !!UI.audio(), notes: {} };
+      const f = { data: false, play: false, ai: false, net: false, match: false, chaos: false, gfx3d: false, hill: false, tunnel: false, flat: false, fortress: false, team2: false, touchdown: false, draft: false, audio: !!UI.audio(), notes: {} };
       const cat = UI.catalog();
       f.data = cat.enabled.length >= 8;
       if (!f.data) f.notes.data = 'Kartendaten fehlen oder sind unvollständig – Spielen ist nicht möglich.';
@@ -37593,6 +38161,17 @@ body { font-weight: 700; letter-spacing: 0; }
         } catch (e) {
           logError('flat probe', e);
           f.notes.flat = 'Die Karte „Flach“ meldet einen Fehler und ist deaktiviert.';
+        }
+        // v21: the fortress map (flat field, one long tower per side)
+        try {
+          const s = new CR.Sim({ seed: 27, mode: 'classic', map: 'fortress', decks: [deck, deck], names: ['A', 'B'] });
+          for (let i = 0; i < 3; i++) s.tick();
+          const v = s.view();
+          f.fortress = (v.map === 'fortress' || CR.Arena.map === 'fortress') && v.towers.length === 2 && v.towers.every(function (t) { return t.fortress === true; });
+          if (!f.fortress) f.notes.fortress = 'Die Karte „Festung“ ist in dieser Version noch nicht verfügbar.';
+        } catch (e) {
+          logError('fortress probe', e);
+          f.notes.fortress = 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.';
         }
         App.applyMap('classic');
       } else {
@@ -38086,6 +38665,7 @@ body { font-weight: 700; letter-spacing: 0; }
           logError('vsAI start', e);
           if (map === 'tunnel') disableFeature('tunnel', 'Die Tunnel-Karte meldet einen Fehler und ist deaktiviert.');
           else if (map === 'flat') disableFeature('flat', 'Die Karte „Flach“ meldet einen Fehler und ist deaktiviert.');
+          else if (map === 'fortress') disableFeature('fortress', 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.');
           else if (mode === 'touchdown') disableFeature('touchdown', 'Touchdown meldet einen Fehler und ist deaktiviert.');
           else if (two) disableFeature('team2', '2 gegen 2 meldet einen Fehler und ist deaktiviert.');
           else if (mode === 'chaos') disableFeature('chaos', 'Der C.H.A.O.S-Modus meldet einen Fehler – es wird nach den Grundregeln gespielt.');
@@ -38156,6 +38736,7 @@ body { font-weight: 700; letter-spacing: 0; }
         canHill: !!app.features.hill,
         canTunnel: !!app.features.tunnel,
         canFlat: !!app.features.flat,
+        canFortress: !!app.features.fortress,
         canBots: !!app.features.ai,
         gameMode: gameMode,
         tdChaos: tdChaos,
@@ -38545,6 +39126,7 @@ body { font-weight: 700; letter-spacing: 0; }
         logError('host sim', e);
         if (map === 'tunnel') disableFeature('tunnel', 'Die Tunnel-Karte meldet einen Fehler und ist deaktiviert.');
         else if (map === 'flat') disableFeature('flat', 'Die Karte „Flach“ meldet einen Fehler und ist deaktiviert.');
+        else if (map === 'fortress') disableFeature('fortress', 'Die Karte „Festung“ meldet einen Fehler und ist deaktiviert.');
         else if (mode === 'touchdown') disableFeature('touchdown', 'Touchdown meldet einen Fehler und ist deaktiviert.');
         else if (mode === 'chaos') disableFeature('chaos', 'Der C.H.A.O.S-Modus meldet einen Fehler – es wird nach den Grundregeln gespielt.');
         app.dialog({ title: 'Start nicht möglich', text: errMsg(e), buttons: [{ label: 'OK', value: true }] });
@@ -42409,10 +42991,9 @@ body { font-weight: 700; letter-spacing: 0; }
  *    round, that round is forced to be a building round. (Only a pool with fewer than two
  *    buildings can break the guarantee.)
  *  - Champions (v20: 10 champion cards): a deck may hold up to CR.RULES.cards.maxChampionsPerDeck
- *    of them (user decision: no limit = 8; only one champion per player can be on the field, v7).
- *    An offer never holds two champions, and no champion is offered once a player of the pair
- *    reached the limit. Bots value a second / third champion less (they cannot be on the field
- *    together).
+ *    of them (user decision: no limit = 8 = the whole deck; v21: any number of champions on the
+ *    field too). An offer may hold two champions; only when the limit is lowered (old Clash Royale
+ *    rule) no champion is offered once a player of the pair reached it.
  *  - 1v1: one pair (player 0 vs player 1). 2v2: each player drafts against the opponent
  *    opposite them = the k-th player of team Blau against the k-th player of team Rot (player
  *    order of the players array). All pairs run at the same time and independently.
@@ -42625,8 +43206,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (m.buildingsOnly || m.hp >= 2500 || (m.speed >= 1.4 && m.hp >= 1000)) s += winCons === 0 ? 0.7 : (winCons >= 2 ? -0.4 : 0.1);
     if (m.splash && m.type !== 'spell') s += splash === 0 ? 0.35 : 0;
     if (m.elixir <= 2) s += cheap === 0 ? 0.25 : (cheap >= 3 ? -0.3 : 0);
-    if (m.champion && champs >= maxChamps()) s -= 5;                   // deck limit reached
-    else if (m.champion && champs > 0) s -= 0.4 * champs;              // only one can be on the field
+    if (m.champion && champs >= maxChamps()) s -= 5;                   // deck limit reached (only when lowered)
     // elixir curve: aim at an average of about 3.6
     const avg = (elixir + m.elixir) / (d.length + 1);
     if (avg > 4.3) s -= (avg - 4.3) * 1.2;
@@ -42704,7 +43284,7 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     const a = cand[Math.floor(this.rand() * cand.length) % cand.length];
     const ma = meta(a);
-    const rest = cand.filter(function (id) { return id !== a && !(ma.champion && meta(id).champion); });
+    const rest = cand.filter(function (id) { return id !== a; });   // v21: two champions may meet in one offer
     let near = rest.filter(function (id) { return Math.abs(meta(id).elixir - ma.elixir) <= 1; });
     if (!near.length) {
       let best = Infinity;
@@ -59286,6 +59866,12 @@ body { font-weight: 700; letter-spacing: 0; }
  * Geometry (PT / KT, footprints, mounts), pivots, towerCustom and rubble unchanged; phone tris
  * princess 17.0k, king 19.4k. Crews: renderer CREW_H 2.1 / 1.84 (src/26).
  *
+ * v21 'fortress-tower' (map 'fortress' / "Festung", docs/V21-FORTRESS.md): one long wall-fortress per
+ * side, footprint 8 x 2.5 (FT): two small v20 keeps on the gun points (x +-2.75, crew platforms at
+ * FT.floor, ladders on the back) joined by a lower ashlar curtain wall with a plank wall walk, pale
+ * merlons, an arched gate and two small team banners per face; crown tower pivots / towerCustom.
+ * The renderer places the two 'tower-archer' crews and draws a procedural long rubble heap.
+ *
  * Model ids
  *   crown towers : princess-tower, king-tower, princess-tower-rubble, king-tower-rubble
  *                  Model -Z = front (enemy side), +Z = back (own back line; the own camera sees
@@ -60675,6 +61261,116 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('fireA', kit.merge([flame(kit, 0.36, { seg: 7 }).at(0.6, F + 0.02, 0.4), flame(kit, 0.24, { seg: 6 }).at(0.84, F + 0.02, 0.2), flame(kit, 0.26, { seg: 6 }).at(-0.7, F + 0.02, -0.5)]));
       rig.pivot('smokeA', 'body', [0.65, F + 0.6, 0.4]);
       rig.add('smokeA', towerSmoke(kit, F + 0.6).at(0.65, 0, 0.4));
+      return rig;
+    },
+  });
+
+  // v21 FORTRESS TOWER (map 'fortress' / "Festung", docs/V21-FORTRESS.md; user: "ein Tower anstelle
+  // 3 ... doppelt so lang wie der Main Tower, schmaler"): ONE long low wall-fortress per side in the
+  // v20 crown tower style, footprint 8 wide (x) x 2.5 deep (z). Two small square keeps (stone blocks,
+  // timber ring beam, flagstone walkway + raised wooden crew platform, pale L corner merlons, wooden
+  // railing, ladder on the back face) stand at the gun points x = +-FT.gx; a lower curtain wall of
+  // proud ashlar joins them (plank wall walk, pale merlons, a dark arched gate with pale voussoirs,
+  // two small team banners front / back). Team colour only on banners / pennants. Crews (two
+  // 'tower-archer') are placed by the renderer on the keep platforms (mount FT.floor). Same pivot /
+  // anim contract as the crown towers (towerCustom): body, banF, banB, flagA, flagB, coreF, coreB,
+  // crack1, crack2, fireA, smokeA. Model -Z = front (towards the enemy).
+  const FT = { a: 1.0, gx: 2.75, floor: 1.72, dz: 0.82, wall: 1.12 };
+  /** One fortress keep (apothem a, deck F) at the origin -> one merged part. */
+  function fortKeep(kit, a, F, seed) {
+    const yB = 0.15, yC = 1.3, yP = 1.42, parts = [];
+    parts.push(band(kit, a + 0.12, a + 0.1, 0, yB, TW.plinthDark, 0.1));
+    parts.push(band(kit, a + 0.07, a + 0.06, yB - 0.02, yB + 0.1, TW.stoneDark, 0.08));
+    blockKeep(kit, a, yB + 0.08, yC, 4, 0.2, seed, { bw: 0.5, quoins: [TW.stoneC, 0x8e9bb0] }).forEach(q => parts.push(q));
+    woodBand(kit, a, yC - 0.03, yP).forEach(q => parts.push(q));
+    parts.push(band(kit, a + 0.05, a + 0.05, yP - 0.01, yP + 0.05, TW.stoneDark, 0.05));
+    parts.push(polyLathe(kit, [[a + 0.05, yP + 0.04], [a + 0.05, F + 0.04], [a - 0.2, F + 0.04]], { color: TW.lip, mat: 'stone', rough: 0.8, rc: 0.08, open: true, crease: 50 }));
+    parts.push(parapetJoints(kit, a + 0.05, yP + 0.04, F + 0.04, [-0.5, 0.05, 0.52]));
+    plankDeck(kit, a - 0.18, F, 0).forEach(q => parts.push(q));
+    crenels(kit, a + 0.06, F + 0.02, 0.5, 0.32, 0.3, 0, { col: TW.merlon }).forEach(q => parts.push(q));
+    const rc = a + 0.06 - 0.17, rx = a + 0.06 - 0.5 + 0.03;
+    parts.push(railing(kit, rc, F + 0.03, -rx, rx, 0.16), railing(kit, rc, F + 0.03, -rx, rx, 0.16, [-0.25, 0.25]).rot(0, Math.PI, 0));
+    parts.push(ladder(kit, a + PR, 0.4, F + 0.1, 0.4, 5));
+    return kit.merge(parts);
+  }
+  defineModel('fortress-tower', {
+    height: 2.1, mount: FT.floor, footprint: 8, ao: 0.16, prop: 'tower', look: LOOK_TW,
+    anim: {
+      body: 'building', attack: 'none', weight: 1,
+      custom(rig, st, t, dt, a) { towerCustom(rig, st, t, dt, a, false); },
+    },
+    portrait: { yaw: -0.5, pitch: 0.42, zoom: 0.62 },
+    build(kit) {
+      const rig = kit.rig();
+      const a = FT.a, F = FT.floor, GX = FT.gx, dz = FT.dz, yW = FT.wall;
+      rig.pivot('body', 'root', [0, 0, 0]);
+      const parts = [];
+      // the two keeps on the gun points
+      const keep = fortKeep(kit, a, F, 13);
+      parts.push(keep.clone().at(-GX, 0, 0), keep.at(GX, 0, 0));
+      // curtain wall between the keeps (inner keep faces at x = +-(GX - a))
+      const L = GX - a + 0.02;
+      parts.push(kit.box(2 * L + 0.1, 0.17, 2 * dz + 0.26, { bevel: 0.05, seg: 1, color: TW.plinthDark, mat: 'stone', rough: 0.9 }).at(0, 0.085, 0));
+      parts.push(kit.box(2 * L, yW - 0.12, 2 * dz - 0.04, { bevel: 0.03, seg: 1, color: TW.stoneB, mat: 'stone', rough: 0.9 }).at(0, 0.12 + (yW - 0.12) / 2, 0));
+      const face = kit.merge([
+        kit.box(2 * L, yW - 0.2, 0.01, { bevel: 0, micro: false, color: TW.joint }).at(0, 0.16 + (yW - 0.2) / 2, -L - 0.006),
+        blockFace(kit, L, 0.17, yW - 0.04, 3, 0, 21, { bw: 0.55 }),
+      ]).at(0, 0, L - dz).bake();
+      parts.push(face, face.clone().rot(0, Math.PI, 0));
+      // timber beam under the wall walk + the plank walk
+      parts.push(kit.box(2 * L + 0.04, 0.12, 2 * dz + 0.12, { bevel: 0.03, seg: 1, color: TW.beam, mat: 'wood', rough: 0.82 }).at(0, yW - 0.02, 0));
+      const np = Math.max(6, Math.round(2 * L / 0.26)), pw = 2 * L / np;
+      for (let i = 0; i < np; i++) parts.push(kit.box(pw - 0.02, 0.045, 2 * dz - 0.24, { bevel: 0, micro: false, color: i % 2 ? TW.plank : TW.plankB, mat: 'wood', rough: 0.8 }).at(-L + pw * (i + 0.5), yW + 0.06, 0));
+      // pale merlons along the front / back edges of the wall walk
+      const nm = Math.max(3, Math.round(2 * L / 0.7));
+      for (let k = 0; k < nm; k++) {
+        const x = -L + 2 * L * (k + 0.5) / nm;
+        parts.push(merlon(kit, 0.34, 0.26, 0.2, x, yW + 0.04, -dz + 0.04, TW.merlon), merlon(kit, 0.34, 0.26, 0.2, x, yW + 0.04, dz - 0.04, TW.merlon));
+      }
+      // dark arched gate with pale voussoirs in the middle of the front face
+      parts.push(kit.extrude(roundArch(0.78, 0.86, 6), 0.06, { color: TW.quoin, mat: 'stone', bevel: 0.01, smooth: false }).at(0, 0.15, -dz - PR - 0.02));
+      parts.push(kit.extrude(roundArch(0.6, 0.76, 6), 0.03, { color: TW.dark, bevel: 0, smooth: false }).at(0, 0.15, -dz - PR - 0.05));
+      // lantern brackets beside the gate (front) and on the back
+      const lx = 0.62, ly = 0.78;
+      const lb = kit.merge(lantern17(kit, -lx, ly, -dz - 0.02).concat(lantern17(kit, lx, ly, -dz - 0.02)));
+      parts.push(lb, lb.clone().rot(0, Math.PI, 0));
+      // pennant poles on the outer back corner merlons of the keeps
+      const fx = GX + a - 0.1, fz = a - 0.1, FY = F + 0.32 + 0.36;
+      for (const sx of [-1, 1]) {
+        parts.push(kit.rcyl(0.016, 0.02, 0.4, { seg: 8, color: TW.woodDark, mat: 'wood', bevel: 0.006 }).at(sx * fx, F + 0.32 + 0.18, fz));
+        parts.push(kit.sphere(0.03, { seg: 8, color: TW.gold, mat: 'gold' }).at(sx * fx, FY + 0.03, fz));
+      }
+      rig.add('body', parts);
+      // two small team banners per face on the curtain wall (front banF / back banB)
+      const bx = 1.05;
+      rig.pivot('banF', 'body', [0, yW - 0.05, -dz - PR - 0.08]);
+      rig.pivot('banB', 'body', [0, yW - 0.05, dz + PR + 0.08]);
+      const bn = banner17(kit, dz, yW - 0.06, 0.4, 0.5);
+      const pair = kit.merge([bn.clone().at(-bx, 0, 0).bake(), bn.clone().at(bx, 0, 0).bake()]);
+      rig.add('banF', pair);
+      rig.add('banB', pair.clone().rot(0, Math.PI, 0));
+      rig.pivot('flagA', 'body', [-fx, FY, fz]);
+      rig.pivot('flagB', 'body', [fx, FY, fz]);
+      const fl = pennant17(kit, 0.36, 0.2);
+      rig.add('flagA', fl.clone().rot(0, Math.PI, 0).at(-fx, FY, fz));
+      rig.add('flagB', fl.clone().at(fx, FY, fz));
+      // lantern glass (front / back)
+      rig.pivot('coreF', 'body', [0, ly, -dz - PR - 0.15]);
+      rig.pivot('coreB', 'body', [0, ly, dz + PR + 0.15]);
+      const gl = kit.merge([lanternGlass17(kit, -lx, ly, -dz - 0.02), lanternGlass17(kit, lx, ly, -dz - 0.02)]);
+      rig.add('coreF', gl);
+      rig.add('coreB', gl.clone().rot(0, Math.PI, 0));
+      // damage states on both keeps
+      rig.pivot('crack1', 'body', [0, 0, 0]);
+      rig.pivot('crack2', 'body', [0, 0, 0]);
+      const PC = { hw: a + 0.1, plinth: a + 0.12, floor: F };
+      const c1 = towerCracks(kit, PC, false, 25, 0.45, 1.2), c2 = towerCracks(kit, PC, true, 29, 0.45, 1.2);
+      rig.add('crack1', kit.merge([c1.clone().at(-GX, 0, 0).bake(), c1.clone().at(GX, 0, 0).bake()]));
+      rig.add('crack2', kit.merge([c2.clone().at(-GX, 0, 0).bake(), c2.clone().at(GX, 0, 0).bake()]));
+      rig.pivot('fireA', 'body', [GX + 0.3, F + 0.02, 0.2]);
+      rig.add('fireA', kit.merge([flame(kit, 0.3, { seg: 7 }).at(GX + 0.3, F + 0.02, 0.2), flame(kit, 0.22, { seg: 6 }).at(-GX - 0.25, F + 0.02, -0.1), flame(kit, 0.2, { seg: 6 }).at(0.4, yW + 0.08, 0.1)]));
+      rig.pivot('smokeA', 'body', [GX + 0.35, F + 0.5, 0.2]);
+      rig.add('smokeA', towerSmoke(kit, F + 0.5).at(GX + 0.35, 0, 0.2));
       return rig;
     },
   });
@@ -67576,6 +68272,11 @@ body { font-weight: 700; letter-spacing: 0; }
  * sunken river with an animated water shader (flow ripples + bank foam), two wooden bridges,
  * baked into one static mesh. Hemisphere + directional light, toon materials, instanced blob
  * shadows, no shadow maps.
+ * v21 map 'fortress' (Festung, docs/V21-FORTRESS.md): drawn as the open flat field (flatField); its
+ *  layout (CR.Arena.towerLayout(map)) has ONE long tower per side (kind 'king' + fortress): body
+ *  CR.GFX 'fortress-tower' fitted to 8 x 2.5, two 'tower-archer' crews on the gun platforms aiming at
+ *  view.towers[k].gunT[i] (wind-up gunAp[i]), long rubble (_rubbleGeoF), wider HP bar, elongated
+ *  shadow; _syncTowerSet rebuilds the tower visuals when a map switch changes the tower set.
  * Entities: towers = CR.GFX 'princess-tower'/'king-tower' + crews 'tower-archer'/'king' when
  * registered (else built here), rubble + debris on destruction. Troops/buildings =
  * CR.GFX.createInstance(unitId, colourSide) per entity id, updated every frame with an
@@ -67891,7 +68592,9 @@ body { font-weight: 700; letter-spacing: 0; }
    *  rails map stays buildable (setMap('rails'), old replays / tests) but no menu offers it. */
   const RAIL_IDS = { rails: 1, rail: 1, schienen: 1, minecart: 1, train: 1, lore: 1 };
   const FLAT_IDS = { flat: 1, flach: 1, open: 1, plain: 1 };
-  function normMap(id) { return id === 'hill' || id === 'tunnel' ? id : (FLAT_IDS[id] ? 'flat' : (RAIL_IDS[id] ? 'rails' : 'classic')); }
+  function normMap(id) { return id === 'hill' || id === 'tunnel' || id === 'fortress' ? id : (FLAT_IDS[id] ? 'flat' : (RAIL_IDS[id] ? 'rails' : 'classic')); }
+  /** v21: maps drawn as the open flat field (no river, open middle band): 'flat' and 'fortress'. */
+  function flatField(mid) { return mid === 'flat' || mid === 'fortress'; }
 
   // ---------------------------------------------------------------------------
   // v14 map 'Schienen' (rails, docs/V14-RAILS.md): a railway along the left and the right side line
@@ -70318,7 +71021,8 @@ body { font-weight: 700; letter-spacing: 0; }
       this._tdSum = -1; this._tdMs = -1e9; this._tdEvMs = -1e9; this._tdZone = -1; this._tdReset = 0;
       this._mapState(this.options.map || (CR.Arena && CR.Arena.map) || 'classic', isTouchdown(this.options.mode));
       let lay = null;
-      if (CR.Arena && typeof CR.Arena.towerLayout === 'function') { try { lay = CR.Arena.towerLayout(); } catch (e) { lay = null; } }
+      // v21: the layout of the renderer's own map (one long tower per side on 'fortress')
+      if (CR.Arena && typeof CR.Arena.towerLayout === 'function') { try { lay = CR.Arena.towerLayout(this.map); } catch (e) { lay = null; } }
       if (!lay || !lay.length) {
         lay = [
           { id: 1, side: 0, kind: 'king', lane: -1, x: 9, y: 3, size: 4 }, { id: 2, side: 0, kind: 'princess', lane: 0, x: 3.5, y: 6.5, size: 3 },
@@ -70468,6 +71172,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this.rails = railsFor(mid);                   // v14: map 'Schienen' (river + side railways)
       if (!this.rails) this._railSigSpots = null;
       this.riverOn = !this.hillOn && !this.td && !this.tunnelOn && this.map !== 'flat';   // v18: the flat map has no river
+      if (flatField(this.map)) this.riverOn = false;   // v21: nor the fortress map (the flat field)
       let br = null;
       if (A && A.BRIDGES && A.BRIDGES.length) br = A.BRIDGES;
       else if (RU && RU.bridges && RU.bridges.length) br = RU.bridges;
@@ -70490,6 +71195,12 @@ body { font-weight: 700; letter-spacing: 0; }
       this._disposeArena();
       this._clearCarts();
       this._mapState(mid, t);
+      // v21: the new map may have another tower set (fortress: one long tower per side)
+      if (CR.Arena && typeof CR.Arena.towerLayout === 'function') {
+        let lay = null;
+        try { lay = CR.Arena.towerLayout(mid); } catch (e) { lay = null; }
+        if (lay && lay.length) { const nw = this._syncTowerSet(lay); this.layout = lay; this._laySig = this._layoutSig(lay); if (nw) this._dressAllTowers(); }
+      }
       this._buildArena();
       this._applyMode();
       if (this.fx && typeof this.fx.setTerrain === 'function') this.fx.setTerrain(this.hillOn ? this._ghFn : null, this._hillU);
@@ -70548,6 +71259,31 @@ body { font-weight: 700; letter-spacing: 0; }
     _gh(wx, wz) { return this.hillOn ? profileAt(this._hill, this._hz0, wz) : 0; }
     _ghs(x, y) { return this.hillOn ? profileAt(this._hill, this._hz0, this.hh - y) : 0; }
 
+    /** v21: when the tower SET of the layout (ids / kinds / fortress flags) differs from the built
+     *  one (map switch classic <-> fortress), drop the old tower visuals and build the new set
+     *  (dressed by the caller: _applyMode / _refreshLayout). -> true when rebuilt. */
+    _syncTowerSet(lay) {
+      if (!this._towerList || !this._towers) return false;
+      let same = lay.length === this._towerList.length;
+      for (let i = 0; same && i < lay.length; i++) {
+        const tm = this._towers.get(lay[i].id);
+        if (!tm || tm.kind !== lay[i].kind || !!tm.fortress !== !!lay[i].fortress) same = false;
+      }
+      if (same) return false;
+      for (let i = 0; i < this._towerList.length; i++) {
+        const tm = this._towerList[i];
+        this._undressTower(tm);
+        if (tm.rubble) { tm.group.remove(tm.rubble); tm.rubble = null; }
+        if (tm.group.parent) tm.group.parent.remove(tm.group);
+      }
+      this._towers.clear();
+      this._towerList.length = 0;
+      this.layout = lay;
+      this._laySig = this._layoutSig(lay);
+      this._buildTowers();
+      return true;
+    }
+
     _layoutSig(lay) {
       let s = '';
       for (let i = 0; i < lay.length; i++) s += lay[i].id + ':' + lay[i].x + ',' + lay[i].y + ',' + (lay[i].size || 0) + ',' + (lay[i].depth || 0) + ';';
@@ -70559,11 +71295,12 @@ body { font-weight: 700; letter-spacing: 0; }
     _refreshLayout() {
       if (!(CR.Arena && typeof CR.Arena.towerLayout === 'function')) return false;
       let lay = null;
-      try { lay = CR.Arena.towerLayout(); } catch (e) { lay = null; }
+      try { lay = CR.Arena.towerLayout(this.map); } catch (e) { lay = null; }
       if (!lay || !lay.length) return false;
       const sig = this._layoutSig(lay);
       if (sig === this._laySig) return false;
       this._laySig = sig;
+      this._syncTowerSet(lay);
       this.layout = lay;
       for (let i = 0; i < lay.length; i++) {
         const L = lay[i], tm = this._towers.get(L.id);
@@ -70581,7 +71318,7 @@ body { font-weight: 700; letter-spacing: 0; }
           if (own) { this._fieldCanvas = own; this._fieldTex.image = own; }
           this._fieldShared = false;
         }
-        paintField(this.W, this.H, this.layout, this.riverOn ? this.bridges : this._laneBridges, this.riverOn ? this._riverVis() : null, this._fieldCanvas, this.ridge, this.td ? this.zones : null, 0, this.tunnel, this._paintExtras(), this._grim, this.map === 'flat' && !this.td);
+        paintField(this.W, this.H, this.layout, this.riverOn ? this.bridges : this._laneBridges, this.riverOn ? this._riverVis() : null, this._fieldCanvas, this.ridge, this.td ? this.zones : null, 0, this.tunnel, this._paintExtras(), this._grim, (this.map === 'fortress' && !this.td) || this.map === 'flat' && !this.td);
         this._fieldTex.needsUpdate = true;
       }
       this._fitCamera();
@@ -70912,7 +71649,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this._arenaGeos = [];
       this._arenaTex = [];
       const aniso = this._maxAniso || 1;
-      const fcv = this._paintFieldCached([W, H, this.layout, this._laneBridges, null, null, this.ridge, this.td ? this.zones : null, this._fieldPx, this.tunnel, this._paintExtras(), this._grim, this.map === 'flat' && !this.td]);
+      const fcv = this._paintFieldCached([W, H, this.layout, this._laneBridges, null, null, this.ridge, this.td ? this.zones : null, this._fieldPx, this.tunnel, this._paintExtras(), this._grim, flatField(this.map) && !this.td]);
       const ftex = fcv ? new T.CanvasTexture(fcv) : null;
       this._fieldCanvas = fcv; this._fieldTex = ftex;
       if (ftex) {
@@ -72844,7 +73581,7 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < this.layout.length; i++) {
         const L = this.layout[i];
         const tm = {
-          id: L.id, side: L.side, kind: L.kind, king: L.kind === 'king', x: L.x, y: L.y, size: L.size || (L.kind === 'king' ? 4 : 3), depth: L.depth || L.size || 0, depthK: 1, hitSize: L.hitSize || L.size || (L.kind === 'king' ? 4 : 3),
+          id: L.id, side: L.side, kind: L.kind, king: L.kind === 'king', fortress: !!L.fortress, guns: L.fortress && L.guns ? L.guns.slice(0, 2) : null, x: L.x, y: L.y, size: L.size || (L.kind === 'king' ? 4 : 3), depth: L.depth || L.size || 0, depthK: 1, hitSize: L.hitSize || L.size || (L.kind === 'king' ? 4 : 3),
           group: new T.Group(), body: null, crew: null, bodyInst: null, crewInst: null, rubble: null, alive: true,
           topY: 0, crewY: 0, cside: -1, e: { x: 0, y: 0, z: 0, h: 3, r: 1.5, air: false, building: true, tower: true, unit: L.kind === 'king' ? 'king-tower' : 'princess-tower', side: L.side, id: L.id },
           st: { state: 'idle', moving: false, dir: L.side === 0 ? Math.PI / 2 : -Math.PI / 2, attackProg: 0, hit: false, fx: 0, hpFrac: 1, tier: 0, z: 0, deployLeft: 0, deployTotal: 0, speed: 0, hurt: false, asleep: false, side: L.side, unit: '' },
@@ -72856,6 +73593,12 @@ body { font-weight: 700; letter-spacing: 0; }
         };
         tm.e.x = L.x - this.hw; tm.e.z = this.hh - L.y;
         tm.group.position.set(tm.e.x, 0, tm.e.z);
+        if (tm.fortress) {
+          // v21 fortress: second crew + per-gun aim / crew state (gun 0 uses crewInst / cst / dirS)
+          tm.crew2Inst = null; tm.crew2Meshes = null; tm.crew2 = null; tm.dirS2 = tm.dirS; tm.posed2 = false;
+          tm.cst2 = Object.assign({}, tm.cst);
+          tm.e.unit = 'princess-tower';   // (VFX entity: archer crews)
+        }
         this.scene.add(tm.group);
         this._towers.set(L.id, tm);
         this._towerList.push(tm);
@@ -72932,6 +73675,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (tm.cside === cs && (tm.body || tm.bodyInst)) return;
       this._undressTower(tm);
       tm.cside = cs;
+      if (tm.fortress) { this._dressFortress(tm, cs); return; }
       const X = gfx();
       const bodyId = tm.king ? 'king-tower' : 'princess-tower';
       const crewId = tm.king ? 'king' : 'tower-archer';
@@ -73009,6 +73753,87 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!tm.alive) this._setTowerDown(tm, true);
     }
 
+    /** v21 fortress tower: the long 'fortress-tower' body fitted to its footprint (size x depth) and
+     *  two 'tower-archer' crews standing on the gun platforms (local offsets from tm.guns). */
+    _dressFortress(tm, cs) {
+      const T = this.T, X = gfx();
+      const yaw = (CR.GFX && typeof CR.GFX.dirToYaw === 'function') ? CR.GFX.dirToYaw(tm.side === 0 ? Math.PI / 2 : -Math.PI / 2) : (tm.side === 0 ? 0 : Math.PI);
+      tm.yaw = yaw;
+      const W = tm.size || 8, D = tm.depth || 2.5;
+      tm.rubbleSz = 1;
+      tm.depthK = 1;
+      const bodyId = 'fortress-tower', crewId = 'tower-archer';
+      if (X && gfxHas(bodyId)) {
+        try {
+          const info = gfxModelInfo(bodyId);
+          const fp = info ? (+info.footprint || (info.src && +info.src.footprint) || 0) : 0;
+          tm.ts = fp > 0 ? W / fp : 1;
+          tm.bodyInst = X.createInstance(bodyId, cs);
+          tm.bodyInst.object3d.scale.setScalar(tm.ts);
+          tm.group.add(tm.bodyInst.object3d);
+          tm.bodyMeshes = instMeshes(tm.bodyInst);
+          const src = info && info.src ? info.src : null;
+          const h = (tm.bodyInst.height || (info && info.height)) || 2.2;
+          const mount = (info && (info.mount || info.crewY)) || (src && (src.mount || src.crewY)) || null;
+          tm.crewY = (typeof mount === 'number' ? mount : h * 0.8) * tm.ts;
+          tm.topY = h * tm.ts;
+        } catch (e) { tm.bodyInst = null; tm.bodyMeshes = null; }
+      }
+      if (!tm.bodyInst) {
+        tm.ts = 1;
+        tm.body = new T.Mesh(this._fortressGeo || (this._fortressGeo = new T.BoxGeometry(W - 0.3, 1.6, D - 0.3)), this.matToon);
+        tm.body.position.y = 0.8;
+        tm.group.add(tm.body);
+        tm.crewY = 1.6;
+        tm.topY = 2.6;
+      }
+      // crew positions: gun points relative to the tower centre (world x = sim x, world z = -sim y)
+      const g0 = tm.guns && tm.guns[0], g1 = tm.guns && tm.guns[1];
+      tm.gp = [g0 ? g0.x - tm.x : -W / 3, g0 ? tm.y - g0.y : 0, g1 ? g1.x - tm.x : W / 3, g1 ? tm.y - g1.y : 0];
+      tm.cs = CREW_VIS[1];
+      if (X && gfxHas(crewId)) {
+        const cm = this._measure(crewId);
+        if (cm.h > 0.3) tm.cs = clamp(CREW_H[1] / cm.h, 0.4, 1.6);
+        try {
+          tm.crewInst = X.createInstance(crewId, cs);
+          tm.crew2Inst = X.createInstance(crewId, cs);
+          tm.crewInst.object3d.position.set(tm.gp[0], tm.crewY, tm.gp[1]);
+          tm.crew2Inst.object3d.position.set(tm.gp[2], tm.crewY, tm.gp[3]);
+          tm.crewInst.object3d.scale.setScalar(tm.cs);
+          tm.crew2Inst.object3d.scale.setScalar(tm.cs);
+          tm.group.add(tm.crewInst.object3d);
+          tm.group.add(tm.crew2Inst.object3d);
+          tm.crewMeshes = instMeshes(tm.crewInst);
+          tm.crew2Meshes = instMeshes(tm.crew2Inst);
+          const h = tm.crewInst.height || ((gfxModelInfo(crewId) || {}).height) || 1.4;
+          tm.crewH = h * tm.cs;
+        } catch (e) {
+          if (tm.crewInst) { try { tm.crewInst.release(); } catch (e2) { /* ignore */ } }
+          if (tm.crew2Inst) { try { tm.crew2Inst.release(); } catch (e2) { /* ignore */ } }
+          tm.crewInst = null; tm.crew2Inst = null; tm.crewMeshes = null; tm.crew2Meshes = null;
+        }
+      }
+      if (!tm.crewInst) {
+        tm.crew = new T.Mesh(this._crewGeo(false, cs), this.matToon);
+        tm.crew2 = new T.Mesh(this._crewGeo(false, cs), this.matToon);
+        tm.crew.position.set(tm.gp[0], tm.crewY, tm.gp[1]);
+        tm.crew2.position.set(tm.gp[2], tm.crewY, tm.gp[3]);
+        tm.crew.rotation.y = yaw; tm.crew2.rotation.y = yaw;
+        tm.crew.scale.setScalar(tm.cs); tm.crew2.scale.setScalar(tm.cs);
+        tm.group.add(tm.crew); tm.group.add(tm.crew2);
+        tm.crewH = 1.25 * tm.cs;
+      }
+      tm.topY = Math.max(tm.topY, tm.crewY + tm.crewH);
+      if (tm.rubble) tm.rubble.scale.setScalar(1);
+      if (this._grim && tm.bodyInst) grimInst(tm.bodyInst);
+      this._towerLod(tm, (this._crowd || this._weak) ? 1 : 0);
+      tm.e.h = tm.topY;
+      tm.e.y = 0;
+      tm.e.r = D / 2 + 0.3;
+      tm.yawCur = yaw;
+      if (!tm.alive) this._setTowerDown(tm, true);
+    }
+
     _undressTower(tm) {
       this._endCrumble(tm);   // v17: give pooled bodies back with their own transform
       if (tm.bodyInst) {
@@ -73022,8 +73847,15 @@ body { font-weight: 700; letter-spacing: 0; }
         try { if (tm.crewInst.object3d.parent) tm.crewInst.object3d.parent.remove(tm.crewInst.object3d); tm.crewInst.release(); } catch (e) { /* ignore */ }
         tm.crewInst = null; tm.crewMeshes = null;
       }
+      if (tm.crew2Inst) {   // v21 fortress: second crew
+        Batcher.restore(tm.crew2Meshes);
+        { const co = tm.crew2Inst.object3d; co.rotation.x = 0; co.rotation.z = 0; tm.posed2 = false; }
+        try { if (tm.crew2Inst.object3d.parent) tm.crew2Inst.object3d.parent.remove(tm.crew2Inst.object3d); tm.crew2Inst.release(); } catch (e) { /* ignore */ }
+        tm.crew2Inst = null; tm.crew2Meshes = null;
+      }
       if (tm.body) { tm.group.remove(tm.body); tm.body = null; }
       if (tm.crew) { tm.group.remove(tm.crew); tm.crew = null; }
+      if (tm.crew2) { tm.group.remove(tm.crew2); tm.crew2 = null; }
     }
 
     _towerGeo(king, cs) {
@@ -73138,6 +73970,47 @@ body { font-weight: 700; letter-spacing: 0; }
       return geo;
     }
 
+    /** v21 fortress rubble: one long heap - broken wall stumps along the w x d footprint, stones,
+     *  planks and a torn team cloth at both gun platforms. */
+    _rubbleGeoF(cs, w, d) {
+      const key = 'rf' + cs + '_' + w + '_' + d;
+      this._towerGeoCache = this._towerGeoCache || {};
+      if (this._towerGeoCache[key]) return this._towerGeoCache[key];
+      const T = this.T;
+      const gb = new GeoBuf(T);
+      const box = new T.BoxGeometry(1, 1, 1), ico = new T.IcosahedronGeometry(1, 0);
+      const rnd = seeded(23);
+      const BX = w - 0.2, BZ = d - 0.2;
+      gb.add(box, 0, 0.14, 0, 0, 0, 0, BX, 0.28, BZ, 0x7a756a, [0, 0.28, 0.75]);
+      const nx = Math.max(4, Math.round(BX / 0.8));
+      for (let f = 0; f < 2; f++) {
+        for (let k = 0; k < nx; k++) {
+          const px = ((k + 0.5) / nx - 0.5) * BX, pz = (f ? 1 : -1) * (BZ / 2 - 0.15);
+          const h = 0.2 + rnd() * 0.75;
+          gb.add(box, px, 0.28 + h / 2, pz, (rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.4, (rnd() - 0.5) * 0.2, 0.62, h, 0.45, [0xb8b0a0, 0xa8a090, 0xc4bcac][(rnd() * 3) | 0], [0.28, 1.4, 0.7]);
+        }
+      }
+      for (const sx of [-1, 1]) gb.add(box, sx * (BX / 2 - 0.15), 0.6, 0, 0, 0.1 * sx, 0.12, 0.45, 0.65, BZ - 0.4, 0xa8a090, [0.28, 1.4, 0.7]);
+      for (let i = 0; i < 40; i++) {
+        const px = (rnd() - 0.5) * BX * 0.9, pz = (rnd() - 0.5) * BZ * 0.7;
+        const sz = 0.15 + rnd() * 0.3;
+        gb.add(ico, px, 0.3 + sz * 0.4, pz, rnd() * 3, rnd() * 3, rnd() * 3, sz, sz * 0.75, sz, [0xb0a898, 0x9a9282, 0x8a8272][(rnd() * 3) | 0], null);
+      }
+      for (let i = 0; i < 14; i++) {
+        const px = (rnd() - 0.5) * (BX + 1.6), pz = (rnd() < 0.5 ? -1 : 1) * (BZ / 2 + rnd() * 0.8);
+        const sz = 0.1 + rnd() * 0.16;
+        gb.add(ico, px, sz * 0.4, pz, rnd() * 3, rnd() * 3, rnd() * 3, sz, sz * 0.7, sz, 0xa09888, null);
+      }
+      for (let i = 0; i < 8; i++) gb.add(box, (rnd() - 0.5) * BX * 0.8, 0.5, (rnd() - 0.5) * BZ * 0.4, (rnd() - 0.5) * 0.6, rnd() * 3, (rnd() - 0.5) * 0.6, 1.1, 0.08, 0.2, 0x4a3422, null);
+      gb.add(box, -BX * 0.3, 0.4, BZ * 0.15, 0.3, 0.6, 0.1, 0.6, 0.04, 0.5, TEAM_DARK[cs], null);
+      gb.add(box, BX * 0.3, 0.4, -BZ * 0.1, -0.2, -0.5, 0.1, 0.6, 0.04, 0.5, TEAM_DARK[cs], null);
+      box.dispose(); ico.dispose();
+      if (this._grim) gb.dusk(0);
+      const geo = gb.build();
+      this._towerGeoCache[key] = geo;
+      return geo;
+    }
+
     _rubbleGeo(king, cs) {
       const key = (king ? 'rk' : 'rp') + cs;
       this._towerGeoCache = this._towerGeoCache || {};
@@ -73192,12 +74065,15 @@ body { font-weight: 700; letter-spacing: 0; }
       this._endCrumble(tm);
       if (tm.crew) tm.crew.visible = false;
       if (tm.crewInst) tm.crewInst.object3d.visible = false;
-      if (this.fx) this.fx.burst('poof', tm.e.x, tm.crewY + 0.5, tm.e.z, tm.king ? 1.1 : 0.9);
+      if (tm.crew2) tm.crew2.visible = false;
+      if (tm.crew2Inst) tm.crew2Inst.object3d.visible = false;
+      if (tm.fortress && tm.gp && this.fx) { this.fx.burst('poof', tm.e.x + tm.gp[0], tm.crewY + 0.5, tm.e.z + tm.gp[1], 0.9); this.fx.burst('poof', tm.e.x + tm.gp[2], tm.crewY + 0.5, tm.e.z + tm.gp[3], 0.9); }
+      else if (this.fx) this.fx.burst('poof', tm.e.x, tm.crewY + 0.5, tm.e.z, tm.king ? 1.1 : 0.9);
       const o = tm.bodyInst ? tm.bodyInst.object3d : tm.body;
       if (!o) { this._setTowerDown(tm, true); return; }
       tm.cb = { o: o, px: o.position.x, py: o.position.y, pz: o.position.z, rx: o.rotation.x, rz: o.rotation.z, sx: o.scale.x, sy: o.scale.y, sz: o.scale.z };
       if (!tm.rubble) {
-        tm.rubble = new T.Mesh(this._rubbleGeo(tm.king, tm.cside), this.matToon);
+        tm.rubble = new T.Mesh(tm.fortress ? this._rubbleGeoF(tm.cside, tm.size || 8, tm.depth || 2.5) : this._rubbleGeo(tm.king, tm.cside), this.matToon);
         tm.rubble.rotation.y = tm.yaw || 0;
         tm.group.add(tm.rubble);
       }
@@ -73269,8 +74145,10 @@ body { font-weight: 700; letter-spacing: 0; }
         if (tm.crew) tm.crew.visible = false;
         if (tm.bodyInst) tm.bodyInst.object3d.visible = false;
         if (tm.crewInst) tm.crewInst.object3d.visible = false;
+        if (tm.crew2) tm.crew2.visible = false;
+        if (tm.crew2Inst) tm.crew2Inst.object3d.visible = false;
         if (!tm.rubble) {
-          tm.rubble = new T.Mesh(this._rubbleGeo(tm.king, tm.cside), this.matToon);
+          tm.rubble = new T.Mesh(tm.fortress ? this._rubbleGeoF(tm.cside, tm.size || 8, tm.depth || 2.5) : this._rubbleGeo(tm.king, tm.cside), this.matToon);
           tm.rubble.rotation.y = tm.yaw || 0;
           tm.rubble.scale.setScalar(tm.rubbleSz || 1);
           tm.group.add(tm.rubble);
@@ -73282,6 +74160,8 @@ body { font-weight: 700; letter-spacing: 0; }
         if (tm.crew) tm.crew.visible = true;
         if (tm.bodyInst) tm.bodyInst.object3d.visible = true;
         if (tm.crewInst) tm.crewInst.object3d.visible = true;
+        if (tm.crew2) tm.crew2.visible = true;
+        if (tm.crew2Inst) tm.crew2Inst.object3d.visible = true;
         if (tm.rubble) tm.rubble.visible = false;
         tm.e.h = tm.topY;
       }
@@ -74074,6 +74954,7 @@ body { font-weight: 700; letter-spacing: 0; }
         // flush decals - gate grilles, plaques - whose depth order must not change)
         if (tm.bodyInst && tm.bodyMeshes) B.add(tm.bodyInst.object3d, tm.bodyMeshes, true);
         if (tm.crewInst && tm.crewMeshes) B.add(tm.crewInst.object3d, tm.crewMeshes, true);
+        if (tm.crew2Inst && tm.crew2Meshes) B.add(tm.crew2Inst.object3d, tm.crew2Meshes, true);   // v21 fortress
       }
       B.end();
     }
@@ -74271,23 +75152,32 @@ body { font-weight: 700; letter-spacing: 0; }
         } else if (!tm.alive && t.alive) { tm.alive = true; this._setTowerDown(tm, false); }
         tm.active = !!t.active;
         tm.hp = t.hp; tm.maxHp = t.maxHp; tm.fx = t.fx | 0;
-        if (tm.alive) { tm.lastAliveMs = now; this._shadow(tm.e.x, tm.e.z, tm.e.r * 2.6, tm.e.r * 2.6, 0); }
+        if (tm.alive) { tm.lastAliveMs = now; if (tm.fortress) this._shadow(tm.e.x, tm.e.z, tm.size * 1.12, (tm.depth || 2.5) * 1.5, 0); else this._shadow(tm.e.x, tm.e.z, tm.e.r * 2.6, tm.e.r * 2.6, 0); }
         else {
           if (tm.crumbleT0 > 0) this._crumbleStep(tm, now);
-          this._shadow(tm.e.x, tm.e.z, tm.e.r * 2.5, tm.e.r * 2.5, 0);
+          if (tm.fortress) this._shadow(tm.e.x, tm.e.z, tm.size * 1.08, (tm.depth || 2.5) * 1.4, 0); else this._shadow(tm.e.x, tm.e.z, tm.e.r * 2.5, tm.e.r * 2.5, 0);
           // rubble keeps smoking for a while after the collapse
-          if (this.fx && now - tm.downT < 9000 && Math.random() < dtR * 3) this.fx.emit('smoke', tm.e.x + (Math.random() - 0.5) * tm.size * 0.6, 0.6, tm.e.z + (Math.random() - 0.5) * tm.size * 0.6, 0.5, 1, 0x9a948c, 0xc8c2b8);   // (v14 polish: light rubble smoke)
+          if (this.fx && now - tm.downT < 9000 && Math.random() < dtR * 3) this.fx.emit('smoke', tm.e.x + (Math.random() - 0.5) * tm.size * 0.6, 0.6, tm.e.z + (Math.random() - 0.5) * (tm.fortress ? (tm.depth || 2.5) : tm.size) * 0.6, 0.5, 1, 0x9a948c, 0xc8c2b8);   // (v14 polish: light rubble smoke)
           continue;
         }
         const hpk = t.maxHp > 0 ? t.hp / t.maxHp : 1;
         if (this.fx && hpk < 0.35 && dtR > 0) {
           const k = (0.35 - hpk) / 0.35;
-          if (Math.random() < dtR * (1.5 + k * 4)) this.fx.emit('smoke', tm.e.x + (Math.random() - 0.5) * tm.size * 0.5, tm.crewY * 0.9, tm.e.z + (Math.random() - 0.5) * tm.size * 0.5, 0.45, 1, 0x8e8780, 0xc0b8ae);   // (v14 polish: lighter burning-tower smoke)
+          if (Math.random() < dtR * (1.5 + k * 4)) this.fx.emit('smoke', tm.e.x + (Math.random() - 0.5) * tm.size * 0.5, tm.crewY * 0.9, tm.e.z + (Math.random() - 0.5) * (tm.fortress ? (tm.depth || 2.5) : tm.size) * 0.5, 0.45, 1, 0x8e8780, 0xc0b8ae);   // (v14 polish: lighter burning-tower smoke)
           if (k > 0.4 && Math.random() < dtR * 3) this.fx.emit('embers', tm.e.x, tm.crewY * 0.8, tm.e.z, 0.35, 1);
         }
         // aim the crew at its target
         let dir = tm.side === 0 ? Math.PI / 2 : -Math.PI / 2;
-        if (t.targetId) {
+        const gt = tm.fortress ? (t.gunT || EMPTY) : null;
+        if (tm.fortress) {
+          // v21 fortress: each archer aims at its own gun's target from its own platform
+          const g0 = tm.guns && tm.guns[0], g1 = tm.guns && tm.guns[1];
+          let dir2 = dir;
+          const te0 = gt[0] ? this._curUnits.get(gt[0]) : null, te1 = gt[1] ? this._curUnits.get(gt[1]) : null;
+          if (te0) dir = Math.atan2(te0.y - (g0 ? g0.y : t.y), te0.x - (g0 ? g0.x : t.x));
+          if (te1) dir2 = Math.atan2(te1.y - (g1 ? g1.y : t.y), te1.x - (g1 ? g1.x : t.x));
+          tm.dirS2 += angleDiff(tm.dirS2, dir2) * Math.min(1, dtR * 10);
+        } else if (t.targetId) {
           const te = this._curUnits.get(t.targetId);
           if (te) dir = Math.atan2(te.y - t.y, te.x - t.x);
         }
@@ -74305,10 +75195,28 @@ body { font-weight: 700; letter-spacing: 0; }
         const mood = crewMood(tm.side, over, over ? cur.winner : null, tm.king && tm.wakeMs > -1e8 ? (now - tm.wakeMs) / 1000 : -1);
         if (mood !== tm.mood) { tm.mood = mood; tm.moodMs = now; tm.moodFxMs = -1e9; }
         const st = tm.cst;
-        st.state = t.targetId && !asleep && !over ? 'attacking' : 'idle';
-        st.dir = tm.dirS; st.attackProg = +t.attackProg || 0; st.hit = tm.hitFlag; st.fx = tm.fx;
+        st.state = (gt ? gt[0] : t.targetId) && !asleep && !over ? 'attacking' : 'idle';
+        st.dir = tm.dirS; st.attackProg = gt ? (+(t.gunAp || EMPTY)[0] || 0) : (+t.attackProg || 0); st.hit = tm.hitFlag; st.fx = tm.fx;
         st.hpFrac = t.maxHp > 0 ? t.hp / t.maxHp : 1; st.hurt = tm.hurt; st.asleep = asleep; st.sleeping = asleep;
         st.mood = mood; st.expr = mood ? MOOD_EXPR[mood] : '';
+        if (gt) {
+          // v21 fortress: the second archer (gun 1)
+          const s2 = tm.cst2;
+          s2.state = gt[1] && !over ? 'attacking' : 'idle';
+          s2.dir = tm.dirS2; s2.attackProg = +(t.gunAp || EMPTY)[1] || 0; s2.hit = st.hit; s2.fx = st.fx;
+          s2.hpFrac = st.hpFrac; s2.hurt = st.hurt; s2.asleep = false; s2.sleeping = false; s2.mood = mood; s2.expr = st.expr;
+          if (tm.crew2Inst) { try { tm.crew2Inst.update(dtR, s2); } catch (e) { /* ignore */ } }
+          else if (tm.crew2) tm.crew2.rotation.y = (CR.GFX && typeof CR.GFX.dirToYaw === 'function') ? CR.GFX.dirToYaw(tm.dirS2) : tm.dirS2 - Math.PI / 2;
+          if (mood || tm.posed2) {
+            // pose the second crew with _poseCrew (crew 2 swapped in)
+            const c1 = tm.crewInst, c1m = tm.crew, d1 = tm.dirS, p1 = tm.posed, ex = tm.e.x, ez = tm.e.z;
+            tm.crewInst = tm.crew2Inst; tm.crew = tm.crew2; tm.dirS = tm.dirS2; tm.posed = tm.posed2;
+            if (tm.gp) { tm.e.x = ex + tm.gp[2]; tm.e.z = ez + tm.gp[3]; }
+            this._poseCrew(tm, mood, now);
+            tm.posed2 = tm.posed;
+            tm.crewInst = c1; tm.crew = c1m; tm.dirS = d1; tm.posed = p1; tm.e.x = ex; tm.e.z = ez;
+          }
+        }
         tm.hitFlag = false;
         if (tm.crewInst) { try { tm.crewInst.update(dtR, st); } catch (e) { /* ignore */ } }
         else if (tm.crew) {
@@ -74319,7 +75227,14 @@ body { font-weight: 700; letter-spacing: 0; }
           const k = st.attackProg;
           tm.crew.scale.set(1 + k * 0.06, 1 - k * 0.05, 1 + k * 0.06);
         }
-        if (mood || tm.posed) this._poseCrew(tm, mood, now);
+        if (mood || tm.posed) {
+          if (tm.fortress && tm.gp) {   // v21: crew 1 stands on the left gun platform
+            const ex = tm.e.x, ez = tm.e.z;
+            tm.e.x = ex + tm.gp[0]; tm.e.z = ez + tm.gp[1];
+            this._poseCrew(tm, mood, now);
+            tm.e.x = ex; tm.e.z = ez;
+          } else this._poseCrew(tm, mood, now);
+        }
         if (tm.bodyInst) {
           const bs = tm.st;
           bs.state = st.state; bs.attackProg = st.attackProg; bs.hit = st.hit; bs.hurt = tm.hurt; bs.fx = tm.fx; bs.hpFrac = st.hpFrac; bs.asleep = asleep;
@@ -74452,8 +75367,8 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     _towerLod(tm, lod) {
-      const a = [tm.bodyInst, tm.crewInst];
-      for (let i = 0; i < 2; i++) {
+      const a = [tm.bodyInst, tm.crewInst, tm.crew2Inst];
+      for (let i = 0; i < 3; i++) {
         const inst = a[i];
         if (!inst || typeof inst.setLod !== 'function') continue;
         try { inst.setLod(lod); } catch (e) { /* optional */ }
@@ -74770,6 +75685,9 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < ps.length; i++) {
         const c = ps[i] && ps[i].champion;
         if (c && typeof c === 'object' && c.unitId !== undefined && c.unitId !== null) C.set(c.unitId, c);
+        // v21: several champions per player (view.players[i].champions)
+        const cs = ps[i] && ps[i].champions;
+        if (Array.isArray(cs)) for (let k = 0; k < cs.length; k++) { const d = cs[k]; if (d && typeof d === 'object' && d.unitId !== undefined && d.unitId !== null) C.set(d.unitId, d); }
       }
     }
 
@@ -75065,7 +75983,8 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < TL.length; i++) {
         const tm = TL[i];
         if (!tm.alive) continue;
-        const d = (tm.x - sx) * (tm.x - sx) + (tm.y - sy) * (tm.y - sy);
+        let d = (tm.x - sx) * (tm.x - sx) + (tm.y - sy) * (tm.y - sy);
+        if (tm.fortress && tm.guns) for (let k = 0; k < tm.guns.length; k++) { const g = tm.guns[k]; d = Math.min(d, (g.x - sx) * (g.x - sx) + (g.y - sy) * (g.y - sy)); }   // v21: shots start at a gun
         if (d < bd) { bd = d; best = tm; }
       }
       if (best) return best.crewY + best.crewH * 0.62;
@@ -75097,7 +76016,7 @@ body { font-weight: 700; letter-spacing: 0; }
       });
       this._towers.forEach(function (tm) {
         if (!tm.alive) return;
-        if (Math.abs(tm.x - tx) < tm.size / 2 + 0.3 && Math.abs(tm.y - ty) < tm.size / 2 + 0.3) bh = Math.max(bh, tm.crewY * 0.85);
+        if (Math.abs(tm.x - tx) < tm.size / 2 + 0.3 && Math.abs(tm.y - ty) < (tm.fortress ? (tm.depth || 2.5) : tm.size) / 2 + 0.3) bh = Math.max(bh, tm.crewY * 0.85);
       });
       return bh;
     }
@@ -75589,7 +76508,8 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < tw.length; i++) {
         const t = tw[i];
         const s = t.size > 0 ? t.size : (t.kind === 'king' ? 4 : 3);
-        st.push({ id: t.id, side: t.side, kind: t.kind, lane: t.lane, alive: !!t.alive, hp: t.hp, x: t.x, y: t.y, size: s, x0: t.x - s / 2, y0: t.y - s / 2, x1: t.x + s / 2, y1: t.y + s / 2 });
+        const dp = t.fortress && t.depth > 0 ? t.depth : s;   // v21: the fortress is 8 wide, 2.5 deep
+        st.push({ id: t.id, side: t.side, kind: t.kind, lane: t.lane, alive: !!t.alive, hp: t.hp, x: t.x, y: t.y, size: s, x0: t.x - s / 2, y0: t.y - dp / 2, x1: t.x + s / 2, y1: t.y + dp / 2 });
       }
       const us = cur.units || EMPTY;
       for (let i = 0; i < us.length; i++) {
@@ -75814,7 +76734,7 @@ body { font-weight: 700; letter-spacing: 0; }
         // v14 CR layout: the towers on the viewer's near side carry their bar UNDER the model (at the
         // front base), the far ones above it - the crews on the decks stay unobstructed
         const nearSide = this.localSide === 1 ? tm.e.z < 0 : tm.e.z > 0;
-        const half = (king ? (tm.depth || tm.size || 4) : (tm.size || 3)) / 2;
+        const half = (king ? (tm.depth || tm.size || 4) : (tm.size || 3)) / 2;   // (v21 fortress: kind king, depth 2.5)
         const P = nearSide ? self._project(tm.e.x, 0, tm.e.z + (this.localSide === 1 ? -1 : 1) * (half + 0.42))
           : self._project(tm.e.x, tm.topY + 0.32, tm.e.z);
         if (!P.ok) continue;
@@ -75822,7 +76742,7 @@ body { font-weight: 700; letter-spacing: 0; }
         // v15 (user: HP bars thinner but longer, compact, clearly readable): ~70 % of the v14
         // height, ~1.27x the length (CR: the bar spans the tower), rounded ends, crisp 1-px rim
         const od = this.odpr || 1;
-        const bw = Math.round((king ? 2.9 : 2.4) * P.s * od) / od, bh = Math.round(Math.max(5, 0.24 * P.s) * od) / od;
+        const bw = Math.round((tm.fortress ? 3.8 : (king ? 2.9 : 2.4)) * P.s * od) / od, bh = Math.round(Math.max(5, 0.24 * P.s) * od) / od;
         let cy = P.y;
         if (cy - bh / 2 < 2) cy = 2 + bh / 2;
         if (cy + bh / 2 > this.cssH - 2) cy = this.cssH - 2 - bh / 2;
