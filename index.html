@@ -2591,31 +2591,20 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 
 /* --------------------------------------------------------- small screens */
 
-/* v5: the menu got two more rows (1v1/2v2, map) – keep "Kampf!" and the deck on screen on phones */
+/* v5: the menu got two more rows (1v1/2v2, map) – keep "Kampf!" and the deck on screen on phones
+   (v26: the menu has its own one-screen layout, styles.css "v26 one-screen main menu"; only the
+   rules other screens share stay here) */
 @media (max-height: 960px) {
-  .screen-menu { gap: 8px; }
-  .hero { height: clamp(56px, 8vh, 80px); }
-  .deck-btn { min-height: 60px; }
   .btn-fight { min-height: 62px; }
   .logo { font-size: clamp(38px, 11vw, 56px); }
-  .menu-panel { gap: 8px; }
 }
 
 @media (max-height: 760px) {
-  .screen-menu { gap: 10px; }
-  .hero { height: clamp(104px, 15vh, 140px); }
   .logo { font-size: clamp(40px, 12vw, 60px); }
 }
 @media (max-height: 700px) {
-  .screen-menu { gap: 8px; }
-  .menu-panel { gap: 9px; padding: 11px; }
-  .logo-wrap { gap: 5px; }
   .logo { font-size: clamp(36px, 10.5vw, 52px); }
-  .rules-badge { font-size: 12px; padding: 2px 12px 3px; }
-  .hero { height: clamp(84px, 13vh, 120px); }
   .btn-fight { min-height: 58px; font-size: 26px; }
-  .seg-play > button { min-height: 50px; }
-  .deck-btn { min-height: 58px; }
 }
 @media (max-height: 600px) {
   .hero { display: none; }
@@ -6440,7 +6429,6 @@ body { font-weight: 700; letter-spacing: 0; }
 }
 
 /* ------------------------------------------------------------ v24 menu: name in "Mit Freunden", deck rarity filter */
-.menu-top { justify-content: flex-end; }
 .name-chip.name-duo { flex: 0 0 auto; min-height: 50px; margin-bottom: 2px; }
 .rar-bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .rar-filter { flex: 1 1 auto; min-width: 0; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 1px; }
@@ -6614,6 +6602,237 @@ body { font-weight: 700; letter-spacing: 0; }
   .mapgal, .mapgal-backdrop, .mapcard-check { transition: none; }
 }
 .mapcard.is-new .mapcard-tags .mt-nw { display: none; }   /* the corner badge says it */
+
+/* ===================================================================== v26 one-screen main menu
+   User request: "nicht runterscrollen – alles auf EINEM Bildschirm". The menu (.screen-menu.mm26) is a
+   fixed column: top bar (small logo + mode badge left, icon buttons right) · card fan in the free
+   space (.mm-hero, shrinks / hides first) · play-type tabs · per tab four summary tiles (.mm-tile,
+   2 x 2) that open bottom sheets (.mm-sheet) or the v25 map gallery · deck row (slot pills +
+   "Bearbeiten" + eight cards) · one big primary button in the thumb zone (.mm-dock).
+   Fits 360 x 640 and up without scrolling; only very short windows (landscape) may scroll. */
+.screen-menu.mm26 {
+  gap: 8px;
+  padding-top: calc(var(--safe-t) + 8px);
+  padding-bottom: calc(var(--safe-b) + 10px);
+  overflow: hidden;
+}
+.mm26 > * { flex: 0 0 auto; min-width: 0; }
+.mm26 .mm-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; }
+.mm26 .mm-brand { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 0 0 2px; min-width: 0; }
+.mm26 .mm-brand .logo { font-size: 27px; line-height: 1; white-space: nowrap; transform: none; animation: none; -webkit-text-stroke-width: 1.4px; }
+.mm26 .mm-brand .logo .logo-2 { display: inline; margin-left: 5px; font-size: 0.74em; letter-spacing: 2px; -webkit-text-stroke-width: 1.2px; }
+.mm26 .mm-icons { display: flex; gap: 6px; flex: 0 0 auto; }
+.mm26 .mm-icons .btn-icon { width: 42px; min-height: 42px; height: 42px; }
+.mm26 .mm-icons .btn-icon .ico { width: 24px; height: 24px; margin-top: -2px; }
+
+/* free space: big logo (tall phones) + the card fan of the active deck + mode badge; gives way first */
+.mm26 .mm-hero { flex: 1 1 0; min-height: 0; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; container-type: size; }
+.mm26 .mm-hero .hero { flex: 1 1 0; height: auto; min-height: 0; max-height: min(200px, 46vw); width: 100%; margin: 0; align-items: center; }
+.mm26 .mm-hero .hero-card { height: 82%; }
+.mm26 .mm-hero .hero-card.hc-1 { height: 96%; }
+.mm26 .mm-hero .rules-badge { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.6px; padding: 2px 11px 3px; white-space: nowrap; pointer-events: none; }
+.mm26 .mm-hero-logo { display: none; flex: 0 0 auto; text-align: center; font-size: clamp(40px, 6vh, 60px); }
+@container (max-height: 74px) { .mm26 .mm-hero .hero { display: none; } }
+@media (min-height: 760px) {
+  .mm26 .mm-brand { visibility: hidden; }
+  .mm26 .mm-hero-logo { display: block; }
+}
+.mm26 .mm-hero .home-hint { position: absolute; left: 0; right: 0; top: 0; z-index: 3; margin: 0; background: linear-gradient(180deg, rgba(28, 51, 97, 0.97), rgba(12, 24, 52, 0.97)); box-shadow: inset 0 0 0 1px var(--gold-line), 0 0 0 2px #030812, 0 10px 22px rgba(0, 0, 0, 0.5); }
+
+/* the board with the tabs + the active pane */
+.mm26 .menu-panel { gap: 8px; padding: 8px; }
+.mm26 .seg-play { padding: 4px; gap: 4px; }
+.mm26 .seg-play > button { min-height: 52px; padding: 3px 3px 4px; gap: 1px; flex-direction: column; font-size: 16px; }
+.mm26 .seg-play > button .ico { width: 22px; height: 22px; }
+.mm26 .seg-play .seg-txt { align-items: center; }
+.mm26 .seg-play .seg-sub { font-size: 11px; }
+.mm26 .play-pane { gap: 8px; }
+.mm26 .play-pane[hidden] { display: none; }
+@media (max-width: 400px) {
+  .mm26 .seg-play > button { font-size: 14.5px; min-height: 50px; }
+  .mm26 .seg-play > button .ico { width: 20px; height: 20px; }
+  .mm26 .seg-play .seg-sub { font-size: 10.5px; }
+}
+
+/* the four summary tiles */
+.mm26 .mm-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.mm-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 62px;
+  padding: 7px 8px 8px 7px;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, #1f3a6c 0%, #162c56 55%, #0f2043 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 228, 170, 0.16), inset 0 0 0 1px var(--gold-hair), 0 0 0 1.5px #030812, 0 3px 0 1.5px #030812;
+  transition: transform 0.08s, filter 0.12s;
+}
+.mm-tile:active { transform: translateY(2px) scale(0.985); filter: brightness(1.1); }
+.mm-tile:focus-visible { outline: 2px solid var(--gold-ink); outline-offset: 2px; }
+.mm-tile-ico {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #ffe08a;
+  background: radial-gradient(80% 80% at 50% 25%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%), rgba(4, 12, 36, 0.6);
+  box-shadow: inset 0 0 0 1px var(--gold-hair), inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+.mm-tile-ico .ico { width: 24px; height: 24px; }
+.mm-tile.t-mode .mm-tile-ico { color: #fff; background: linear-gradient(180deg, #d58cff, #8a2fd0); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 1.5px #2a0848; }
+.mm-tile.t-opp .mm-tile-ico, .mm-tile.t-players .mm-tile-ico { color: #fff; background: linear-gradient(180deg, #7cc8ff, #2f86ee); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 1.5px #0a2a66; }
+.mm-tile.t-opt .mm-tile-ico { color: #fff; background: linear-gradient(180deg, #f27bff, #9a2fc0); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 0 1.5px #3a0650; }
+.mm-tile-txt, .mm-tile .mapsel-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.1; }
+.mm-tile-k { font-size: 10px; font-weight: 900; letter-spacing: 0.9px; text-transform: uppercase; color: var(--gold-ink); opacity: 0.92; }
+.mm-tile-v, .mm-tile .mapsel-name { font-family: var(--font-display); font-size: 17px; line-height: 1.05; color: #fff; text-shadow: var(--outline); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mm-tile-s, .mm-tile .mapsel-desc { font-size: 11.5px; font-weight: 800; color: #b9cbec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; -webkit-line-clamp: none; }
+.mm-tile-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: #ffb02e; box-shadow: 0 0 0 2px #071028, 0 0 8px rgba(255, 176, 46, 0.8); }
+.mm-tile-dot[hidden] { display: none; }
+/* the v25 "Karte" button as a tile: small field thumbnail as the icon, no tags / "Ändern" pill */
+.mm-tile.mapsel { width: auto; }
+.mm-tile.mapsel .mapsel-prev { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 0 0 1.5px #ffd75e, 0 0 0 3px #071028; }
+.mm-tile.mapsel .mapsel-prev .mapcard-field { width: 52%; transform: rotateX(48deg) translateY(-6%); }
+.mm-tile.mapsel .mapsel-tags, .mm-tile.mapsel .mapsel-go { display: none; }
+.mm-tile.mapsel.is-any .mapsel-desc { font-size: 0; }
+.mm-tile.mapsel.is-any .mapsel-desc::before { content: "Suche: Karte egal"; display: block; font-size: 11.5px; color: var(--gold-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Mit Freunden: name chip + Erstellen / Beitreten */
+.mm26 .name-chip.name-duo { min-height: 40px; margin: 0; padding-top: 0; padding-bottom: 0; }
+.mm26 .name-chip.name-duo .text-input { font-size: 18px; min-height: 38px; padding-top: 0; padding-bottom: 0; }
+.mm26 .mm-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.mm26 .mm-actions .btn { min-height: 50px; font-size: 17px; padding: 4px 8px 6px; gap: 6px; justify-content: flex-start; letter-spacing: 0.2px; }
+.mm26 .mm-actions .btn .ico-lg { width: 24px; height: 24px; flex: 0 0 auto; }
+.mm26 .mm-actions .btn-stack { min-width: 0; }
+.mm26 .mm-actions .btn-sub { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* story tab: compact banner, the go button sits in the dock */
+.mm26 .pane-story { gap: 8px; }
+.mm26 .pane-story .sty-banner { padding: 10px 12px; }
+.mm26 .pane-story .sty-title { font-size: 23px; }
+.mm26 .pane-story .sty-blurb { font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mm26 .pane-story .sty-stats { margin-top: 6px; }
+.mm26 .pane-story .sty-row > .btn { min-height: 48px; }
+.mm26 .pane-story .sty-note { font-size: 11.5px; }
+
+/* deck row: slot pills + avg + "Bearbeiten", the eight cards below */
+.mm26 .deck-box {
+  gap: 6px;
+  padding: 7px 8px 8px;
+  border-radius: var(--radius);
+  background: radial-gradient(120% 60% at 50% 0%, rgba(110, 150, 220, 0.1), transparent 70%), var(--metal);
+  box-shadow: inset 0 0 0 1px var(--gold-line), 0 0 0 2px var(--board-edge), 0 4px 0 2px var(--board-edge), 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+.mm26.is-story .deck-box { display: none; }
+.mm26 .mm-deck-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mm26 .deck-switch-menu { flex: 1 1 auto; width: auto; min-width: 0; gap: 5px; display: flex; }
+.mm26 .deck-switch-menu .ds-tab { flex: 0 0 auto; }
+.mm26 .deck-switch-menu .ds-tab.on { flex: 0 1 auto; min-width: 0; }
+.mm26 .deck-switch-menu .ds-tab:not(.on) .ds-txt { display: none; }
+.mm26 .deck-switch-menu .ds-tab:not(.on) { padding: 2px 4px 3px; }
+.mm26 .deck-switch-menu .ds-tab { min-height: 32px; padding: 2px 6px 3px 3px; gap: 4px; border-radius: 9px; }
+.mm26 .deck-switch-menu .ds-tab.on { box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.5), 0 0 0 1.5px #f3d27a, 0 0 0 3px #030812, 0 3px 0 2.5px #030812; }
+.mm26 .deck-switch-menu .ds-num { width: 20px; height: 20px; font-size: 14px; }
+.mm26 .deck-switch-menu .ds-name { font-size: 13.5px; }
+.mm26 .deck-switch-menu .ds-sub { display: none; }
+.mm26 .mm-deck-avg { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; font-family: var(--font-display); font-size: 14px; color: #f6d8ff; text-shadow: var(--outline); }
+.mm26 .mm-drop { display: inline-block; width: 14px; height: 17px; background: var(--elixir-drop) center / contain no-repeat; }
+.mm26 .mm-deck-edit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 9px 1px 7px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  touch-action: manipulation;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  text-shadow: 0 1.5px 0 #5a2c00, 1px 0 0 #5a2c00, -1px 0 0 #5a2c00;
+  background: linear-gradient(180deg, #ffe27a, #f6a91c);
+  box-shadow: inset 0 1px 0 #fff6cc, 0 0 0 1.5px #5a2c00, 0 2px 0 1.5px #5a2c00;
+}
+.mm26 .mm-deck-edit:active { transform: translateY(1px); }
+.mm26 .mm-deck-edit .ico { width: 17px; height: 17px; }
+.mm26 .mm-deck-edit[disabled] { opacity: 0.5; }
+.mm26 .deck-btn { display: block; min-height: 0; padding: 0; border-radius: 9px; background: none; box-shadow: none; }
+.mm26 .deck-btn::before, .mm26 .deck-btn::after { display: none; }
+.mm26 .deck-btn-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mm26 .deck-btn .deck-mini { gap: 4px; }
+.mm26 .deck-btn .dm-card { border-width: 2px; border-radius: 6px; }
+.mm26 .deck-btn:active .deck-mini { transform: translateY(1px); }
+@media (max-width: 370px) { .mm26 .mm-deck-avg { display: none; } }
+
+/* the big button in the thumb zone */
+.mm26 .mm-dock { display: flex; flex-direction: column; gap: 6px; }
+.mm26 .mm-dock > [hidden] { display: none; }
+.mm26 .mm-dock .btn-xl { min-height: 64px; }
+.mm26 .mm-dock .btn-stack { min-width: 0; max-width: calc(100% - 50px); }
+.mm26 .mm-dock .btn-sub { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mm26 .btn-fight { font-size: 30px; }
+
+/* bottom sheets of the tiles */
+.mm-sheet-back { z-index: 45; }
+.mm-sheet { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; overscroll-behavior: contain; }
+.mm-sheet .sheet-title { margin-bottom: 0; }
+.mm-sheet .sheet-title .ico { color: var(--gold-ink); }
+.mm-sheet-body { display: flex; flex-direction: column; gap: 9px; }
+.mm-sheet .menu-label { animation: none; }
+.mm-sheet .mm-sheet-done { min-height: 52px; margin-top: 2px; }
+.mm-sheet .seg-mode.has-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mm-mode-desc { margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 13.5px; font-weight: 700; line-height: 1.3; color: #dbe6fb; background: var(--well); box-shadow: inset 0 0 0 1px var(--gold-hair); }
+.mm-opt-row { display: flex; flex-direction: column; gap: 4px; }
+.mm-opt-row[hidden] { display: none; }
+.mm-opt-note { margin: 0; padding: 0 4px; font-size: 12.5px; font-weight: 700; line-height: 1.3; color: var(--text-mute); }
+.mm-opt-more { padding-top: 2px; }
+.mm-sheet-join .join-row .code-input { min-height: 54px; font-size: 26px; }
+.mm-sheet-join .btn-join { min-height: 54px; }
+.mm-sheet-back.is-closing { animation: mm26-fade-out 0.19s ease-in forwards; }
+.mm-sheet-back.is-closing .mm-sheet { animation: mm26-sheet-down 0.19s ease-in forwards; }
+@keyframes mm26-fade-out { to { opacity: 0; } }
+@keyframes mm26-sheet-down { to { transform: translateY(30%); opacity: 0.4; } }
+
+/* shorter phones: tighter, the card fan gives way first */
+@media (max-height: 700px) {
+  .screen-menu.mm26 { gap: 7px; padding-top: calc(var(--safe-t) + 6px); padding-bottom: calc(var(--safe-b) + 8px); }
+  .mm26 .mm-tile { min-height: 56px; padding-top: 5px; padding-bottom: 6px; }
+  .mm26 .mm-tile-ico, .mm26 .mm-tile.mapsel .mapsel-prev { width: 36px; height: 36px; }
+  .mm26 .mm-dock .btn-xl { min-height: 58px; }
+  .mm26 .btn-fight { font-size: 27px; }
+}
+/* tall phones: roomier controls */
+@media (min-height: 800px) {
+  .screen-menu.mm26 { gap: 10px; }
+  .mm26 .menu-panel { gap: 10px; padding: 10px; }
+  .mm26 .mm-tiles { gap: 9px; }
+  .mm26 .mm-tile { min-height: 70px; }
+  .mm26 .mm-tile-ico, .mm26 .mm-tile.mapsel .mapsel-prev { width: 44px; height: 44px; }
+  .mm26 .mm-tile-v, .mm26 .mm-tile .mapsel-name { font-size: 18.5px; }
+  .mm26 .seg-play > button { min-height: 58px; }
+  .mm26 .mm-dock .btn-xl { min-height: 70px; }
+}
+/* very short windows (landscape phones etc.): allow scrolling instead of clipping */
+@media (max-height: 540px) {
+  .screen-menu.mm26 { overflow-y: auto; }
+  .mm26 .mm-hero { display: none; }
+}
+@media screen and (prefers-reduced-motion: reduce) {   /* ("screen and": v17 tests read the last plain reduced-motion block) */
+  .mm-tile, .mm-sheet, .mm-sheet-back, .mm-sheet-back.is-closing, .mm-sheet-back.is-closing .mm-sheet { transition: none; animation: none; }
+}
+.mm26.is-story .mm-hero .rules-badge { display: none; }   /* the story has its own rules per battle */
 
 </style>
 </head>
@@ -8462,6 +8681,14 @@ body { font-weight: 700; letter-spacing: 0; }
  *   a wider band: the moat = water rects in front of both faces, WALL.moat), KRAKEN (`topSafe`: never on
  *   the wall top), PORTALS (`mirror: 'y'`, a `shut` phase 'closed' + `wait`: troops wait on the pad,
  *   PORTALS.untilOpen; portal routing on a river map) and TUNNEL; classic towers.
+ * v26 mech (docs/V26-MECH.md): the busy-ladder rule (a troop on the wall top over the ladder gap
+ *   heads down at once) on every wall map, not only the citadel; mouthX: a troop on a bridge whose
+ *   mouth is partly covered by a building / tower leaves through the free part; pierMouth: no building
+ *   on the tiles in front of the citadel ladder pier (noBuilding); skyWaypoint: a troop waiting for a
+ *   sunk bridge holds its spot near the mouth, "lined up" at an open bridge within 0.3 tiles, a goal on
+ *   the troop's own bridge = nearest corridor point (no back and forth). gridWaypoint(px, py, r, gx, gy,
+ *   rects, out, noTop) -> bool: A* fallback on a 0.5-tile grid for pockets of several flush rects
+ *   (used by CR.Units for a troop stuck next to a rect).
  */
 (function (CR) {
   'use strict';
@@ -9514,6 +9741,10 @@ body { font-weight: 700; letter-spacing: 0; }
       const north = zg > zp || (zg === zp && gy > py);
       out.x = CR.clamp(px, lo, hi);
       out.y = north ? G.y1 + 0.3 : G.y0 - 0.3;
+      // v26: a goal on the same bridge (an approach slot, a target on it): the nearest point of the
+      // corridor - heading for the far bank instead made a Knight whose slot lay beside the bridge
+      // step back and forth across the slot's y every tick for seconds.
+      if (zg === zp) { out.x = CR.clamp(gx, lo, hi); out.y = gy; }
       if (px < lo - 1e-6 || px > hi + 1e-6) out.y = py;
       if (nav) nav.bridge = b.index;
       return true;
@@ -9542,7 +9773,13 @@ body { font-weight: 700; letter-spacing: 0; }
     const lo = best.x0 + Math.min(r, (best.x1 - best.x0) / 2), hi = best.x1 - Math.min(r, (best.x1 - best.x0) / 2);
     const mx = CR.clamp(px, lo, hi);
     const dm = Math.abs(ey - py);
-    if (dm > r + 0.9 || px < lo - 0.05 || px > hi + 0.05) {
+    // v26: a troop that waits for the sunk bridge holds its spot near the mouth (lined up within
+    // 0.6, up to r + 2.2 from the edge) instead of all of them pressing for the one wait point:
+    // the waiting crowd vibrated back and forth (AI battles: 7.2 reversals / 100 unit-s, 2.5x classic).
+    if (dm <= r + 2.2 && Math.abs(px - mx) < 0.6 && skyWait(S, best, S.t, need) !== 0) { out.x = px; out.y = py; return true; }
+    // (v26: lined up = within 0.3 of the corridor - pushed 0.05 sideways out of it by a friend, a
+    // Guard at the open bridge flipped every tick between "back to the mouth" and "across")
+    if (dm > r + 0.9 || px < lo - 0.3 || px > hi + 0.3) {
       // to the mouth (on the bank, lined up in the corridor)
       out.x = mx; out.y = ey - sg * (r + 0.45);
       return true;
@@ -10032,8 +10269,18 @@ body { font-weight: 700; letter-spacing: 0; }
     return false;
   }
   Arena.nearHole = nearHole;
+  /** v26 citadel: the row of tiles right in front of the ladder pier (between the moat strips). A
+   *  building there sealed the pier: troops on it (Tombstone skeletons spawned onto it) stood
+   *  pressed against the building for good (AI battles: 9.7 s). Only on a wall map with a moat. */
+  function pierMouth(cx, cy) {
+    const W = Arena.WALL;
+    if (!W || !W.moat) return false;
+    const L = W.ladder, rv = Arena.RIVER;
+    if (cx < Math.floor(L.x0) || cx > Math.ceil(L.x1)) return false;
+    return (cy >= rv.y0 - 1 && cy < rv.y0) || (cy >= rv.y1 && cy < rv.y1 + 1);
+  }
   /** Tiles where no building may stand: next to a tunnel hole (v12) or on a rail track (v14). */
-  function noBuilding(cx, cy) { return nearHole(cx, cy) || onTrack(cx, cy) || nearPortalSpot(cx, cy); }   // (v24: + portal spots)
+  function noBuilding(cx, cy) { return nearHole(cx, cy) || onTrack(cx, cy) || nearPortalSpot(cx, cy) || pierMouth(cx, cy); }   // (v24: + portal spots, v26: + citadel pier mouth)
   Arena.noBuilding = noBuilding;
 
   /** Reason for the middle band: river (classic), hill (plateau) or plain zone (flat tunnel map). */
@@ -10229,6 +10476,10 @@ body { font-weight: 700; letter-spacing: 0; }
         if (hg === 1) { wx = CR.clamp(px, lo, hi); wy = rv.y1 + margin; }
         else if (hg === 0) { wx = CR.clamp(px, lo, hi); wy = rv.y0 - margin; }
         else { wx = CR.clamp(gx, lo, hi); wy = gy; }
+        // v26: a building standing right at the bridge mouth (own Tombstone / Cannon at the bank)
+        // blocks the straight way off: slide along the bridge to the free part of the mouth (was:
+        // pressed against the building face for good - the detour only starts on the bank).
+        if (hg !== -1 && rects && rects.length) wx = mouthX(rects, lo, hi, px, wx, hg === 0 ? rv.y0 : rv.y1, hg === 0, r);
         // Displaced over the water: move straight back onto the bridge first.
         if (!on && (px < lo - 1e-6 || px > hi + 1e-6)) { wx = CR.clamp(px, lo, hi); wy = py; }
         out.x = wx; out.y = wy;
@@ -10263,6 +10514,42 @@ body { font-weight: 700; letter-spacing: 0; }
   };
 
   /**
+   * v26: x at which a troop of radius r leaves a bridge whose mouth (bank edge `edge`, heading
+   * south when `south`) may be partly covered by a building / tower rect standing right at the bank.
+   * Returns wx when its column is free, else the free x in [lo, hi] closest to px (wx when no x is
+   * free - then the normal pressing goes on, nothing better exists). No allocations.
+   */
+  function mouthX(rects, lo, hi, px, wx, edge, south, r) {
+    const reach = 2 * r + 0.2;
+    let hit = false;
+    for (let i = 0; i < rects.length; i++) {
+      const b = rects[i];
+      if (b.x1 === undefined || b.water) continue;
+      if (south ? (b.y1 < edge - reach || b.y0 > edge + 0.05) : (b.y0 > edge + reach || b.y1 < edge - 0.05)) continue;
+      if (b.x1 + r > wx - 1e-6 && b.x0 - r < wx + 1e-6) { hit = true; break; }
+    }
+    if (!hit) return wx;
+    // candidate x: the corridor ends and the expanded rect edges; keep the free one closest to px
+    let best = wx, bestD = Infinity;
+    for (let i = -2; i < 2 * rects.length; i++) {
+      let c;
+      if (i === -2) c = lo; else if (i === -1) c = hi;
+      else { const b = rects[i >> 1]; if (b.x1 === undefined || b.water) continue; c = (i & 1) ? b.x1 + r + 0.02 : b.x0 - r - 0.02; }
+      if (c < lo - 1e-9 || c > hi + 1e-9) continue;
+      let free = true;
+      for (let j = 0; j < rects.length; j++) {
+        const b = rects[j];
+        if (b.x1 === undefined || b.water) continue;
+        if (south ? (b.y1 < edge - reach || b.y0 > edge + 0.05) : (b.y0 > edge + reach || b.y1 < edge - 0.05)) continue;
+        if (b.x1 + r > c && b.x0 - r < c) { free = false; break; }
+      }
+      const d = Math.abs(c - px);
+      if (free && d < bestD) { bestD = d; best = c; }
+    }
+    return best;
+  }
+
+  /**
    * v22 pyramid: waypoint when the troop or its goal is on the wall top (else false -> the normal
    * river / bridge routing with the tunnels and the ladder as crossings). On the top: walk along it
    * (goal on the top too) or to the ladder gap and down the rungs on the goal's side. From the
@@ -10281,7 +10568,9 @@ body { font-weight: 700; letter-spacing: 0; }
       if (gTop) { out.x = CR.clamp(gx, T.wx0 + 0.3, T.wx1 - 0.3); out.y = CR.clamp(gy, T.wy0 + 0.3, T.wy1 - 0.3); return true; }
       // (v25 citadel - busy ladder: a troop already over the gap heads down at once; side by side
       // two troops pressing sideways for their lined-up x held each other at the gap forever)
-      const over = WL.moat && px > L.x0 - 0.1 && px < L.x1 + 0.1;
+      // (v26: on every wall map - the pyramid had the same jam: two Archers side by side on the top
+      // at x 8.5 / 9.5 pressed towards x 8.6 / 9.4 for 12.7 s; was citadel-only (WL.moat))
+      const over = px > L.x0 - 0.1 && px < L.x1 + 0.1;
       if (!over && (px < llo - 0.05 || px > lhi + 0.05)) { out.x = CR.clamp(px, llo, lhi); out.y = CR.clamp(py, T.wy0 + 0.3, T.wy1 - 0.3); return true; }
       const down = gy < mid ? 0 : 1;
       out.x = CR.clamp(px, llo, lhi); out.y = down === 0 ? WL.y0 - L.foot - 0.3 : WL.y1 + L.foot + 0.3;
@@ -10470,7 +10759,8 @@ body { font-weight: 700; letter-spacing: 0; }
   Arena.detour = detour;
 
   /** Push a circle out of a rect; returns true if moved. Writes into out {x,y}. */
-  Arena.pushOutOfRect = function (x, y, r, b, out) {
+  const PUSH_D = [0, 0, 0, 0];
+  Arena.pushOutOfRect = function (x, y, r, b, out, rects) {
     CR.boxClosest(x, y, b.x0, b.y0, b.x1, b.y1, tmpA);
     let dx = x - tmpA.x, dy = y - tmpA.y;
     const d2 = dx * dx + dy * dy;
@@ -10481,10 +10771,144 @@ body { font-weight: 700; letter-spacing: 0; }
       return true;
     }
     // Centre inside the rect: leave through the nearest edge.
-    const l = x - b.x0, rr = b.x1 - x, dn = y - b.y0, up = b.y1 - y;
-    const m = Math.min(l, rr, dn, up);
+    // (v26 stress: never through an edge whose exit lies outside the field - a troop spawned in
+    // the back of a tower flush with the arena edge (fortress: chaos Skeleton Army behind the
+    // long tower) was pushed out, clamped back in and stayed inside the tower for good.)
+    const l = b.x0 - r < -1e-9 ? Infinity : x - b.x0, rr = b.x1 + r > Arena.W + 1e-9 ? Infinity : b.x1 - x;
+    const dn = b.y0 - r < -1e-9 ? Infinity : y - b.y0, up = b.y1 + r > Arena.H + 1e-9 ? Infinity : b.y1 - y;
+    let m = Math.min(l, rr, dn, up);
+    if (m === Infinity) { out.x = x; out.y = y; return false; }
+    // v26 stress: with the other obstacles given (collision pass), skip faces whose exit overlaps
+    // another rect (a Bomb Tower placed on an own troop right in front of the King Tower pushed
+    // it into the King Tower, and the two rects then kept it inside for good). None free: nearest.
+    if (rects && rects.length > 1) {
+      const D = PUSH_D;
+      D[0] = l; D[1] = rr; D[2] = dn; D[3] = up;
+      for (let tries = 0; tries < 4; tries++) {
+        let k = 0;
+        for (let q = 1; q < 4; q++) if (D[q] < D[k]) k = q;
+        if (D[k] === Infinity) break;
+        const ex = k === 0 ? b.x0 - r : (k === 1 ? b.x1 + r : x), ey = k === 2 ? b.y0 - r : (k === 3 ? b.y1 + r : y);
+        let hit = false;
+        for (let j = 0; j < rects.length && !hit; j++) {
+          const c = rects[j];
+          if (c === b || c.cart || c.portal !== undefined) continue;
+          hit = ex > c.x0 - r + 1e-6 && ex < c.x1 + r - 1e-6 && ey > c.y0 - r + 1e-6 && ey < c.y1 + r - 1e-6;
+        }
+        if (!hit) { m = D[k]; break; }
+        D[k] = Infinity;
+      }
+    }
     out.x = x; out.y = y;
     if (m === l) out.x = b.x0 - r; else if (m === rr) out.x = b.x1 + r; else if (m === dn) out.y = b.y0 - r; else out.y = b.y1 + r;
+    return true;
+  };
+
+  // ---------------------------------------------------------------------------
+  // v26 mech: grid fallback for pockets of several rects (docs/V26-MECH.md "Pockets"). detour()
+  // walks round ONE rect at a time; two or more buildings / towers placed flush or nearly flush
+  // (Tombstone + Goblin Hut + King Tower) form a pocket whose way out leads round the cluster - the
+  // troop pressed against the rects for 8-30 s. CR.Units calls gridWaypoint only for a troop that
+  // made no headway for 1 s next to a rect: an A* over a 0.5-tile grid (cells within the troop's
+  // radius of a rect, water or the border are blocked) and the farthest path cell in straight view.
+  // Fixed scratch arrays (allocated once), at most G_COLS * G_ROWS expansions.
+  // ---------------------------------------------------------------------------
+  const GS = 0.5, G_COLS = 36, G_ROWS = 64, G_N = G_COLS * G_ROWS;
+  const G_BLK = new Uint8Array(G_N), G_G = new Float64Array(G_N), G_FROM = new Int32Array(G_N), G_ST = new Uint8Array(G_N);
+  const G_HEAP = new Int32Array(G_N * 8 + 8), G_HF = new Float64Array(G_N * 8 + 8), G_PATH = new Int32Array(G_N);
+  const G_DX = [1, -1, 0, 0, 1, 1, -1, -1], G_DY = [0, 0, 1, -1, 1, -1, 1, -1];
+  function gridBlocked(cx, cy, r, rects, noTop) {
+    if (cx < r || cx > Arena.W - r || cy < r || cy > Arena.H - r) return true;
+    const wr = Math.min(r, 0.45) * 0.7;
+    if (Arena.isWater(cx, cy) || Arena.isWater(cx + wr, cy) || Arena.isWater(cx - wr, cy) || Arena.isWater(cx, cy + wr) || Arena.isWater(cx, cy - wr)) return true;
+    if (noTop && Arena.WALL && (Arena.onWallTop(cx, cy) || Arena.onLadder(cx, cy))) return true;
+    for (let i = 0; i < rects.length; i++) {
+      const b = rects[i];
+      if (b.x1 === undefined || b.cart) continue;
+      if (CR.boxDist(cx, cy, b.x0, b.y0, b.x1, b.y1) < r - 0.02) return true;
+    }
+    return false;
+  }
+  function gCell(x, y) {
+    let i = Math.floor(x / GS), j = Math.floor(y / GS);
+    i = i < 0 ? 0 : (i >= G_COLS ? G_COLS - 1 : i); j = j < 0 ? 0 : (j >= G_ROWS ? G_ROWS - 1 : j);
+    return j * G_COLS + i;
+  }
+  /** Straight segment p -> q over free cells only (sampled every 0.2 tiles). */
+  function gClear(px, py, qx, qy) {
+    const d = Math.hypot(qx - px, qy - py), n = Math.max(1, Math.ceil(d / 0.2));
+    const c0 = gCell(px, py);
+    for (let k = 1; k <= n; k++) {
+      const c = gCell(px + (qx - px) * k / n, py + (qy - py) * k / n);
+      if (c !== c0 && G_BLK[c]) return false;
+    }
+    return true;
+  }
+  /**
+   * v26: next waypoint of a grid A* path from p to g for a ground troop of radius r round `rects`
+   * (+ water / wall); noTop: never over the wall top / ladder (buildings-only troops). Goal cell not
+   * reachable (inside its target building): path to the reachable cell closest to g. Returns false
+   * when no path leaves the start (out untouched).
+   */
+  Arena.gridWaypoint = function (px, py, r, gx, gy, rects, out, noTop) {
+    rects = rects || [];
+    for (let j = 0; j < G_ROWS; j++) for (let i = 0; i < G_COLS; i++) G_BLK[j * G_COLS + i] = gridBlocked((i + 0.5) * GS, (j + 0.5) * GS, r, rects, noTop) ? 1 : 0;
+    const s0 = gCell(px, py), tg = gCell(gx, gy);
+    G_ST.fill(0);
+    const tgx = (tg % G_COLS + 0.5) * GS, tgy = (Math.floor(tg / G_COLS) + 0.5) * GS;
+    const hOf = function (c) { const x = (c % G_COLS + 0.5) * GS, y = (Math.floor(c / G_COLS) + 0.5) * GS; return Math.hypot(x - tgx, y - tgy); };
+    let hn = 0;
+    const push = function (c, f) {
+      let k = hn++;
+      while (k > 0) { const p = (k - 1) >> 1; if (G_HF[p] <= f) break; G_HEAP[k] = G_HEAP[p]; G_HF[k] = G_HF[p]; k = p; }
+      G_HEAP[k] = c; G_HF[k] = f;
+    };
+    const pop = function () {
+      const top = G_HEAP[0], lc = G_HEAP[--hn], lf = G_HF[hn];
+      let k = 0;
+      for (;;) {
+        let ch = 2 * k + 1;
+        if (ch >= hn) break;
+        if (ch + 1 < hn && G_HF[ch + 1] < G_HF[ch]) ch++;
+        if (G_HF[ch] >= lf) break;
+        G_HEAP[k] = G_HEAP[ch]; G_HF[k] = G_HF[ch]; k = ch;
+      }
+      G_HEAP[k] = lc; G_HF[k] = lf;
+      return top;
+    };
+    G_G[s0] = 0; G_FROM[s0] = -1; G_ST[s0] = 1; push(s0, hOf(s0));
+    let best = s0, bestH = hOf(s0);
+    while (hn > 0) {
+      const c = pop();
+      if (G_ST[c] === 2) continue;
+      G_ST[c] = 2;
+      const h = hOf(c);
+      if (h < bestH - 1e-9) { bestH = h; best = c; }
+      if (c === tg) break;
+      const ci = c % G_COLS, cj = (c - ci) / G_COLS;
+      for (let k = 0; k < 8; k++) {
+        const ni = ci + G_DX[k], nj = cj + G_DY[k];
+        if (ni < 0 || nj < 0 || ni >= G_COLS || nj >= G_ROWS) continue;
+        const n = nj * G_COLS + ni;
+        if (G_ST[n] === 2 || (G_BLK[n] && n !== tg)) continue;
+        if (k >= 4 && c !== s0 && (G_BLK[cj * G_COLS + ni] || G_BLK[nj * G_COLS + ci])) continue;   // no corner cutting (the troop's own cell: free)
+        const g = G_G[c] + (k >= 4 ? 1.41421356 : 1) * GS;
+        if (G_ST[n] === 1 && G_G[n] <= g) continue;
+        G_G[n] = g; G_FROM[n] = c; G_ST[n] = 1;
+        if (hn < G_HEAP.length) push(n, g + hOf(n));
+      }
+    }
+    if (best === s0) return false;
+    let m = 0;
+    for (let c = best; c >= 0 && m < G_N; c = G_FROM[c]) G_PATH[m++] = c;
+    // G_PATH[m - 1] = start ... G_PATH[0] = best: the farthest of the next 8 cells in straight view
+    let pick = G_PATH[m - 2];
+    for (let k = m - 2; k >= 0 && k >= m - 9; k--) {
+      const c = G_PATH[k], x = (c % G_COLS + 0.5) * GS, y = (Math.floor(c / G_COLS) + 0.5) * GS;
+      if (gClear(px, py, x, y)) pick = c; else break;
+    }
+    if (pick === tg && best === tg) { out.x = gx; out.y = gy; return true; }
+    out.x = (pick % G_COLS + 0.5) * GS; out.y = (Math.floor(pick / G_COLS) + 0.5) * GS;
     return true;
   };
 
@@ -11415,7 +11839,13 @@ body { font-weight: 700; letter-spacing: 0; }
 
     /** The arena is global state: make it match this battle's map and mode. */
     _assertArena() {
-      if (CR.Arena.map !== this.map || CR.Arena.mode !== this.arenaMode) CR.Arena.setMap(this.map, this.arenaMode);
+      if (CR.Arena.map !== this.map || CR.Arena.mode !== this.arenaMode) {
+        CR.Arena.setMap(this.map, this.arenaMode);
+        // v26 stress: the rebuild resets the time-dependent hazard geometry (portal spots, sky
+        // bridges, kraken telegraph) to t = 0 - bring it back to this sim's clock (was: plays /
+        // AI between another sim's (card preview) tick and the next MapHz.pre saw the wrong state).
+        if (this.hz && CR.MapHz && typeof CR.MapHz.resync === 'function') CR.MapHz.resync(this);
+      }
     }
 
     tick() {
@@ -12092,6 +12522,13 @@ body { font-weight: 700; letter-spacing: 0; }
  * whirlKick, shadowClones; v13: activeAbility, actKind, abilityTarget, abilityCheck, useAbility,
  * buffGuard, stepAct, steady; v14: pushOutOfWater, dropTargetOn; v15: approachSlot. CR.Rails: create, step, view, plan,
  * eta, dropRider, eligible.
+ *
+ * v26 mech (docs/V26-MECH.md): pushOutOfWater leaves a water rect through a face that leads onto land
+ * (a troop in the seam of two water pieces - citadel moat / outer wall - was pushed back and forth for
+ * good); approachSlot is off across / on a sky-island gap (skyApart), like at the river; pocketCheck: a
+ * troop stuck for 1 s next to a building / tower follows CR.Arena.gridWaypoint (pockets of several flush
+ * rects) until the normal router agrees again (nav.gUntil / gwx / gwy / gAgree); a troop heading for a
+ * portal warps within 0.6 + r / 4 of the pad centre.
  */
 (function (CR) {
   'use strict';
@@ -14257,6 +14694,49 @@ body { font-weight: 700; letter-spacing: 0; }
     return m;
   }
 
+  /**
+   * v26 mech (docs/V26-MECH.md "Pockets"): a walking ground troop that made < 30 % of its expected
+   * headway for 1 s while pressed against a building / tower (within r + 0.6) switches to the grid
+   * route (CR.Arena.gridWaypoint, recomputed every 0.25 s or when reached) for 3 s - the way out of a
+   * pocket of several rects that the one-rect detour cannot find. Returns true while the grid
+   * waypoint (u.nav.gwx / gwy) is to be used. Classic open-field walking never triggers it.
+   */
+  function pocketCheck(sim, u, gx, gy, rr) {
+    const nav = u.nav || (u.nav = newNav(u));
+    const now = sim.time;
+    if (!(nav.gLast >= now - 2.5 * sim.dt)) { nav.gT = now; nav.gx0 = u.x; nav.gy0 = u.y; }
+    nav.gLast = now;
+    if (now - nav.gT >= 1 - EPS) {
+      const need = 0.3 * u.s.speed * u.rate * (now - nav.gT);
+      if (!(nav.gUntil > now) && CR.dist(u.x, u.y, nav.gx0, nav.gy0) < need && nearRect(sim, u, u.r + 0.6)) { nav.gUntil = now + 20; nav.gMin = now + 2; nav.gAgree = 0; nav.gwT = -1; }
+      nav.gT = now; nav.gx0 = u.x; nav.gy0 = u.y;
+    }
+    if (!(nav.gUntil > now + EPS)) return false;
+    if (!(nav.gwT > now - 0.25 + EPS) || Math.abs(nav.ggx - gx) + Math.abs(nav.ggy - gy) > 0.5 || CR.dist2(u.x, u.y, nav.gwx, nav.gwy) < 0.01) {
+      nav.gwT = now; nav.ggx = gx; nav.ggy = gy;
+      if (!CR.Arena.gridWaypoint(u.x, u.y, rr, gx, gy, sim.staticRects, GWP, nav.lad === 0)) { nav.gUntil = 0; return false; }
+      nav.gwx = GWP.x; nav.gwy = GWP.y;
+      // back to the normal router once it agrees with the grid route for 1 s (else it would lead
+      // straight back into the pocket); at the latest after 20 s
+      CR.Arena.waypoint(u.x, u.y, rr, gx, gy, u.s.jumpsRiver, sim.staticRects, GWP, nav);
+      const ax = nav.gwx - u.x, ay = nav.gwy - u.y, bx = GWP.x - u.x, by = GWP.y - u.y;
+      const la = Math.sqrt(ax * ax + ay * ay), lb = Math.sqrt(bx * bx + by * by);
+      nav.gAgree = la > 1e-6 && lb > 1e-6 && (ax * bx + ay * by) > 0.8 * la * lb ? nav.gAgree + 1 : 0;
+      if (now >= nav.gMin - EPS && nav.gAgree >= 4) { nav.gUntil = 0; return false; }
+    }
+    return true;
+  }
+  const GWP = { x: 0, y: 0 };
+  function nearRect(sim, u, d) {
+    const rs = sim.staticRects;
+    for (let i = 0; i < rs.length; i++) {
+      const b = rs[i];
+      if (b.x1 === undefined || b.cart) continue;
+      if (CR.boxDist(u.x, u.y, b.x0, b.y0, b.x1, b.y1) < d) return true;
+    }
+    return false;
+  }
+
   function moveToward(sim, u, gx, gy, stopAt) {
     const s = u.s;
     let speed = s.speed;
@@ -14272,9 +14752,11 @@ body { font-weight: 700; letter-spacing: 0; }
     let rr = u.r > ROUTE_R ? ROUTE_R : u.r;   // v14: 2-tile gaps between towers fit Sparky
     let sq = false;
     if (!u.air && !u.underground && collides(u)) { rr = squeezeRadius(sim, u, rr); sq = SQ.x !== u.x || SQ.y !== u.y; }
+    const grid = !u.air && !u.underground && !sq && pocketCheck(sim, u, gx, gy, rr);
     for (let leg = 0; leg < 3 && budget > 1e-9; leg++) {
       let wx, wy;
       if (u.air || u.underground) { wx = gx; wy = gy; }
+      else if (grid && leg === 0) { wx = u.nav.gwx; wy = u.nav.gwy; }
       else {
         const ox = sq && leg === 0 ? SQ.x : u.x, oy = sq && leg === 0 ? SQ.y : u.y;
         CR.Arena.waypoint(ox, oy, rr, gx, gy, s.jumpsRiver, sim.staticRects, WP, u.nav || (u.nav = newNav(u)));
@@ -14372,7 +14854,9 @@ body { font-weight: 700; letter-spacing: 0; }
     if (!(RR.slotEvery > 0) || t.x1 !== undefined || u.underground || u.building || s.range > RR.slotMaxRange
         || g > s.range + RR.slotLook || t.state === 'moving' || (u.s.special && (u.s.special.jump || u.s.special.dash))
         || (!u.air && CR.Arena.hasRiver && ((u.y < CR.Arena.H / 2) !== (t.y < CR.Arena.H / 2)
-          || CR.Arena.inRiverBand(t.y - t.r - 2 * u.r - 0.5) || CR.Arena.inRiverBand(t.y + t.r + 2 * u.r + 0.5)))) {
+          || CR.Arena.inRiverBand(t.y - t.r - 2 * u.r - 0.5) || CR.Arena.inRiverBand(t.y + t.r + 2 * u.r + 0.5)))
+        // v26 sky islands: like the river - not across / on a gap, nor round a target at a gap edge
+        || (!u.air && CR.Arena.SKY && skyApart(u, t))) {
       u.slotSide = 0; u.slotT = -1; return false;
     }
     const reach = Math.max(0.05, Math.min(s.range * 0.6, s.range - 0.1));
@@ -14442,6 +14926,14 @@ body { font-weight: 700; letter-spacing: 0; }
     return true;
   }
   Units.approachSlot = approachSlot;
+  /** v26: troop and target on different sky zones, the troop on a bridge, or the target's slot ring
+   *  reaching into a gap (the ring would be mostly void, as round a target at the river). */
+  function skyApart(u, t) {
+    const A = CR.Arena, zu = A.skyZone(u.y), zt = A.skyZone(t.y);
+    if (zu !== zt || (zu & 1)) return true;
+    const m = t.r + 2 * u.r + 0.5;
+    return A.skyZone(t.y - m) !== zt || A.skyZone(t.y + m) !== zt;
+  }
 
   /** Distance to walk toward a target at gap g so that it ends up `rangeMargin` inside range. */
   function rangeStop(g, range) {
@@ -15099,13 +15591,22 @@ body { font-weight: 700; letter-spacing: 0; }
   function pushOutOfWater(x, y, r, b, W, out) {
     const inside = x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1;
     if (!inside) return CR.Arena.pushOutOfRect(x, y, r, b, out);
-    let best = Infinity;
+    // v26: the nearest face that leads onto land (a face shared with the next water rect - the
+    // citadel moat strip next to the outer wall water at x 12 - pushed a Witch skeleton spawned
+    // into the seam back and forth between the two rects for good). All faces in water: nearest.
+    let best = Infinity, bestW = Infinity;
     out.x = x; out.y = y;
-    const dn = y - b.y0, up = b.y1 - y;
-    if (dn < best) { best = dn; out.x = x; out.y = b.y0 - r; }
-    if (up < best) { best = up; out.x = x; out.y = b.y1 + r; }
-    if (b.x0 > 1e-9 && x - b.x0 < best) { best = x - b.x0; out.x = b.x0 - r; out.y = y; }
-    if (b.x1 < W - 1e-9 && b.x1 - x < best) { best = b.x1 - x; out.x = b.x1 + r; out.y = y; }
+    let wx = x, wy = y;
+    for (let k = 0; k < 4; k++) {
+      let d, ex = x, ey = y;
+      if (k === 0) { d = y - b.y0; ey = b.y0 - r; }
+      else if (k === 1) { d = b.y1 - y; ey = b.y1 + r; }
+      else if (k === 2) { if (!(b.x0 > 1e-9)) continue; d = x - b.x0; ex = b.x0 - r; }
+      else { if (!(b.x1 < W - 1e-9)) continue; d = b.x1 - x; ex = b.x1 + r; }
+      if (d < bestW) { bestW = d; wx = ex; wy = ey; }
+      if (d < best && !CR.Arena.isWater(ex, ey)) { best = d; out.x = ex; out.y = ey; }
+    }
+    if (best === Infinity) { out.x = wx; out.y = wy; }
     return true;
   }
   Units.pushOutOfWater = pushOutOfWater;
@@ -15294,7 +15795,7 @@ body { font-weight: 700; letter-spacing: 0; }
           const b = rects[j];
           if (b === a) continue;
           if (b.cart) { cartPush(a, b); continue; }   // v14 mine cart: off the rails, to the field side
-          if (CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, TMP)) { a.x = TMP.x; a.y = TMP.y; }
+          if (CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, TMP, rects)) { a.x = TMP.x; a.y = TMP.y; }
         }
         if (!jumper(a.s)) {
           for (let j = 0; j < water.length; j++) {
@@ -15826,7 +16327,11 @@ body { font-weight: 700; letter-spacing: 0; }
         for (let i = 0; i < 2; i++) {
           const e = P.ends[i];
           const dx = u.x - e.x, dy = u.y - e.y;
-          if (dx * dx + dy * dy <= rr * rr) { warp(sim, H, P, u, i); break; }
+          // (v26 mech: a troop heading for this portal enters when its body covers the pad centre
+          // well - r 0.6 + a quarter of its radius; an Electro Giant pressed by a fighting Bowler on
+          // the far edge of the pad stayed 0.64 from the centre for 24 s)
+          const ri = u.nav && u.nav.portal === i ? rr + 0.25 * u.r : rr;
+          if (dx * dx + dy * dy <= ri * ri) { warp(sim, H, P, u, i); break; }
         }
       }
       if (H.m === 'portals') return;
@@ -15902,6 +16407,16 @@ body { font-weight: 700; letter-spacing: 0; }
       removeTroop(sim, hit, 'kraken');
     }
   }
+
+  /** v26: re-apply this sim's time-dependent hazard state after CR.Arena was rebuilt (another
+   *  sim / a card preview switched the global map in between; Sim._assertArena). */
+  MapHz.resync = function (sim) {
+    const H = sim.hz, A = CR.Arena;
+    if (!H) return;
+    if (A.SKY) A.skySet(sim.time);
+    if (A.PORTALS) A.portalSet(sim.time);
+    if (A.KRAKEN && (H.m === 'kraken' || H.m === 'citadel')) A.KRAKEN.warnAt = H.ph === 1 ? { x: H.x, y: H.y } : null;
+  };
 
   MapHz.danger = function (x, y, r) {
     const K = CR.Arena.KRAKEN;
@@ -19434,6 +19949,8 @@ body { font-weight: 700; letter-spacing: 0; }
     return null;
   }
 
+  /** v26: does a building of half size h at (x, y) keep >= 1 tile to every tower / building
+   *  (sim.staticRects of the last tick, tower movement boxes)? */
   function unitOf(card) {
     if (!card || !card.summon || !card.summon.length) return null;
     const u = CR.DATA.units && CR.DATA.units[card.summon[0].unit];
@@ -21810,7 +22327,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
   /** Number of player entries a view carries: 2 (1v1) or up to MAX_PLAYERS (2v2). */
   function playerCount(view) { return clamp(arr(view.players).length, 2, MAX_PLAYERS); }
-  function encPlayers(view, side, ctx, tick, withChaos) {
+  function encPlayers(view, side, ctx, tick, withChaos, fullOnly) {
     const o = new BitOut();
     const ps = arr(view.players);
     const np = playerCount(view);
@@ -21829,7 +22346,7 @@ body { font-weight: 700; letter-spacing: 0; }
         for (let k = 0; k < p.hand.length; k++) putStr(o, p.hand[k] === undefined ? null : p.hand[k]);
         putStr(o, p.next === undefined ? null : p.next);
       }
-      encChaos(o, i, withChaos ? p.chaos : null, ctx, tick);
+      encChaos(o, i, withChaos ? p.chaos : null, ctx, tick, fullOnly === undefined || fullOnly === i);
       if (ex) putGv(o, ex, 0);
     }
     return o;
@@ -21840,7 +22357,7 @@ body { font-weight: 700; letter-spacing: 0; }
    * receiver acknowledged the revision (ctx.ack[i], from the guest blob), or - without acks -
    * for 1 s after every change and every 2 s.
    */
-  function encChaos(o, i, chaos, ctx, tick) {
+  function encChaos(o, i, chaos, ctx, tick, mayFull) {
     if (chaos === null || chaos === undefined) { o.bits(0, 2); return; }
     const t = new BitOut();
     putGv(t, chaos, 0);
@@ -21850,8 +22367,9 @@ body { font-weight: 700; letter-spacing: 0; }
     const sig = t.len + ':' + t.w.join(',') + ':' + t.cur;
     if (st.sig !== sig) { st.sig = sig; st.rev++; st.changed = tick; }
     const ack = Array.isArray(ctx.ack) ? ctx.ack : null;
-    const full = ack ? ack[i] !== st.rev
-      : (tick - st.changed < CHAOS_FULL_TICKS || tick - st.full >= CHAOS_REFRESH_TICKS || tick <= st.full);
+    // (v26: mayFull false = over budget, another player's state goes in full this time)
+    const full = mayFull !== false && (ack ? ack[i] !== st.rev
+      : (tick - st.changed < CHAOS_FULL_TICKS || tick - st.full >= CHAOS_REFRESH_TICKS || tick <= st.full));
     o.bits(full ? 3 : 2, 2);
     o.ug(st.rev, 3);
     if (full) { o.append(t); st.full = tick; }
@@ -21952,6 +22470,13 @@ body { font-weight: 700; letter-spacing: 0; }
       stats.droppedProjectiles = projs.length - r.kept.length;
       pS = r.out;
     }
+    if (total() > budget && ctx) {
+      // 3b (v26 stress): several chaos states in full (a 2v2 guest that reconnected late: four
+      // unacknowledged states of ~1 KB) can exceed the budget on their own. Send one of them in
+      // full per snapshot (round robin), the others by revision (the guest keeps its last state).
+      // Was: units truncated to 0 + chaos dropped - in EVERY snapshot, since the acks never came.
+      players = encPlayers(view, side, ctx, tick, true, tick % playerCount(view));
+    }
     if (total() > budget) {
       // 4. units: keep as many as fit (in id order); refs must follow the kept list
       truncated = true;
@@ -21979,6 +22504,21 @@ body { font-weight: 700; letter-spacing: 0; }
         tail = new BitOut();
         const keep = essentialExtras(view);
         if (keep) putGv(tail, keep, 0);
+        // v26: the units cut above was measured with the chaos states / extras - fit them again
+        const fixed2 = head.len + players.len + pS.len + aS.len + eS.len + tail.len;
+        let lo2 = units.length, hi2 = sortedBy(arr(view.units), 'id').length;
+        const all = sortedBy(arr(view.units), 'id');
+        while (lo2 < hi2) {
+          const mid = Math.ceil((lo2 + hi2) / 2);
+          const part = all.slice(0, mid);
+          setRefs(towers, part);
+          if (fixed2 + encTowers(towers, mid).len + encUnits(part).len <= budget) lo2 = mid; else hi2 = mid - 1;
+        }
+        units = all.slice(0, lo2);
+        stats.droppedUnits = all.length - lo2;
+        setRefs(towers, units);
+        tS = encTowers(towers, units.length);
+        uS = encUnits(units);
       }
     }
     const body = new BitOut();
@@ -30813,6 +31353,15 @@ body { font-weight: 700; letter-spacing: 0; }
  * words or names during the fight - card art + cost, numbers and icons only (German text stays
  * in menus, lobbies, deck editor, results and in aria-labels).
  *
+ * v26 (user request: "das Menü ist viel zu viel – alles auf EINEM Bildschirm"): UI.MenuScreen is a
+ * one-screen layout without scrolling - top bar (small logo, Regeln / Einstellungen / Ton), the card
+ * fan + mode badge in the free space (big logo on tall phones), the play-type tabs, per tab four
+ * summary tiles (Spielmodus / Karte / Gegner or Spieler / Optionen) that open bottom sheets
+ * (menuSheet: mode picker + description, KI-Stufe + 1v1/2v2, Schnelles Elixier + Karte egal,
+ * "Mit Code beitreten") or the v25 map gallery, a slim deck row (slot pills, Ø elixir, Bearbeiten,
+ * eight cards) and ONE big primary button in the bottom dock (Kampf! / Spiel suchen / the story's
+ * button) with a summary like "Klassisch · Hügel · 1v1". tests/test-v26-menu.js.
+ *
  * German UI text, English code. Nothing in this file touches the DOM at load time, so it can be
  * loaded under jsc for the pure-helper tests (tests/test-shell.js). All DOM work happens inside
  * functions that CR.App (11-main.js) calls at runtime.
@@ -34344,13 +34893,109 @@ body { font-weight: 700; letter-spacing: 0; }
     const blocked = !f.play;
     const topHint = blocked ? hint(notes.play || notes.data || 'Spielen ist gerade nicht möglich.', 'err') : null;
 
+    // ---- v26 one-screen menu (user request: "alles auf EINEM Bildschirm, nicht scrollen"):
+    // top bar (small logo + icon buttons) · card fan in the free space · play-type tabs · per tab
+    // four summary tiles (Spielmodus / Karte / Gegner or Spieler / Optionen) that open a bottom
+    // sheet (or the v25 map gallery) · deck row · one big primary button at the bottom (thumb zone).
+    // Every setting of the old long list is still here - one tap deeper, in its sheet.
+    const sheets = [];
+    let curPane = s.playType;
+    /** A menu bottom sheet (attached to the stage while open). -> { el, open(from), close(quick), isOpen() } */
+    function menuSheet(cls, title, ic, body, doneLabel) {
+      const done = h('button', { class: 'btn btn-blue btn-block mm-sheet-done', type: 'button' }, doneLabel || 'Fertig');
+      const sh = h('div', { class: 'sheet mm-sheet ' + cls, role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, [
+        h('div', { class: 'sheet-grip', 'aria-hidden': 'true' }),
+        h('div', { class: 'sheet-title' }, [icon(ic), title]),
+        h('div', { class: 'mm-sheet-body' }, body),
+        done,
+      ]);
+      const back = h('div', { class: 'sheet-backdrop mm-sheet-back' }, sh);
+      let isOpen = false, closeT = 0, watchT = 0, opener = null;
+      const onKey = function (e) { if (e && e.key === 'Escape') close(); };
+      function open(from) {
+        if (isOpen) return;
+        for (let i = 0; i < sheets.length; i++) if (sheets[i] !== api) sheets[i].close(true);
+        isOpen = true;
+        opener = from || null;
+        if (closeT) { G.clearTimeout(closeT); closeT = 0; }
+        back.classList.remove('is-closing');
+        const host = (el.closest && el.closest('.stage')) || app.stage || G.document.body;
+        host.appendChild(back);
+        if (G.document.addEventListener) G.document.addEventListener('keydown', onKey);
+        // the menu was replaced while the sheet is open (battle, lobby): close it
+        if (G.setInterval) watchT = G.setInterval(function () { if (el.isConnected === false) close(true); }, 400);
+        try { done.focus({ preventScroll: true }); } catch (e) { /* old browsers */ }
+        Sound.play('select');
+      }
+      function close(quick) {
+        if (!isOpen) return;
+        isOpen = false;
+        if (watchT) { G.clearInterval(watchT); watchT = 0; }
+        if (G.document.removeEventListener) G.document.removeEventListener('keydown', onKey);
+        refreshTiles();
+        if (quick === true || UI.reducedMotion() || !G.setTimeout) { remove(back); return; }
+        back.classList.add('is-closing');
+        closeT = G.setTimeout(function () { closeT = 0; remove(back); back.classList.remove('is-closing'); }, 190);
+        if (opener && opener.isConnected) { try { opener.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
+      }
+      done.addEventListener('click', function () { close(); });
+      back.addEventListener('click', function (e) { if (e.target === back) close(); });
+      const api = { el: back, open: open, close: close, isOpen: function () { return isOpen; } };
+      sheets.push(api);
+      return api;
+    }
+    /** A summary tile of the match setup: icon, kicker, value, sub line (+ a warning dot). */
+    function setupTile(cls, kicker, onTap) {
+      const ico = h('span', { class: 'mm-tile-ico', 'aria-hidden': 'true' });
+      const val = h('span', { class: 'mm-tile-v' });
+      const sub = h('span', { class: 'mm-tile-s' });
+      const dot = h('span', { class: 'mm-tile-dot', 'aria-hidden': 'true', hidden: true });
+      const b = h('button', { type: 'button', class: 'mm-tile ' + cls, 'aria-haspopup': 'dialog' },
+        [ico, h('span', { class: 'mm-tile-txt' }, [h('span', { class: 'mm-tile-k' }, kicker), val, sub]), dot]);
+      b.addEventListener('click', function () { onTap(b); });
+      let icNow = '';
+      return {
+        el: b,
+        set: function (ic, value, subText, warn) {
+          if (ic !== icNow) { icNow = ic; ico.textContent = ''; ico.appendChild(icon(ic)); }
+          val.textContent = value;
+          sub.textContent = subText || '';
+          dot.hidden = !warn;
+          b.classList.toggle('has-warn', !!warn);
+          b.setAttribute('aria-label', kicker + ': ' + value + (subText ? ', ' + subText : '') + ' – ändern');
+        },
+      };
+    }
+    /** Turns a v25 map picker button into the "Karte" tile (kicker on top, gallery unchanged). */
+    function mapTile(p) {
+      p.el.classList.add('mm-tile', 'mm-tile-map');
+      const txt = p.el.querySelector && p.el.querySelector('.mapsel-txt');
+      if (txt) txt.insertBefore(h('span', { class: 'mm-tile-k' }, 'Karte'), txt.firstChild);
+      // map notes (feature gates) live in the gallery itself now
+      const body = p.gallery && p.gallery.querySelector && p.gallery.querySelector('.mapgal-body');
+      if (body) { const n = mapNotes(); for (let i = n.length - 1; i >= 0; i--) body.insertBefore(n[i], body.firstChild); }
+      return p.el;
+    }
+    function mapNotes() {
+      const out = [];
+      const add = function (on, text) { if (!on) out.push(h('div', { class: 'hint info' }, text)); };
+      add(f.hill, notes.hill || 'Die Hügel-Karte ist gerade nicht verfügbar.');
+      add(f.tunnel, notes.tunnel || 'Die Tunnel-Karte ist gerade nicht verfügbar.');
+      add(f.flat, notes.flat || 'Die Karte „Flach“ ist gerade nicht verfügbar.');
+      add(f.fortress, notes.fortress || 'Die Karte „Festung“ ist gerade nicht verfügbar.');
+      add(f.pyramid, notes.pyramid || 'Die Karte „Pyramide“ ist gerade nicht verfügbar.');
+      add(f.kraken && f.skyislands && f.portals, notes.kraken || notes.skyislands || notes.portals || 'Eine der neuen Karten ist gerade nicht verfügbar.');   // v24
+      return out;
+    }
+
     // ---- play type switch (one tap, remembered)
     const playSeg = segmented(PLAY_TYPES.map(function (p) {
       return { id: p.id, label: p.label, sub: p.sub, icon: p.icon, cls: 'pt-' + p.id };
     }), s.playType, function (id) { app.setPlayType(id); showPane(id); }, 'seg seg-play');
 
     // ---- v6: game mode (C.H.A.O.S / Touchdown, optionally Touchdown + C.H.A.O.S; v12: +
-    // Klassisch ohne C.H.A.O.S), shared by both panes; the map previews follow the mode
+    // Klassisch ohne C.H.A.O.S; v24: + Bau-Modus) - v26: ONE picker in the "Spielmodus" sheet,
+    // shared by Single-Modus and Mit Freunden; the map tiles follow the mode
     const canTd = !!f.touchdown;
     const gmNow = function () { return UI.allowedGameMode(app.settings.gameMode, f); };
     const mapOff = function (id) { return !UI.mapEnabled(id, f); };
@@ -34364,18 +35009,19 @@ body { font-weight: 700; letter-spacing: 0; }
       if (duoMap) duoMap.setMode(gm);
       refreshModeUi();
     }
-    // v13: "Schnelles Elixier (1,5×)" - one setting, a switch in each pane (kept in sync)
+    // v13: "Schnelles Elixier (1,5×)" - one setting (v26: one switch in the "Optionen" sheet)
     const boosts = [];
     function onBoost(on) {
       app.setElixirBoost(on);
       for (let i = 0; i < boosts.length; i++) boosts[i].set(app.settings.elixirBoost);
+      refreshTiles();
     }
-    boosts.push(boostToggle(s.elixirBoost, onBoost), boostToggle(s.elixirBoost, onBoost));
-    const singleMode = modePicker(gmNow(), s.tdChaos, onGameMode, modeOpts);
-    const duoMode = modePicker(gmNow(), s.tdChaos, onGameMode, modeOpts);
-    pickers.push(singleMode, duoMode);
+    boosts.push(boostToggle(s.elixirBoost, onBoost));
+    const modePick = modePicker(gmNow(), s.tdChaos, onGameMode, modeOpts);
+    pickers.push(modePick);
+    const modeDesc = h('p', { class: 'mm-mode-desc' });
     // deck cards the Touchdown does not allow: a hint (they are swapped for the battle only)
-    const tdDeckHints = [h('div', { class: 'hint info td-deck-hint', hidden: true }), h('div', { class: 'hint info td-deck-hint', hidden: true })];
+    const tdDeckHints = [h('div', { class: 'hint info td-deck-hint', hidden: true })];
     function refreshModeUi() {
       const td = gmNow() === 'touchdown';
       const bad = td ? UI.bannedCards(app.getDeck(), 'touchdown') : EMPTY;
@@ -34397,60 +35043,35 @@ body { font-weight: 700; letter-spacing: 0; }
         rulesBadge.classList.toggle('is-td', td);
         rulesBadge.classList.toggle('is-chaos', chaosBadge);
       }
+      refreshTiles();
     }
 
-    // ---- Single-Modus
-    const diffSeg = segmented(DIFFICULTIES, s.difficulty, function (id) { app.setDifficulty(id); }, 'seg seg-sm');
-    // v5: 1 gegen 1 / 2 gegen 2 (you + bot vs two bots) and the map
+    // ---- Single-Modus: KI-Stufe + 1 gegen 1 / 2 gegen 2 (you + bot vs two bots) in the "Gegner" sheet
+    const diffSeg = segmented(DIFFICULTIES, s.difficulty, function (id) { app.setDifficulty(id); refreshTiles(); }, 'seg seg-sm');
     const can2 = !!f.team2;
     const teamSeg = segmented(TEAM_SIZES.map(function (t) { return { id: t.id, label: t.label, disabled: t.id === 2 && !can2 }; }),
       can2 ? s.teamSize : 1, function (id) { app.setTeamSize(id); refreshFight(); }, 'seg seg-sm seg-team');
-    const mapPick = mapPicker(UI.allowedMap(s.map, f), function (id) { app.setMap(id); if (duoMap) duoMap.set(id); }, { compact: true, mode: gmNow(), disabled: mapOff });
+    const mapPick = mapPicker(UI.allowedMap(s.map, f), function (id) { app.setMap(id); if (duoMap) duoMap.set(id); refreshTiles(); }, { compact: true, mode: gmNow(), disabled: mapOff });
     const fightSub = h('span', { class: 'btn-sub' }, '');
     const fightBtn = h('button', { class: 'btn btn-gold btn-xl btn-block btn-fight', type: 'button', disabled: !f.ai },
       [icon('swords', 'ico-lg'), h('span', { class: 'btn-stack' }, ['Kampf!', fightSub])]);
     fightBtn.addEventListener('click', function () { app.startVsAI(); });
-    function refreshFight() {
-      const two = can2 && app.settings.teamSize === 2;
-      fightSub.textContent = two ? 'Du + Bot gegen 2 Bots' : 'Du gegen einen Bot';
-    }
-    refreshFight();
-    const singlePane = h('div', { class: 'play-pane pane-single' }, [
-      h('div', { class: 'menu-label' }, 'Spielmodus'),
-      singleMode.el,
-      tdDeckHints[0],
-      boosts[0].el,
-      h('div', { class: 'menu-label' }, 'KI-Stufe'),
-      diffSeg.el,
-      h('div', { class: 'menu-label' }, 'Modus'),
-      teamSeg.el,
-      can2 ? null : hint(notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.', 'info'),
-      h('div', { class: 'menu-label' }, 'Karte'),
-      mapPick.el,
-      f.hill ? null : hint(notes.hill || 'Die Hügel-Karte ist gerade nicht verfügbar.', 'info'),
-      f.tunnel ? null : hint(notes.tunnel || 'Die Tunnel-Karte ist gerade nicht verfügbar.', 'info'),
-      f.flat ? null : hint(notes.flat || 'Die Karte „Flach“ ist gerade nicht verfügbar.', 'info'),
-      f.fortress ? null : hint(notes.fortress || 'Die Karte „Festung“ ist gerade nicht verfügbar.', 'info'),
-      f.pyramid ? null : hint(notes.pyramid || 'Die Karte „Pyramide“ ist gerade nicht verfügbar.', 'info'),
-      f.kraken && f.skyislands && f.portals ? null : hint(notes.kraken || notes.skyislands || notes.portals || 'Eine der neuen Karten ist gerade nicht verfügbar.', 'info'),   // v24
-      fightBtn,
-      f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.'),
-    ]);
+    function refreshFight() { refreshTiles(); }
 
-    // ---- Mit Freunden: mode (1v1 with one friend / 2v2 with three friends) + map right here,
-    // "Spiel erstellen" opens the lobby in that mode; joining with a code stays below.
+    // ---- Mit Freunden: mode (1v1 with one friend / 2v2 with three friends) in the "Spieler" sheet;
+    // "Spiel suchen" is the big button, "Spiel erstellen" / "Beitreten" (code sheet) sit in the pane.
     const duoTs = can2 ? UI.normTeamSize(s.duoTeamSize) : 1;
     const duoSeg = segmented(DUO_MODES.map(function (m) {
       return { id: m.id, label: m.label, sub: m.sub, icon: m.icon, cls: 'dm-' + m.id, disabled: m.id === 2 && !can2 };
     }), duoTs, function (id) { app.setDuoTeamSize(id); refreshHost(); }, 'seg seg-duo');
-    const duoMap = mapPicker(UI.allowedMap(s.map, f), function (id) { app.setMap(id); mapPick.set(id); },
+    const duoMap = mapPicker(UI.allowedMap(s.map, f), function (id) { app.setMap(id); mapPick.set(id); refreshTiles(); },
       { compact: true, mode: gmNow(), disabled: mapOff,
         // v25: the gallery's "Karte egal" card = the matchmaking switch below (kept in sync)
-        anyMap: { get: function () { return app.settings.mmAnyMap !== false; }, set: function (on) { app.setMmAnyMap(on); if (anyMap) anyMap.set(on); } } });
+        anyMap: { get: function () { return app.settings.mmAnyMap !== false; }, set: function (on) { app.setMmAnyMap(on); if (anyMap) anyMap.set(on); refreshTiles(); } } });
     // v13 "Spiel suchen": automatic matchmaking (CR.Net.findMatch). v24: every two (2v2: four)
     // searchers meet; the first searcher's mode / map / elixir apply. "Karte egal" = random map.
     const canSearch = !!(f.net && f.match);
-    const anyMap = switchToggle('Karte egal (zufällige Karte)', 'search', s.mmAnyMap !== false, function (on) { app.setMmAnyMap(on); duoMap.refresh(); }, 'tg-anymap');
+    const anyMap = switchToggle('Karte egal (zufällige Karte)', 'search', s.mmAnyMap !== false, function (on) { app.setMmAnyMap(on); duoMap.refresh(); refreshTiles(); }, 'tg-anymap');
     const searchSub = h('span', { class: 'btn-sub' }, '');
     const searchBtn = h('button', { class: 'btn btn-gold btn-xl btn-block btn-search', type: 'button', disabled: !canSearch }, [
       icon('search', 'ico-lg'),
@@ -34461,16 +35082,15 @@ body { font-weight: 700; letter-spacing: 0; }
       app.startSearch({ teamSize: can2 ? UI.normTeamSize(app.settings.duoTeamSize) : 1, map: UI.allowedMap(app.settings.map, f), anyMap: app.settings.mmAnyMap !== false, gameMode: gmNow(), tdChaos: !!app.settings.tdChaos, tdDraft: app.settings.tdDraft !== false, elixirBoost: !!app.settings.elixirBoost });
     });
     const hostSub = h('span', { class: 'btn-sub' }, '');
-    const hostBtn = h('button', { class: 'btn btn-blue btn-xl btn-block btn-host', type: 'button', disabled: !f.net }, [
-      icon('people', 'ico-lg'),
+    const hostBtn = h('button', { class: 'btn btn-blue btn-host', type: 'button', disabled: !f.net }, [
+      icon('link', 'ico-lg'),
       h('span', { class: 'btn-stack' }, ['Spiel erstellen', hostSub]),
     ]);
     function refreshHost() {
       const two = can2 && UI.normTeamSize(app.settings.duoTeamSize) === 2;
-      hostSub.textContent = two ? 'Link an 3 Freunde schicken' : 'Link an 1 Freund schicken';
-      searchSub.textContent = two ? 'Automatisch 3 Mitspieler finden' : 'Automatisch einen Gegner finden';
+      hostSub.textContent = two ? 'Link an 3 Freunde' : 'Link an 1 Freund';
+      refreshTiles();
     }
-    refreshHost();
     hostBtn.addEventListener('click', function () {
       app.startHost({ teamSize: can2 ? UI.normTeamSize(app.settings.duoTeamSize) : 1, map: UI.allowedMap(app.settings.map, f), gameMode: gmNow(), tdChaos: !!app.settings.tdChaos, tdDraft: app.settings.tdDraft !== false, elixirBoost: !!app.settings.elixirBoost });
     });
@@ -34486,6 +35106,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!code) { codeErr.hidden = false; replayClass(codeInput, 'shake'); Sound.play('deny'); return; }
       codeInput.value = code;
       commitName();
+      joinSheet.close(true);
       app.showJoin(code, { auto: true });
     };
     codeInput.addEventListener('input', function () {
@@ -34495,47 +35116,135 @@ body { font-weight: 700; letter-spacing: 0; }
     });
     codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doJoin(); });
     joinBtn.addEventListener('click', doJoin);
+    const joinOpen = h('button', { class: 'btn btn-green btn-join-open', type: 'button', disabled: !f.net, 'aria-haspopup': 'dialog' }, [
+      icon('people', 'ico-lg'),
+      h('span', { class: 'btn-stack' }, ['Beitreten', h('span', { class: 'btn-sub' }, 'Mit Code')]),
+    ]);
+
+    // ---- v26 sheets
+    const chaosHint = f.chaos ? null : hint(notes.chaos || 'C.H.A.O.S ist gerade nicht verfügbar – es gelten die Grundregeln.');
+    const modeSheet = menuSheet('mm-sheet-mode', 'Spielmodus', 'bolt', [modePick.el, modeDesc, tdDeckHints[0], chaosHint]);
+    const oppSheet = menuSheet('mm-sheet-opp', 'Gegner', 'bot', [
+      h('div', { class: 'menu-label' }, 'KI-Stufe'),
+      diffSeg.el,
+      h('div', { class: 'menu-label' }, 'Modus'),
+      teamSeg.el,
+      can2 ? null : hint(notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.', 'info'),
+    ]);
+    const playersSheet = menuSheet('mm-sheet-players', 'Wie viele spielen?', 'people', [
+      duoSeg.el,
+      can2 ? null : h('div', { class: 'hint info' }, notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.'),
+    ]);
+    const anyRow = h('div', { class: 'mm-opt-row mm-opt-any' }, [anyMap.el, h('p', { class: 'mm-opt-note' }, 'Nur für „Spiel suchen“: eine zufällige Karte – du findest schneller Gegner.')]);
+    const optSheet = menuSheet('mm-sheet-opt', 'Optionen', 'gear', [
+      h('div', { class: 'mm-opt-row' }, [boosts[0].el, h('p', { class: 'mm-opt-note' }, 'Elixier lädt 1,5-mal so schnell – schnellere, wildere Kämpfe.')]),
+      anyRow,
+      h('p', { class: 'mm-opt-note mm-opt-more' }, 'Ton, Grafik und Spieltempo findest du in den Einstellungen (Zahnrad oben).'),
+    ]);
+    const joinSheet = menuSheet('mm-sheet-join', 'Mit Code beitreten', 'link', [
+      h('p', { class: 'mm-opt-note' }, 'Gib den Code deines Freundes ein – oder füge seinen Link ein.'),
+      h('div', { class: 'join-row' }, [codeInput, joinBtn]),
+      codeErr,
+    ], 'Abbrechen');
+    joinOpen.addEventListener('click', function () {
+      joinSheet.open(joinOpen);
+      G.setTimeout(function () { try { codeInput.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 60);
+    });
+
+    // ---- the summary tiles (Single-Modus and Mit Freunden each have their own four)
+    const tModeS = setupTile('t-mode', 'Spielmodus', function (b) { modeSheet.open(b); });
+    const tOpp = setupTile('t-opp', 'Gegner', function (b) { oppSheet.open(b); });
+    const tOptS = setupTile('t-opt', 'Optionen', function (b) { optSheet.open(b); });
+    const tModeD = setupTile('t-mode', 'Spielmodus', function (b) { modeSheet.open(b); });
+    const tPlayers = setupTile('t-players', 'Spieler', function (b) { playersSheet.open(b); });
+    const tOptD = setupTile('t-opt', 'Optionen', function (b) { optSheet.open(b); });
+    const MODE_DESC = {
+      chaos: 'Drei Türme wie im Original – dazu wählst du mitten im Kampf Upgrades für deine Karten.',
+      classic: 'Die klassischen Regeln: drei Türme, keine Upgrades. Wer mehr Kronen holt, gewinnt.',
+      touchdown: 'Keine Türme: Bring deine Truppen ins gegnerische Endfeld. ' + TD_TARGET + ' Touchdowns gewinnen.',
+      build: 'Klassisch – dazu setzt jeder Spieler ein eigenes Spezial-Gebäude aufs Feld.',
+    };
+    let tilesReady = false;   // refreshTiles waits until the whole menu is built
+    function refreshTiles() {
+      if (!tilesReady) return;
+      const st = app.settings;
+      const gm = gmNow();
+      const td = gm === 'touchdown';
+      const gmi = GAME_MODES.filter(function (m) { return m.id === gm; })[0] || GAME_MODES[0];
+      let mLabel = gmi.label, mSub = gmi.sub;
+      if (gm === 'chaos' && !f.chaos) { mLabel = 'Grundregeln'; mSub = 'C.H.A.O.S nicht verfügbar'; }
+      if (td) {
+        mLabel = UI.modeLabel('touchdown', { chaos: st.tdChaos && f.chaos });
+        mSub = f.draft !== false ? (st.tdDraft !== false ? 'mit Draft' : 'ohne Draft') : gmi.sub;
+      }
+      const warn = !tdDeckHints[0].hidden;
+      tModeS.set(gmi.icon, mLabel, mSub, warn);
+      tModeD.set(gmi.icon, mLabel, mSub, warn);
+      modeDesc.textContent = MODE_DESC[gm] || '';
+      const dl = (DIFFICULTIES.filter(function (d) { return d.id === st.difficulty; })[0] || DIFFICULTIES[1]).label;
+      const two = can2 && st.teamSize === 2;
+      tOpp.set('bot', 'KI: ' + dl, two ? '2 gegen 2 · mit Bot' : '1 gegen 1');
+      const dTwo = can2 && UI.normTeamSize(st.duoTeamSize) === 2;
+      tPlayers.set(dTwo ? 'people' : 'swords', dTwo ? '2 gegen 2' : '1 gegen 1', dTwo ? 'mit 3 Freunden' : 'mit 1 Freund');
+      const boost = !!st.elixirBoost;
+      const any = st.mmAnyMap !== false;
+      tOptS.set('drop', boost ? 'Elixier 1,5×' : 'Elixier 1×', boost ? 'Schnelles Elixier' : 'Normales Elixier');
+      tOptD.set('drop', boost ? 'Elixier 1,5×' : 'Elixier 1×', boost ? 'Schnelles Elixier' : 'Normales Elixier');   // "Karte egal" shows on the map tile
+      // the big buttons say what starts
+      const m = UI.allowedMap(st.map, f);
+      const mapName = UI.mapMeta(m).label;
+      const tail = boost ? ' · 1,5×' : '';
+      fightSub.textContent = mLabel + ' · ' + mapName + ' · ' + (two ? '2v2' : '1v1') + tail;
+      searchSub.textContent = mLabel + ' · ' + (any ? 'Karte egal' : mapName) + ' · ' + (dTwo ? '2v2' : '1v1') + tail;
+      fightBtn.setAttribute('aria-label', 'Kampf! ' + (two ? 'Du + Bot gegen 2 Bots' : 'Du gegen einen Bot') + ' – ' + fightSub.textContent);
+      searchBtn.setAttribute('aria-label', 'Spiel suchen – ' + (dTwo ? 'automatisch 3 Mitspieler finden' : 'automatisch einen Gegner finden') + ' – ' + searchSub.textContent);
+    }
+
+    const singlePane = h('div', { class: 'play-pane pane-single' }, [
+      h('div', { class: 'mm-tiles' }, [tModeS.el, mapTile(mapPick), tOpp.el, tOptS.el]),
+    ]);
     // v24: the name is only needed online - it sits here in "Mit Freunden" (not in the menu bar)
     const duoPane = h('div', { class: 'play-pane pane-duo' }, [
       h('div', { class: 'name-chip name-duo' }, [h('label', null, 'Dein Name'), nameInput]),
-      h('div', { class: 'menu-label' }, 'Spielmodus'),
-      duoMode.el,
-      tdDeckHints[1],
-      boosts[1].el,
-      h('div', { class: 'menu-label' }, 'Wie viele spielen?'),
-      duoSeg.el,
-      can2 ? null : hint(notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.', 'info'),
-      h('div', { class: 'menu-label' }, 'Karte'),
-      duoMap.el,
-      anyMap.el,
-      searchBtn,
+      h('div', { class: 'mm-tiles' }, [tModeD.el, mapTile(duoMap), tPlayers.el, tOptD.el]),
+      h('div', { class: 'mm-actions' }, [hostBtn, joinOpen]),
       f.net && !f.match ? hint(notes.match || 'Die automatische Suche ist gerade nicht verfügbar.', 'info') : null,
-      h('div', { class: 'or-line' }, h('span', null, 'oder mit Freunden per Link')),
-      hostBtn,
-      h('div', { class: 'or-line' }, h('span', null, 'oder Code eingeben')),
-      h('div', { class: 'join-row' }, [codeInput, joinBtn]),
-      codeErr,
       f.net ? null : hint(notes.net || 'Spielen mit Freunden ist gerade nicht möglich.'),
     ]);
 
     // v25 Story-Modus: the pane comes from 33-story-ui.js (CR.StoryUI.menuPane), none without it
     let storyPane = null;
     try { if (CR.StoryUI && CR.StoryUI.menuPane) storyPane = CR.StoryUI.menuPane(app); } catch (e) { storyPane = null; }
+    // v26: the story's big button joins the others at the bottom (same thumb position in every tab)
+    const storyGo = storyPane && storyPane.querySelector ? storyPane.querySelector('.sty-go') : null;
+
+    // ---- the bottom dock: one big primary button per tab
+    const aiHint = f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.');
+    const dock = h('div', { class: 'mm-dock' }, [aiHint, fightBtn, searchBtn, storyGo]);
 
     function showPane(id) {
+      curPane = id;
+      for (let i = 0; i < sheets.length; i++) sheets[i].close(true);
       singlePane.hidden = id !== 'single';
       duoPane.hidden = id !== 'duo';
       if (storyPane) storyPane.hidden = id !== 'story';   // v25 Story-Modus
+      fightBtn.hidden = id !== 'single';
+      searchBtn.hidden = id !== 'duo';
+      if (storyGo) storyGo.hidden = id !== 'story';
+      if (aiHint) aiHint.hidden = id === 'duo';
+      anyRow.hidden = id !== 'duo';
       panel.classList.toggle('is-duo', id === 'duo');
       panel.classList.toggle('is-story', id === 'story');
+      el.classList.toggle('is-duo', id === 'duo');
+      el.classList.toggle('is-story', id === 'story');
       const m = UI.allowedMap(app.settings.map, f);
       mapPick.set(m);
       duoMap.set(m);
+      refreshTiles();
     }
 
     // ---- rules badge (Spieltempo lives in the settings screen since v5)
     const rulesBadge = h('div', { class: 'rules-badge' + (f.chaos ? ' is-chaos' : '') }, f.chaos ? 'C.H.A.O.S' : 'Grundregeln');   // refreshModeUi sets the real label
-    refreshModeUi();
 
     const panel = h('div', { class: 'menu-panel panel' }, [
       topHint,
@@ -34543,12 +35252,10 @@ body { font-weight: 700; letter-spacing: 0; }
       singlePane,
       duoPane,
       storyPane,
-      f.chaos ? null : hint(notes.chaos || 'C.H.A.O.S ist gerade nicht verfügbar – es gelten die Grundregeln.'),
     ]);
-    showPane(s.playType);
 
-    // v16: the deck box is ~35 % bigger (the eight cards in their own full-width row) and has
-    // the three deck slots on top: one tap switches the deck every mode uses.
+    // v16: the deck box has the three deck slots on top: one tap switches the deck every mode
+    // uses. v26: one slim row - slot pills + "Bearbeiten", the eight cards below (tap = editor).
     let deck = app.getDeck();
     const deckBtn = h('button', { class: 'deck-btn', type: 'button', 'aria-label': 'Deck bearbeiten' });
     let hero = f.data ? heroFan(deck) : null;
@@ -34564,10 +35271,15 @@ body { font-weight: 700; letter-spacing: 0; }
       ]));
       deckBtn.appendChild(deckMini(deck));
       deckBtn.setAttribute('aria-label', (cur ? cur.name : 'Dein Deck') + ' bearbeiten');
+      deckAvgTxt.textContent = 'Ø ' + UI.formatDecimal(UI.avgElixir(deck));
     }
+    const deckAvgTxt = h('b', null, '');
+    const deckAvg = h('span', { class: 'mm-deck-avg', 'aria-hidden': 'true' }, [h('i', { class: 'mm-drop' }), deckAvgTxt]);
+    const deckEdit = h('button', { class: 'mm-deck-edit', type: 'button', 'aria-label': 'Deck bearbeiten' }, [icon('pencil'), h('span', null, 'Bearbeiten')]);
+    deckEdit.addEventListener('click', function () { app.showDeck(); });
     paintDeckBtn();
     deckBtn.addEventListener('click', function () { app.showDeck(); });
-    if (!f.data) deckBtn.disabled = true;
+    if (!f.data) { deckBtn.disabled = true; deckEdit.disabled = true; }
     const deckSwitch = deckSlotSwitch(app, 'deck-switch-menu', function (i, empty) {
       if (empty) { app.showDeck({ slot: i }); return; }
       app.selectDeckSlot(i);
@@ -34579,11 +35291,15 @@ body { font-weight: 700; letter-spacing: 0; }
       Sound.play('select');
     });
     if (!f.data) deckSwitch.el.hidden = true;
-    const deckBox = h('div', { class: 'deck-box' }, [deckSwitch.el, deckBtn]);
+    const deckBox = h('div', { class: 'deck-box' }, [
+      h('div', { class: 'mm-deck-head' }, [deckSwitch.el, deckAvg, deckEdit]),
+      deckBtn,
+    ]);
 
     const rulesBtn = iconButton('book', 'Regeln', 'btn-grey', function () { app.showRules(); });
 
     // One-time tip: start from the home screen for the biggest view (no browser bars).
+    // v26: a floating card over the free space (it never pushes the menu off the screen).
     let homeHint = null;
     const hintPf = UI.homeHintPlatform();
     const hintSeen = +UI.store.get('homeHint', 0) || 0;
@@ -34601,28 +35317,43 @@ body { font-weight: 700; letter-spacing: 0; }
       close.addEventListener('click', function () { remove(homeHint); });
     }
 
-    const el = h('div', { class: 'screen screen-menu scroll' }, [
-      homeHint,
-      h('div', { class: 'menu-top' }, [
-        rulesBtn,
-        settingsBtn,
-        muteBtn,
+    const el = h('div', { class: 'screen screen-menu mm26' }, [
+      h('div', { class: 'menu-top mm-top' }, [
+        h('div', { class: 'logo-wrap mm-brand' }, [
+          h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),
+        ]),
+        h('div', { class: 'mm-icons' }, [rulesBtn, settingsBtn, muteBtn]),
       ]),
-      h('div', { class: 'logo-wrap' }, [
-        h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),
-        rulesBadge,
+      h('div', { class: 'mm-hero' }, [
+        h('div', { class: 'logo mm-hero-logo', 'aria-hidden': 'true' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),   // tall phones: the big logo
+        rulesBadge, hero, homeHint,
       ]),
-      hero,
       panel,
       deckBox,
       f.data ? null : hint(notes.data || 'Kartendaten fehlen.', 'err'),
+      dock,
     ]);
+    tilesReady = true;
+    refreshModeUi();
+    showPane(s.playType);
+    refreshHost();
 
-    const api = { el: el, syncMute: syncMute, destroy: function () {} };
+    const api = { el: el, syncMute: syncMute, sheets: sheets, destroy: function () { for (let i = 0; i < sheets.length; i++) sheets[i].close(true); } };
     return api;
   };
 
   // ======================================================================== SETTINGS
+
+  /** v26 perf: CR.GFX.Quality when the gfx module has it (set / setting / tier), else null. */
+  UI.gfxQuality = function () {
+    const Q = CR.GFX && CR.GFX.Quality;
+    return Q && typeof Q.set === 'function' && typeof Q.setting === 'function' ? Q : null;
+  };
+  /** v26 perf: the settings choices; "Auto" names the detected tier ("Auto (niedrig)"). Pure. */
+  UI.gfxQualityOptions = function (Q) {
+    const tier = Q && Q.tier === 'low' ? 'niedrig' : 'hoch';
+    return [{ id: 'auto', label: 'Auto (' + tier + ')' }, { id: 'high', label: 'Hoch' }, { id: 'low', label: 'Niedrig' }];
+  };
 
   /**
    * v5 settings screen (bottom sheet over the menu or the paused battle): Musik-Lautstärke,
@@ -34672,6 +35403,20 @@ body { font-weight: 700; letter-spacing: 0; }
     row('cube', 'Grafik', segmented(GFX_MODES.map(function (g) { return { id: g.id, label: g.label, disabled: g.id === '3d' && !can3d }; }),
       can3d ? s.gfx : '2d', function (id) { app.setGfx(id); mark(); if (o.onGfx) o.onGfx(id); }, 'seg seg-sm').el,
       can3d ? '2D spart Akku auf älteren Handys.' : ((f.notes && f.notes.gfx3d) || '3D-Grafik ist auf diesem Gerät nicht verfügbar.'));
+    // v26 perf: graphics quality tier Auto / Hoch / Niedrig (CR.GFX.Quality, 20-gfx-core.js - it
+    // saves UI.store 'gfxQuality' itself); "Auto" shows the detected tier, e.g. "Auto (niedrig)"
+    const GQ = UI.gfxQuality();
+    if (GQ) {
+      let qSet = 'auto';
+      try { qSet = GQ.normSetting ? GQ.normSetting(GQ.setting()) : String(GQ.setting()); } catch (e) { qSet = 'auto'; }
+      const qSeg = segmented(UI.gfxQualityOptions(GQ), qSet, function (id) {
+        try { GQ.set(id); } catch (e) { /* the gfx module keeps its old tier */ }
+        mark();
+        const autoBtn = qSeg.el.children[0];
+        if (autoBtn) autoBtn.textContent = UI.gfxQualityOptions(GQ)[0].label;
+      }, 'seg seg-sm seg-gfxq');
+      row('cube', 'Grafikqualität', qSeg.el, 'Auto passt die Grafik an dein Handy an. Niedrig: weniger Effekte, läuft flüssiger und spart Akku.', 'set-gfxq');
+    }
     row('forward', 'Spieltempo', segmented(SPEEDS.map(function (sp) { return { id: sp.id, label: sp.label, sub: sp.sub }; }),
       s.speed, function (id) { app.setSpeed(id); mark(); }, 'seg seg-sm').el,
       (o.inBattle ? 'Gilt ab dem nächsten Kampf. ' : '') + 'Original = Tempo wie im echten Spiel (Standard). Schnell = alles läuft 1,5-mal so schnell. Mit Freunden gilt das Tempo des Gastgebers.');
@@ -45661,6 +46406,22 @@ body { font-weight: 700; letter-spacing: 0; }
         }
       }
     }
+    // v26 stress: a building keeps a lane of >= passGap to every tower / obstacle (also no flush
+    // fit) and never leaves a slit to the side line that troops fit into but cannot pass (a Web
+    // flush on / 0.5 tiles above a princess tower at the side line sealed the corridor beside the
+    // tower - troops deployed there were pressed in place for the whole battle: the router walks
+    // round one rect at a time). Slits < 0.75 tiles (no troop fits) and flush stay allowed.
+    if (k !== 3) {
+      const G = RULES.passGap || 1;
+      const bx0 = x - sh.hx, bx1 = x + sh.hx, by0 = y - sh.hy, by1 = y + sh.hy;
+      const gl = bx0, gr = A.W - bx1;
+      if ((gl > 0.75 - EPS && gl < G - EPS) || (gr > 0.75 - EPS && gr < G - EPS)) return false;
+      for (let i = 0; i < blocks.length; i++) {
+        const c = blocks[i].col || blocks[i];
+        const dx = Math.max(c.x0 - bx1, bx0 - c.x1, 0), dy = Math.max(c.y0 - by1, by0 - c.y1, 0);
+        if (dx * dx + dy * dy < (G - EPS) * (G - EPS)) return false;
+      }
+    }
     if (others) {
       const m = RULES.mateGap - 2;
       for (let i = 0; i < others.length; i++) {
@@ -48286,6 +49047,90 @@ body { font-weight: 700; letter-spacing: 0; }
   G.ready = !!(okThree && HAS_DOM);
   G.THREE = okThree ? THREE : null;
 
+  // ---- v26 perf: graphics quality tier (docs/V26-PERF.md) ------------------------------------
+  // ONE answer to "how much may this phone draw?" for every gfx file. Tiers: 'high' (the normal
+  // look) and 'low' (weak phones): the 'low' detail preset + LOD 1 on all models (the renderer's
+  // weak mode), ~40 % fewer particles, simpler water / map shaders (fewer noise octaves, no
+  // caustic cells), no MSAA and a pixel ratio of at most 2 for renderers created afterwards.
+  // Blob shadows stay (there are no shadow maps). The tier follows the SETTING ('auto' | 'high' |
+  // 'low'; read from CR.UI.store 'gfxQuality' when the UI has one, else Quality.set()):
+  //   'auto' -> 'low' once this device was found weak (the renderer's frame-time governor or the
+  //            kit's rAF window above; remembered per browser in localStorage), else 'high';
+  //   'high' / 'low' -> fixed (the automatic pick is ignored, but still recorded).
+  // Live renderers subscribe (Quality.on) and switch particles / LOD at once; shader variants
+  // switch with the next arena build (no shader compile in the middle of a battle).
+  // Pure helpers (resolve / params / normSetting) are tested headless (tests/test-v26-perf.js).
+  const Q_AUTO_KEY = 'bustwar.gfx.lowDetail', Q_KIT_KEY = 'cr.gfx.lowDetail';   // (= the renderer's weak-device key, v9 / the kit's AUTO_KEY, v10)
+  const Q = G.Quality = {
+    SETTINGS: ['auto', 'high', 'low'],
+    TIERS: ['high', 'low'],
+    STORE_KEY: 'gfxQuality',
+    tier: 'high',
+    _setting: 'auto',
+    _subs: [],
+    normSetting(v) { return v === 'high' || v === 'low' ? v : 'auto'; },
+    /** Pure: tier for a setting + "this device was found weak" flag. */
+    resolve(setting, autoLow) {
+      const s = Q.normSetting(setting);
+      return s === 'auto' ? (autoLow ? 'low' : 'high') : s;
+    },
+    /** Pure: what a tier means for the gfx files. */
+    params(tier) {
+      const low = tier === 'low';
+      return {
+        tier: low ? 'low' : 'high',
+        fx: low ? 0.6 : 1,               // particle emission factor (CR.VFX q base)
+        weak: low,                       // renderer weak mode: 'low' detail preset + LOD 1 everywhere
+        crowdOn: low ? 12 : 25,          // crowd LOD from this many units (weak mode: always LOD 1)
+        crowdOff: low ? 8 : 17,
+        shaderLQ: low,                   // water / map shaders: CR_LQ define (fewer octaves, no cells)
+        mapFx: low ? 0.5 : 1,            // map ambience (bubbles, sparks, waterfall mist) factor
+        halfAnim: low,                   // LOD 1 units animate every other frame (renderer)
+        aa: !low,                        // MSAA for renderers created afterwards
+        maxDpr: low ? 2 : 3,
+      };
+    },
+    /** The setting: CR.UI.store 'gfxQuality' (read only) when present, else the in-memory one. */
+    setting() {
+      try {
+        const st = CR.UI && CR.UI.store;
+        if (st && typeof st.get === 'function') { const v = st.get(Q.STORE_KEY, null); if (v) return Q.normSetting(v); }
+      } catch (e) { /* storage blocked */ }
+      return Q._setting;
+    },
+    /** True when this browser recorded a weak device (renderer governor or kit auto detail). */
+    autoLow() {
+      try {
+        const ls = globalThis.localStorage;
+        return !!(ls && (ls.getItem(Q_AUTO_KEY) === '1' || ls.getItem(Q_KIT_KEY) === '1'));
+      } catch (e) { return false; }
+    },
+    /** Re-evaluates the tier; notifies the subscribers when it changed. */
+    update() {
+      const t = Q.resolve(Q.setting(), Q.autoLow() || Q._weakNow);
+      if (t !== Q.tier) {
+        Q.tier = t;
+        const subs = Q._subs.slice();
+        for (let i = 0; i < subs.length; i++) { try { subs[i](t); } catch (e) { /* subscriber errors stay local */ } }
+      }
+      return Q.tier;
+    },
+    /** Change the setting ('auto' | 'high' | 'low'); persists through CR.UI.store when present. */
+    set(v) {
+      Q._setting = Q.normSetting(v);
+      try { const st = CR.UI && CR.UI.store; if (st && typeof st.set === 'function') st.set(Q.STORE_KEY, Q._setting); } catch (e) { /* optional */ }
+      return Q.update();
+    },
+    /** The governor found this device weak (on: the tier drops at once) / clearly fast again (off:
+     *  recorded only - the next renderer starts at the full tier, no switch mid-battle). */
+    noteWeak(on) { Q._weakNow = !!on; return on ? Q.update() : Q.tier; },
+    _weakNow: false,
+    on(fn) { if (typeof fn === 'function' && Q._subs.indexOf(fn) < 0) Q._subs.push(fn); return fn; },
+    off(fn) { const i = Q._subs.indexOf(fn); if (i >= 0) Q._subs.splice(i, 1); },
+    get() { return Q.params(Q.tier); },
+  };
+  try { Q.update(); } catch (e) { /* jsc / no storage */ }
+
   // v19 feel curves of the animation system (pure, hoisted; read-only - for tests / tools)
   G.animCurves = { backOut, elasticSettle, flinchEnv, anticip, impactPulse };
   if (!G.ready) {
@@ -48303,6 +49148,8 @@ body { font-weight: 700; letter-spacing: 0; }
     G.setLook = function () { return null; };
     G.environment = function () { return null; };
     G.rebuild = function () { return 0; };
+    G.prewarmAll = function () { return 0; };
+    G.allBattleModels = function () { return []; };
     G.hooks = G.hooks || { land() {}, impact() {}, poof() {} };
     return;
   }
@@ -50885,6 +51732,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (!AUTO.on) return;
     if (CONFIG.detail !== 'low' && ms > 30) { autoApply(true); autoStore(true); }
     else if (AUTO.auto && full && ms < 17) { autoApply(false); autoStore(false); }
+    if (G.Quality) G.Quality.update();   // v26: the quality tier follows the auto pick
   }
   function autoTick() {
     if (!AUTO.on || AUTO.running || typeof globalThis.requestAnimationFrame !== 'function') return;
@@ -50941,6 +51789,7 @@ body { font-weight: 700; letter-spacing: 0; }
     return { on: AUTO.on, detail: CONFIG.detail, auto: AUTO.auto, base: AUTO.base, ms: Math.round(AUTO.ms * 10) / 10, running: AUTO.running, windows: AUTO.windows };
   };
   G.detailPresets = function () { return Object.keys(DETAIL_PRESETS); };
+
   /** Dev helper: triangles of the part(s) fn(kit) returns when built at a detail preset. */
   G.measure = function (fn, det) {
     const prev = CUR_DET; CUR_DET = detOf(det);
@@ -52476,7 +53325,14 @@ body { font-weight: 700; letter-spacing: 0; }
   // loading, result screen: < IDLE_LIVE_MAX live instances), so a battle is never slowed by it. The crown
   // towers are queued on load; the app can add the decks (card or unit ids) when they are known.
   const IDLE_Q = [];
-  let IDLE_BUSY = false, IDLE_SEEN = -1, IDLE_DECK = false;
+  // v26 perf ("black knight lag": the first deploy of a model that is in no known deck built its
+  // template in that frame, 110-140 ms at 4x): after the towers and the player's deck, EVERY model
+  // a battle can show (all card units incl. summons / spawns, heroes, build-mode buildings) is
+  // queued at the lowest priority - IDLE_LOW runs only when IDLE_Q is empty, only in real idle
+  // time (requestIdleCallback without a timeout), one template per slot, never in a battle.
+  const IDLE_LOW = [];
+  let IDLE_BUSY = false, IDLE_SEEN = -1, IDLE_DECK = false, IDLE_ALL = false, IDLE_MAPS = false;
+  const MAP_MODELS = ['fortress-tower', 'pyramid-king', 'pyramid-princess', 'bm-lighthouse', 'bm-volcano', 'bm-web', 'bm-tower', 'bm-cannon', 'bm-spider'];
   const IDLE_LIVE_MAX = 6;
   function idleUnits(id, out) {
     const D = CR.DATA, c = D && Array.isArray(D.cards) ? D.cards.find(x => x && x.id === id) : null;
@@ -52485,19 +53341,21 @@ body { font-weight: 700; letter-spacing: 0; }
     return out;
   }
   function idleKick(ms) {
-    if (IDLE_BUSY || !IDLE_Q.length || typeof setTimeout !== 'function') return;
+    if (IDLE_BUSY || (!IDLE_Q.length && !IDLE_LOW.length) || typeof setTimeout !== 'function') return;
     IDLE_BUSY = true;
+    const low = !IDLE_Q.length;
     setTimeout(function () {
-      if (typeof requestIdleCallback === 'function') requestIdleCallback(idleStep, { timeout: 3000 });
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(idleStep, low ? undefined : { timeout: 3000 });
       else idleStep();
-    }, ms);
+    }, low ? Math.max(ms, 150) : ms);
   }
   function idleStep() {
     IDLE_BUSY = false;
-    if (!IDLE_Q.length) return;
+    if (!IDLE_Q.length && !IDLE_LOW.length) return;
     // a battle runs (crown towers + crews alone are 8 live instances; a portrait or a card
     // preview holds a few) and units animated since the last look: try again later
     if (LIVE >= IDLE_LIVE_MAX && UPD_N !== IDLE_SEEN) { IDLE_SEEN = UPD_N; idleKick(1000); return; }
+    if (!IDLE_Q.length) IDLE_Q.push(IDLE_LOW.shift());   // (v26: a low job only when the normal queue is empty)
     const job = IDLE_Q.shift();
     try {
       const res = resolveModel(job.id);
@@ -52508,36 +53366,68 @@ body { font-weight: 700; letter-spacing: 0; }
           const lt = getTemplate(res, job.side, 'low');
           tpl.lowTpl = lt && lt.pivots.length === tpl.pivots.length ? lt : null;
         }
-      } else if (job.lod && CONFIG.geoLod && det !== 'low' && tpl.lowTpl === undefined) IDLE_Q.unshift({ id: job.id, side: job.side, low: true, lod: true });
+      } else if (job.lod && CONFIG.geoLod && det !== 'low' && tpl.lowTpl === undefined) (job.bg ? IDLE_LOW : IDLE_Q).unshift({ id: job.id, side: job.side, low: true, lod: true, bg: job.bg });
     } catch (e) { /* optional: the battle builds it on demand */ }
     if (!IDLE_Q.length && !IDLE_DECK) {
       // the towers are done: the player's own deck next (read-only app API, when present)
       IDLE_DECK = true;
       try { const app = CR.App && CR.App.state; if (app && typeof app.getDeck === 'function') G.prewarmIdle(app.getDeck()); } catch (e) { /* optional */ }
     }
+    if (!IDLE_Q.length && IDLE_DECK && !IDLE_MAPS) {
+      // v26: the map towers (fortress / kraken / sky islands / portals / citadel use the long
+      // fortress tower: 1.4 s + 1.4 s for its LOD copy at 4x CPU on its first battle; pyramid
+      // towers ~0.6 s) and the build-mode buildings (their pick phase runs inside the battle,
+      // where idle prewarming waits) - normal priority, right after the deck
+      IDLE_MAPS = true;
+      G.prewarmIdle(MAP_MODELS);
+    }
+    if (!IDLE_Q.length && IDLE_DECK && IDLE_MAPS && !IDLE_ALL) { IDLE_ALL = true; G.prewarmAll(); }
     idleKick(50);
   }
   /** Queue model templates to build in idle time (card or unit ids; both sides + the LOD copy
    *  unless opts.lod === false). Returns the number of queued jobs; built / queued ones are skipped. */
   G.prewarmIdle = function (ids, opts) {
     if (!G.ready || !Array.isArray(ids)) return 0;
-    const lod = !(opts && opts.lod === false);
+    const lod = !(opts && opts.lod === false), bg = !!(opts && opts.background);
+    const Qd = bg ? IDLE_LOW : IDLE_Q;
     const units = [];
     for (const id of ids) if (id) idleUnits(String(id), units);
     let n = 0;
     for (const u of units) {
       for (let s = 0; s < 2; s++) {
-        if (IDLE_Q.some(j => j.id === u && j.side === s)) continue;
+        if (IDLE_Q.some(j => j.id === u && j.side === s) || IDLE_LOW.some(j => j.id === u && j.side === s)) continue;
         let built = false;
         try { const res = resolveModel(u), t = TEMPLATES[res.key + '|' + s + '|' + detOf(undefined).name]; built = !!(t && (!lod || t.lowTpl !== undefined)); } catch (e) { built = false; }
         if (built) continue;
-        IDLE_Q.push({ id: u, side: s, low: false, lod }); n++;
+        Qd.push({ id: u, side: s, low: false, lod, bg }); n++;
       }
     }
     if (n) idleKick(300);
     return n;
   };
-  G._idleInfo = function () { return { queued: IDLE_Q.length, busy: IDLE_BUSY, deck: IDLE_DECK, updates: UPD_N, live: LIVE }; };   // (dev)
+  /** v26: queue every battle model at the lowest priority (see IDLE_LOW): card units first (summons
+   *  and spawns through resolveModel), then every other visible model (heroes, build-mode
+   *  buildings, map units). Each template is built once; a later deck / battle use is free. */
+  G.allBattleModels = function () {
+    const out = [], seen = Object.create(null);
+    const add = function (u) { if (u && !seen[u]) { seen[u] = 1; out.push(u); } };
+    const D = CR.DATA;
+    if (D && Array.isArray(D.cards)) for (const c of D.cards) { if (c && !c.disabled) { const a = idleUnits(String(c.id), []); for (const u of a) add(u); } }
+    if (D && D.units && typeof D.units === 'object') for (const k in D.units) add(k);
+    for (const k of G.modelIds()) { const m = MODELS[k]; if (m && !m.portraitOnly) add(k); }
+    return out;
+  };
+  G.prewarmAll = function () {
+    if (!G.ready) return 0;
+    // ~+60 MB JS heap for every model (measured, docs/V26-PERF.md): not on phones that report
+    // less than 4 GB (navigator.deviceMemory, Chrome / Android; iOS does not report it)
+    try { const dm = globalThis.navigator && +globalThis.navigator.deviceMemory; if (dm > 0 && dm < 4) return 0; } catch (e) { /* optional */ }
+    let ids = [];
+    try { ids = G.allBattleModels(); } catch (e) { return 0; }
+    // (no LOD copies: they would add ~40 % memory; a crowd builds a missing one in idle time, v20)
+    return G.prewarmIdle(ids, { background: true, lod: false });
+  };
+  G._idleInfo = function () { return { queued: IDLE_Q.length, low: IDLE_LOW.length, busy: IDLE_BUSY, deck: IDLE_DECK, all: IDLE_ALL, updates: UPD_N, live: LIVE }; };   // (dev)
   // the crown towers + their crews are in every battle (models come from later files: resolved
   // when the job runs)
   if (G.ready && typeof setTimeout === 'function') setTimeout(function () { G.prewarmIdle(['king-tower', 'king', 'princess-tower', 'tower-archer']); }, 1200);
@@ -74535,6 +75425,7 @@ body { font-weight: 700; letter-spacing: 0; }
     '  vec3 deep = uDeep;',   // (WATER_COL: v14 clear turquoise / v15 dusk deep teal)
     '  vec3 mid = uMid;',
     '  vec3 col = mix(mid, deep, (1.0 - edge) * 0.42 + n1 * 0.22);',
+    '#ifndef CR_LQ',   // v26 perf: the 'low' quality tier drops the caustic cells + glints
     '  float warp = vn(vec2(p.x * 1.1 - t * 0.3, p.y * 2.2));',
     '  float c = vor(vec2(p.x * 1.45 - t * 0.55, p.y * 2.7) + warp * 0.7, t * 0.9);',
     '  float aw = fwidth(c) * 1.1 + 0.002;',
@@ -74542,6 +75433,7 @@ body { font-weight: 700; letter-spacing: 0; }
     '  col += uCaus * caust * (0.42 - edge * 0.2);',   // caustic lines
     '  float sp = vn(vec2(p.x * 6.0 - t * 1.6, p.y * 11.0 + t * 0.3));',
     '  col += uGlint * smoothstep(0.86, 0.94, sp) * (1.0 - edge) * (0.45 + 0.55 * caust);',
+    '#endif',
     '  col *= 1.0 - 0.14 * smoothstep(0.5, 0.86, edge);',
     '  float fe = edge + 0.035 * sin(p.x * 2.6 - t * 2.2) + (vn(vec2(p.x * 4.5 - t * 1.3, p.y * 7.0)) - 0.5) * 0.07;',
     '  float fa = fwidth(fe) * 1.2 + 0.004;',
@@ -75137,6 +76029,14 @@ body { font-weight: 700; letter-spacing: 0; }
   // v9: remembered weak-device pick (per browser; storage may be unavailable -> no memory)
   const WEAK_KEY = 'bustwar.gfx.lowDetail';
   function weakStored() { try { return !!(G.localStorage && G.localStorage.getItem(WEAK_KEY) === '1'); } catch (e) { return false; } }
+  /** v26 perf: the quality tier parameters for a renderer with quality 'auto' (CR.GFX.Quality,
+   *  20-gfx-core.js), null for an explicit 'high' / 'low' option or without the kit. */
+  function qualityTier(quality) {
+    const Qm = CR.GFX && CR.GFX.Quality;
+    if (!Qm || (quality && quality !== 'auto')) return null;
+    try { return Qm.params(Qm.update()); } catch (e) { return null; }
+  }
+  { const Qm = CR.GFX && CR.GFX.Quality; if (Qm && typeof Qm.on === 'function') Qm.on(function (t) { for (let i = 0; i < LIVE_R.length; i++) LIVE_R[i]._applyTier(t); }); }
   function weakStore(on) { try { if (G.localStorage) { if (on) G.localStorage.setItem(WEAK_KEY, '1'); else G.localStorage.removeItem(WEAK_KEY); } } catch (e) { /* ignore */ } }
 
   /** v10 grimdark crown towers: darken the stone (low-saturation: white / cream / grey) and the
@@ -75255,7 +76155,14 @@ body { font-weight: 700; letter-spacing: 0; }
       this._devDpr = devDpr;
       this._dprCap = this.options.quality === 'low' ? 1.25 : MAX_DPR;
       if (this.options.maxDpr > 0) this._dprCap = Math.min(this._dprCap, +this.options.maxDpr);
-      const aa = this.options.antialias !== undefined ? !!this.options.antialias : this.options.quality !== 'low';
+      // v26 perf: graphics quality tier (CR.GFX.Quality; 'auto' quality only): the 'low' tier starts
+      // without MSAA, at a pixel ratio <= 2, weak mode, fewer particles, simpler water / map shaders
+      const QP = qualityTier(this.options.quality);
+      this._qp = QP;
+      this._lq = !!(QP && QP.shaderLQ);
+      this._halfAnim = !!(QP && QP.halfAnim);
+      if (QP && QP.maxDpr < this._dprCap) this._dprCap = QP.maxDpr;
+      const aa = this.options.antialias !== undefined ? !!this.options.antialias : (this.options.quality !== 'low' && !(QP && !QP.aa));
       this._aa = aa;
       let gl;
       try {
@@ -75359,7 +76266,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this._applyMode();
       this._projBatches = new Map();
 
-      this.fx = (CR.VFX && typeof CR.VFX.create === 'function') ? CR.VFX.create(this.scene, { reducedMotion: this.reduced, quality: this.options.quality === 'low' ? 'low' : 'high', unitScale: +this.options.unitScale || UNIT_SCALE, dusk: !!this._grim }) : null;
+      this.fx = (CR.VFX && typeof CR.VFX.create === 'function') ? CR.VFX.create(this.scene, { reducedMotion: this.reduced, quality: this.options.quality === 'low' || (QP && QP.fx < 1) ? 'low' : 'high', unitScale: +this.options.unitScale || UNIT_SCALE, dusk: !!this._grim }) : null;
       if (this.fx) {
         this.fx.hooks.shake = function (a, d) { self._shake(a, d); };
         this.fx.hooks.label = function (t, x, y, z, c, s, d, k) { self._label(t, x, y, z, c, s, d, k); };
@@ -75444,7 +76351,7 @@ body { font-weight: 700; letter-spacing: 0; }
       // v9: weak device -> 'low' detail preset + LOD 1 everywhere (frame-time based, _perf;
       // remembered per browser so the next battle starts light; quality 'low' forces it)
       this._weak = false; this._weakFrames = 0; this._fastFrames = 0;
-      if (this.options.quality === 'low' || this.options.detail === 'low' || (this.options.quality !== 'high' && weakStored())) this._setWeak(true, true);
+      if (this.options.quality === 'low' || this.options.detail === 'low' || (QP ? QP.weak : (this.options.quality !== 'high' && weakStored()))) this._setWeak(true, true);
       if (this._gov) this._gov.weak = this._weak;
       this._warmed = new Set(); this._warmedCards = new Set(); this._warmQ = []; this._compiled = false;
       this._decksQ = null; this._decksAsked = false;   // v20: the match decks (setOptions({ decks }) / app battle)
@@ -75899,6 +76806,7 @@ body { font-weight: 700; letter-spacing: 0; }
           return u;
         })({ uT: { value: 0 }, uZ0: { value: zr0 }, uZ1: { value: zr1 } }, this._grim ? WATER_COL.dusk : WATER_COL.day),
         vertexShader: WATER_VS, fragmentShader: WATER_FS,
+        defines: this._lq ? { CR_LQ: 1 } : {},
         extensions: { derivatives: true },
       });
       const wg = new T.PlaneGeometry(W + 12, zr1 - zr0, 1, 1);
@@ -79827,11 +80735,14 @@ body { font-weight: 700; letter-spacing: 0; }
       const n = this._unitList.length;
       // (v14 polish, request 5: 2v2 fights reach 40-60 units - LOD 1 from 25 units on, back above
       // 17; the VFX emit ~35 % fewer particles meanwhile)
+      const qp = this._qp;
       const crowd = this._crowd ? n > 17 : n > 24;     // hysteresis
-      if (crowd === this._crowd && !force) return;
-      this._crowd = crowd;
-      if (this.fx && typeof this.fx.setCrowd === 'function') this.fx.setCrowd(crowd);
-      const low = crowd || this._weak;
+      // v26: the low quality tier switches earlier (Quality.params crowdOn / crowdOff)
+      const cw = qp && qp.tier === 'low' ? (this._crowd ? n > qp.crowdOff : n >= qp.crowdOn) : crowd;
+      if (cw === this._crowd && !force) return;
+      this._crowd = cw;
+      if (this.fx && typeof this.fx.setCrowd === 'function') this.fx.setCrowd(cw);
+      const low = cw || this._weak;
       const L = this._unitList;
       for (let i = 0; i < L.length; i++) this._setLod(L[i], (L[i].small || low) ? 1 : 0);
       const TL = this._towerList || EMPTY;
@@ -79861,6 +80772,23 @@ body { font-weight: 700; letter-spacing: 0; }
         } catch (e) { /* optional */ }
       }
       if (!init) this._updateLod(true);
+    }
+
+    /** v26 perf: a new quality tier for this live renderer (only with quality 'auto'): weak mode,
+     *  particles and the crowd LOD switch at once; shader variants (this._lq) with the next arena. */
+    _applyTier(t) {
+      const Qm = CR.GFX && CR.GFX.Quality;
+      if (!this._qp || this._destroyed || !Qm) return;
+      const was = this._qp.tier, P = Qm.params(t);
+      if (P.tier === was) return;
+      this._qp = P; this._lq = !!P.shaderLQ; this._halfAnim = !!P.halfAnim;
+      if (P.weak && !this._weak) this._setWeak(true);
+      else if (!P.weak && this._weak && was === 'low') this._setWeak(false);
+      if (this.fx && this.fx.opts) {
+        this.fx.opts.quality = P.fx < 1 ? 'low' : 'high';
+        if (typeof this.fx.setCrowd === 'function') this.fx.setCrowd(this._crowd);
+      }
+      this._updateLod(true);
     }
 
     _createInstance(unitId, cs, u) {
@@ -80004,7 +80932,15 @@ body { font-weight: 700; letter-spacing: 0; }
             try { m.inst.setGhost(look === 1 ? TUNNEL_GHOST : (look === 2 ? CLONE_GHOST : 0), look === 1 ? TUNNEL_TINT[m.cside === 1 ? 1 : 0] : (look === 2 ? CLONE_TINT : null)); } catch (err) { /* optional */ }
           }
           o.position.set(wx, by + m.oy, wz);
-          try { m.inst.update(dtAnim, st); } catch (err) { /* keep rendering */ }
+          // v26 perf, quality tier 'low' only: LOD 1 units animate at half rate (every other frame,
+          // alternating by unit id, with the summed time step) - never a frame with a hit / hurt
+          // flag, a deploy or a status change pending
+          if (this._halfAnim && m.lod === 1 && ((this.frame + u.id) & 1) && !st.hit && !st.hurt && u.state !== 'deploying' && st.fx === m.aFx) m.aAcc = (m.aAcc || 0) + dtAnim;
+          else {
+            const adt = dtAnim + (m.aAcc || 0);
+            m.aAcc = 0; m.aFx = st.fx;
+            try { m.inst.update(adt, st); } catch (err) { /* keep rendering */ }
+          }
         }
         // base / top come from the instance (flight altitude, jumps, drop-in are animated there)
         const base = by + this._baseY(m), top = by + this._topY(m);
@@ -81524,8 +82460,13 @@ body { font-weight: 700; letter-spacing: 0; }
           this.resize(this.cssW, this.cssH, this._reqDpr || this.dpr);
           if (this.options.dprMode !== 'caller') dprStore(this._dprSig, act, this._dprMax);
         } else if (act === 'weak') {
-          if (!this._weak) { this._setWeak(true); weakStore(true); }
-        } else if (act === 'unweak') weakStore(false);
+          // v26: recorded for the quality tier; the tier ('auto' setting) switches every live
+          // renderer (_applyTier); a fixed 'high' setting keeps the full look
+          weakStore(true);
+          const Qm = CR.GFX && CR.GFX.Quality;
+          if (Qm && this._qp) Qm.noteWeak(true);
+          else if (!this._weak) this._setWeak(true);
+        } else if (act === 'unweak') { weakStore(false); const Qm = CR.GFX && CR.GFX.Quality; if (Qm) Qm.noteWeak(false); }
       }
       const info = this.gl.info;
       const s = this._lastStats;
@@ -87699,28 +88640,29 @@ body { font-weight: 700; letter-spacing: 0; }
     glow.position.y = 0.025;
     glow.renderOrder = 3;
     grp.add(crack); grp.add(glow);
-    // crumbling rim rocks along both lips
-    const rocks = new T.Group();
+    // crumbling rim rocks along both lips (v26 perf: ONE instanced draw per rift instead of one draw
+    // per rock - ~30 draw calls in a 2v2 fortress; same rocks, same random sequence)
     const rg = new T.DodecahedronGeometry(1, 0);
     const n = Math.round(len * 3);
+    const rd = [];
     for (let i = 0; i < n; i++) {
       for (const sd of [-1, 1]) {
         if (rnd() < 0.25) continue;
         const u = (i + rnd()) / n, x = -len / 2 + len * u;
         const pi = Math.min(N, Math.round(u * N)), p = prof[pi];
         const taper = Math.pow(Math.sin(Math.PI * u), 0.55);
-        const m = new T.Mesh(rg, res.rimMat);
         const sc = (0.08 + rnd() * 0.09) * (0.6 + 0.4 * taper);
-        m.scale.set(sc * (1 + rnd() * 0.6), sc * 0.65, sc);
-        m.userData.sd = sd;
-        m.userData.w = (sd < 0 ? p.a : p.b) * dep * 0.5 + 0.06 + rnd() * 0.12;
-        m.userData.j = p.j * dep * 0.5;
-        m.userData.x = x;
-        m.position.set(x, sc * 0.25, 0);
-        m.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3);
-        rocks.add(m);
+        const r0 = { sd: sd, x: x, y: sc * 0.25, sx: sc * (1 + rnd() * 0.6), sy: sc * 0.65, sz: sc, w: 0, j: 0, q: null };
+        r0.w = (sd < 0 ? p.a : p.b) * dep * 0.5 + 0.06 + rnd() * 0.12;
+        r0.j = p.j * dep * 0.5;
+        r0.q = new T.Quaternion().setFromEuler(new T.Euler(rnd() * 3, rnd() * 3, rnd() * 3));
+        rd.push(r0);
       }
     }
+    const rocks = new T.InstancedMesh(rg, res.rimMat, Math.max(1, rd.length));
+    rocks.count = rd.length;
+    rocks.frustumCulled = false;
+    rocks.userData.rd = rd; rocks.userData.op = -1; rocks.userData.sh = 0;
     grp.add(rocks);
     // earthy lips along both rims (crumbling edge, sunlit): a strip each, updated with the opening
     const lipPos = new Float32Array((N + 1) * 2 * 2 * 3), lipCol = [], lipIdx = [];
@@ -87758,6 +88700,25 @@ body { font-weight: 700; letter-spacing: 0; }
     R.lip.geometry.getAttribute('position').needsUpdate = true;
   }
 
+  /** v26 perf: rim rocks of a rift (InstancedMesh): matrices only when the opening / shake moved. */
+  let RK_P = null, RK_S = null, RK_M = null;
+  function rocksUpdate(rocks, op, shake) {
+    const ud = rocks.userData;
+    if (Math.abs(ud.op - op) < 1e-4 && ud.sh === shake) return;
+    ud.op = op; ud.sh = shake;
+    const T = G.THREE;
+    if (!RK_P) { RK_P = new T.Vector3(); RK_S = new T.Vector3(); RK_M = new T.Matrix4(); }
+    const rd = ud.rd;
+    for (let k = 0; k < rd.length; k++) {
+      const u = rd[k];
+      RK_P.x = u.x + shake; RK_P.y = u.y; RK_P.z = u.j + u.sd * (0.05 + (u.w - 0.05) * op);
+      RK_S.x = u.sx; RK_S.y = u.sy; RK_S.z = u.sz;
+      RK_M.compose(RK_P, u.q, RK_S);
+      rocks.setMatrixAt(k, RK_M);
+    }
+    rocks.instanceMatrix.needsUpdate = true;
+  }
+
   const PV = { x: 0, y: 0, z: 0, k: 1 };
   /** Projects a world point (x, y < 0, z) along the camera ray onto the plane y = H. */
   function proj(cam, x, y, z, H) {
@@ -87779,6 +88740,35 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     pa.needsUpdate = true;
   }
+
+  /** v26: frees a renderer's build-mode resources (see the dispose wrap below). */
+  function disposeRes(r) {
+    const res = r && r._bmx;
+    if (!res) return;
+    r._bmx = null;
+    const rel = function (inst) { try { if (inst.object3d && inst.object3d.parent) inst.object3d.parent.remove(inst.object3d); inst.release(); } catch (e) { /* ignore */ } };
+    res.crews.forEach(function (c) { if (c && c.inst) rel(c.inst); });
+    res.crews.clear();
+    if (res.ghost) { rel(res.ghost); res.ghost = null; }
+    if (res.group.parent) res.group.parent.remove(res.group);
+    const geos = new Set(), mats = new Set(), texs = new Set();
+    res.group.traverse(function (o) {
+      if (o.geometry) geos.add(o.geometry);
+      const m = o.material;
+      if (m) (Array.isArray(m) ? m : [m]).forEach(function (x) { mats.add(x); });
+    });
+    for (const k in res) {
+      const v = res[k];
+      if (!v || typeof v !== 'object') continue;
+      if (v.isMaterial) mats.add(v); else if (v.isBufferGeometry) geos.add(v); else if (v.isTexture) texs.add(v);
+    }
+    (res.flowGeos || []).forEach(function (g) { geos.add(g); });
+    mats.forEach(function (m) { if (m.map && m.map !== GLOW) texs.add(m.map); });
+    geos.forEach(function (g) { try { g.dispose(); } catch (e) { /* ignore */ } });
+    mats.forEach(function (m) { try { m.dispose(); } catch (e) { /* ignore */ } });
+    texs.forEach(function (t) { if (t !== GLOW) { try { t.dispose(); } catch (e) { /* ignore */ } } });
+  }
+  BMX.disposeRes = disposeRes;
 
   BMX.sync = function (r, cur, dtG) {
     if (!G.THREE || !r.scene) return;
@@ -87910,7 +88900,13 @@ body { font-weight: 700; letter-spacing: 0; }
     // ---- drop visuals of buildings that are gone
     res.beams.forEach(function (m, id) { if (m.userData.f !== frame) { res.group.remove(m); m.geometry.dispose(); res.beams.delete(id); } });
     res.webs.forEach(function (m, id) { if (m.userData.f !== frame) { res.group.remove(m); res.webs.delete(id); } });
-    res.rifts.forEach(function (R, id) { if (R.obj.userData.f !== frame) { res.group.remove(R.obj); res.group.remove(R.pit); res.rifts.delete(id); } });
+    res.rifts.forEach(function (R, id) {
+      if (R.obj.userData.f !== frame) {
+        res.group.remove(R.obj); res.group.remove(R.pit); res.rifts.delete(id);
+        // v26: its own geometries go with it (materials / textures are shared in res)
+        R.pit.geometry.dispose(); R.lip.geometry.dispose(); R.crack.geometry.dispose(); R.rocks.geometry.dispose(); R.rocks.dispose();
+      }
+    });
     res.volcs.forEach(function (V, id) { if (V.grp.userData.f !== frame) { res.group.remove(V.grp); res.volcs.delete(id); } });
     res.crews.forEach(function (c, id) { if (c.f !== frame) { try { if (c.inst.object3d.parent) c.inst.object3d.parent.remove(c.inst.object3d); c.inst.release(); } catch (e) { /* ignore */ } res.crews.delete(id); } });
     // ---- unit states: silk cocoon (stuck), glint (blinded), sinking (fallen)
@@ -88060,12 +89056,7 @@ body { font-weight: 700; letter-spacing: 0; }
     R.crack.material.opacity = 0.5 + 0.4 * op;
     lipUpdate(R, Math.max(0.05, op), b.st === 1 ? shake : 0);
     R.glow.material.opacity = b.st === 1 ? 0.55 + 0.35 * Math.sin(now * 0.02) : (b.st === 2 ? 0.18 : 0);
-    const ch = R.rocks.children;
-    for (let k = 0; k < ch.length; k++) {
-      const m = ch[k], u = m.userData;
-      m.position.x = u.x + (b.st === 1 ? shake : 0);
-      m.position.z = u.j + u.sd * (0.05 + (u.w - 0.05) * Math.max(0.12, op));
-    }
+    rocksUpdate(R.rocks, Math.max(0.12, op), b.st === 1 ? shake : 0);
     if (R.st !== b.st) {
       if (R.st >= 0 && fx && b.st === 2) {
         for (let k = 0; k < 4; k++) { const x = b.rc[0] + (k + 0.5) / 4 * len; fx.burst('land', W(x), 0, oz, 1.0); }
@@ -88143,8 +89134,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const cam = r.camera ? r.camera.position : null;
       if (cam) projectPit(GR, cam, gx, gz, 0.85 + 0.1 * Math.sin(now * 0.005), 1.9);
       lipUpdate(GR, 0.9, 0);
-      const ch = GR.rocks.children;
-      for (let k = 0; k < ch.length; k++) { const m = ch[k], u = m.userData; m.position.x = u.x; m.position.z = u.j + u.sd * u.w; }
+      rocksUpdate(GR.rocks, 1, 0);
       return;
     }
     if (!res.ghostFx) {
@@ -88205,6 +89195,16 @@ body { font-weight: 700; letter-spacing: 0; }
       try { BMX.sync(this, cur, dt); } catch (e) { if (!this._bmErr) { this._bmErr = true; try { G.console.error('[buildmode] render', e); } catch (e2) { /* ignore */ } } }
       return out;
     };
+    // v26 perf (memory): the build-mode visuals are freed with their renderer (battle end): GPU
+    // geometries / materials / canvas textures of this renderer, the crews + ghost go back to the
+    // GFX pools (the shared glow texture stays: module-wide)
+    const dp0 = R3.prototype.dispose;
+    if (typeof dp0 === 'function') {
+      R3.prototype.dispose = function () {
+        try { disposeRes(this); } catch (e) { /* ignore */ }
+        return dp0.apply(this, arguments);
+      };
+    }
     const oe0 = R3.prototype._onEvent;
     if (typeof oe0 === 'function') {
       R3.prototype._onEvent = function (ev) {
@@ -95444,6 +96444,8 @@ body { font-weight: 700; letter-spacing: 0; }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function sstep(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
   function outBack(t) { t = clamp(t, 0, 1); const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+  // v26 perf: map ambience (bubbles / sparks) per quality tier ('low': half), 1 = unchanged
+  function mfx(r) { return r._qp ? r._qp.mapFx : 1; }
   function hash(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
   const M24 = CR.Maps24 || (CR.Maps24 = {});
   M24.MAPS = MAPS;
@@ -95563,6 +96565,65 @@ body { font-weight: 700; letter-spacing: 0; }
     this.pa.needsUpdate = true; this.na.needsUpdate = true;
   };
 
+  /** v26 perf: several idle Tubes drawn as ONE mesh (one draw call instead of one per arm). Each
+   *  tube still computes into its own arrays (Tube.set); copy(i, sy) writes tube i into its slice of
+   *  the merged buffers (y scale sy applied like a mesh scale, normals by the inverse transpose),
+   *  hide(i) collapses its slice (degenerate triangles, nothing drawn). commit() once per frame. */
+  function TubeSet(T, tubes, mat) {
+    let nv = 0, ni = 0;
+    for (let i = 0; i < tubes.length; i++) { nv += tubes[i].pos.length / 3; ni += tubes[i].geo.index.count; }
+    this.tubes = tubes; this.off = [];
+    this.pos = new Float32Array(nv * 3); this.nor = new Float32Array(nv * 3);
+    const col = new Float32Array(nv * 3), idx = new (nv > 65535 ? Uint32Array : Uint16Array)(ni);
+    let vo = 0, io = 0;
+    for (let i = 0; i < tubes.length; i++) {
+      const tb = tubes[i], n = tb.pos.length / 3, ti = tb.geo.index.array;
+      this.off.push(vo);
+      col.set(tb.geo.attributes.color.array, vo * 3);
+      for (let k = 0; k < ti.length; k++) idx[io + k] = ti[k] + vo;
+      vo += n; io += ti.length;
+    }
+    const g = new T.BufferGeometry();
+    this.pa = new T.BufferAttribute(this.pos, 3); this.na = new T.BufferAttribute(this.nor, 3);
+    this.pa.setUsage(T.DynamicDrawUsage); this.na.setUsage(T.DynamicDrawUsage);
+    g.setAttribute('position', this.pa); g.setAttribute('normal', this.na); g.setAttribute('color', new T.BufferAttribute(col, 3));
+    g.setIndex(new T.BufferAttribute(idx, 1));
+    g.boundingSphere = new T.Sphere(new T.Vector3(), 60);
+    this.geo = g;
+    this.mesh = new T.Mesh(g, mat);
+    this.mesh.frustumCulled = false;
+    this.mesh.matrixAutoUpdate = false;
+    this.shown = tubes.map(function () { return true; });
+    this.dirty = false;
+  }
+  TubeSet.prototype.copy = function (i, sy) {
+    const tb = this.tubes[i], P = tb.pos, N = tb.nor, o = this.off[i] * 3, pos = this.pos, nor = this.nor;
+    if (sy === 1) { pos.set(P, o); nor.set(N, o); }
+    else {
+      const iy = 1 / sy;
+      for (let k = 0; k < P.length; k += 3) {
+        pos[o + k] = P[k]; pos[o + k + 1] = P[k + 1] * sy; pos[o + k + 2] = P[k + 2];
+        const nx = N[k], ny = N[k + 1] * iy, nz = N[k + 2], l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+        nor[o + k] = nx / l; nor[o + k + 1] = ny / l; nor[o + k + 2] = nz / l;
+      }
+    }
+    this.shown[i] = true; this.dirty = true;
+  };
+  TubeSet.prototype.hide = function (i) {
+    if (!this.shown[i]) return;
+    this.shown[i] = false; this.dirty = true;
+    const o = this.off[i] * 3, e = o + this.tubes[i].pos.length, pos = this.pos;
+    for (let k = o; k < e; k += 3) { pos[k] = 0; pos[k + 1] = -50; pos[k + 2] = 0; }
+  };
+  TubeSet.prototype.commit = function () {
+    if (!this.dirty) return;
+    this.dirty = false;
+    this.pa.needsUpdate = true; this.na.needsUpdate = true;
+    let any = false;
+    for (let i = 0; i < this.shown.length; i++) if (this.shown[i]) { any = true; break; }
+    this.mesh.visible = any;
+  };
+
   function toon(r, extra) {
     const T = r.T;
     const o = { vertexColors: true };
@@ -95577,7 +96638,12 @@ body { font-weight: 700; letter-spacing: 0; }
     'float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }',
     'float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);',
     '  return mix(mix(h21(i),h21(i+vec2(1,0)),f.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x), f.y); }',
+    // v26 perf: the 'low' quality tier (CR_LQ) sums 2 octaves (+ the mean of the missing ones)
+    '#ifdef CR_LQ',
+    'float fbm(vec2 p){ float s=0.5*vn(p); p*=2.03; s+=0.25*vn(p); return s+0.0625+0.03125; }',
+    '#else',
     'float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<4;i++){ s+=a*vn(p); p*=2.03; a*=0.5; } return s; }',
+    '#endif',
   ].join('\n');
   // deep cloud sea (opaque): sky blue with soft white cloud masses drifting
   const SEA_FS = [
@@ -95637,8 +96703,9 @@ body { font-weight: 700; letter-spacing: 0; }
     '  gl_FragColor = vec4(uC * f * 0.32 * uK, 1.0);',
     '}'].join('\n');
 
+  let LQ = false;   // v26 perf: renderer quality tier 'low' while its map group is built (build24)
   function shaderMat(T, fs, uniforms, o) {
-    const m = new T.ShaderMaterial({ uniforms: uniforms, vertexShader: o && o.vs ? o.vs : FALL_VS, fragmentShader: fs, transparent: !!(o && o.transparent), depthWrite: !(o && o.noDepth), side: o && o.double ? T.DoubleSide : T.FrontSide });
+    const m = new T.ShaderMaterial({ defines: LQ ? { CR_LQ: 1 } : {}, uniforms: uniforms, vertexShader: o && o.vs ? o.vs : FALL_VS, fragmentShader: fs, transparent: !!(o && o.transparent), depthWrite: !(o && o.noDepth), side: o && o.double ? T.DoubleSide : T.FrontSide });
     if (o && o.add) { m.blending = T.AdditiveBlending; m.transparent = true; m.depthWrite = false; }
     m.toneMapped = false;
     return m;
@@ -95652,6 +96719,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const T = r.T;
     if (!T || !r.arena) return;
     const M = r._m24 = { map: r.map, group: new T.Group(), geos: [], mats: [], t: 0, pend: new Map(), fx: [], last: null };
+    LQ = !!r._lq;
     r.arena.add(M.group);
     if (r.map === 'kraken') buildKraken(r, M);
     else if (r.map === 'skyislands') buildSky(r, M);
@@ -95687,11 +96755,16 @@ body { font-weight: 700; letter-spacing: 0; }
     for (let i = 0; i < ARMS.length; i++) {
       const tb = new Tube(T, mat, 14, 8, KR.body, KR.sucker);
       own(M, { geometry: tb.geo });
-      M.group.add(tb.mesh);
       const a = ARMS[i];
       M.arms.push({ tb: tb, x: wx(r, a[0]), z: wz(r, a[1]), ph: a[2], dir: a[0] < 9 ? 1 : -1, b: [0, 0, 0], c1: [0, 0, 0], c2: [0, 0, 0], p: [0, 0, 0] });
-      if (r.map === 'citadel') tb.mesh.scale.set(1, 0.8, 1);   // (a narrow moat: shorter arms)
     }
+    // v26 perf: the idle arms are one merged mesh (TubeSet), citadel's y scale applied on copy
+    // (v25 set mesh.scale.y = 0.8 for the citadel, but the tube meshes never updated their matrix
+    // (matrixAutoUpdate false) - the arms were always drawn at full height; kept as seen)
+    M.armSY = 1;
+    M.armSet = new TubeSet(T, M.arms.map(function (a) { return a.tb; }), mat);
+    own(M, { geometry: M.armSet.geo });
+    M.group.add(M.armSet.mesh);
     // strike tentacle (bigger)
     M.strike = new Tube(T, mat, 18, 9, KR.body, KR.sucker);
     own(M, { geometry: M.strike.geo });
@@ -95784,9 +96857,10 @@ body { font-weight: 700; letter-spacing: 0; }
       const cyc = (t * 0.07 + a.ph * 0.37) % 1;
       const vis = cyc < 0.72 ? 1 : (cyc < 0.8 ? 1 - (cyc - 0.72) / 0.08 : (cyc < 0.9 ? 0 : (cyc - 0.9) / 0.1));
       const h = (1.0 + 0.3 * Math.sin(t * 1.3 + a.ph)) * sstep(vis) * (1 + warnK * 0.25);
-      a.tb.mesh.visible = h > 0.05;
-      if (a.tb.mesh.visible) setArm(a, t * (1 + warnK * 1.5), h, 0.12 + warnK * 0.15);
+      if (h > 0.05) { setArm(a, t * (1 + warnK * 1.5), h, 0.12 + warnK * 0.15); M.armSet.copy(i, M.armSY); }
+      else M.armSet.hide(i);
     }
+    M.armSet.commit();
     // eye: peeks out every ~13 s for ~4 s, and during every telegraph; looks at the spot
     const peekC = (t + 5) % 13;
     let up = peekC < 4 ? sstep(peekC / 0.8) * sstep((4 - peekC) / 0.8) : 0;
@@ -95817,7 +96891,7 @@ body { font-weight: 700; letter-spacing: 0; }
       M.ring.position.set(x, gy + 0.01, z);
       M.ring.scale.setScalar(0.5 + rp * 0.9);
       M.ring.material.opacity = (1 - rp) * 0.55;
-      if (r.fx && Math.random() < dt * 22) r.fx.emit('bubbles', x + (Math.random() - 0.5) * 1.4, inLake && r.map !== 'citadel' ? -0.25 : 0.05, z + (Math.random() - 0.5) * 1.4, 1.1, 2, 0xdff4ff, 0x8fd2f2);
+      if (r.fx && Math.random() < dt * mfx(r) * 22) r.fx.emit('bubbles', x + (Math.random() - 0.5) * 1.4, inLake && r.map !== 'citadel' ? -0.25 : 0.05, z + (Math.random() - 0.5) * 1.4, 1.1, 2, 0xdff4ff, 0x8fd2f2);
       // the strike arm rises from the lake beside the spot and curls above it
       lakeBase(r, hz.x, hz.y, sv.b);
       const h = 0.6 + 2.8 * sstep(warnK * 1.3);
@@ -96088,7 +97162,7 @@ body { font-weight: 700; letter-spacing: 0; }
       else if (warn) c = (Math.sin(t * 22) > 0) ? 0xffffff : 0x46e8ff;
       else c = 0x5fe4f2;
       B.rm.color.setHex(c);
-      if (warn && up && r.fx && Math.random() < dt * 6) r.fx.emit('sparkle', B.cx + (Math.random() - 0.5) * 2.6, 0.5, B.cz, 0.6, 1, 0xbffaff, 0x46e8ff);
+      if (warn && up && r.fx && Math.random() < dt * mfx(r) * 6) r.fx.emit('sparkle', B.cx + (Math.random() - 0.5) * 2.6, 0.5, B.cz, 0.6, 1, 0xbffaff, 0x46e8ff);
     }
   }
 
@@ -96119,13 +97193,16 @@ body { font-weight: 700; letter-spacing: 0; }
       const bmM = new T.Mesh(beamG.geometry, bm); bmM.renderOrder = 4;
       const rmM = new T.Mesh(ring.geometry, mat);
       g.add(dm); g.add(bmM); g.add(rmM);
-      const shards = [];
-      for (let k = 0; k < 3; k++) { const s = new T.Mesh(shardG.geometry, sm); g.add(s); shards.push(s); }
+      // v26 perf: the three orbiting shards are one instanced draw
+      const shards = new T.InstancedMesh(shardG.geometry, sm, 3);
+      shards.frustumCulled = false;
+      g.add(shards);
       M.group.add(g);
       M.ports.push({ g: g, vU: vU, bU: bU, disc: dm, beam: bmM, ring: rmM, shards: shards, x: NaN, y: NaN });
     }
     M.spot = -1;
   }
+  let SH_O = null;   // (v26: scratch transform of the shard instances)
   function updPortals(r, M, cur, t, dt) {
     const hz = cur && cur.hz ? (cur.hz.m === 'portals' ? cur.hz : (cur.hz.m === 'citadel' && cur.hz.p ? cur.hz.p : null)) : null;   // (v25: citadel's pair)
     if (!hz || !hz.a) { for (let i = 0; i < 2; i++) M.ports[i].g.visible = false; return; }
@@ -96151,13 +97228,17 @@ body { font-weight: 700; letter-spacing: 0; }
       P.bU.uT.value = t; P.bU.uK.value = clamp(k, 0, 1) * 0.8;
       P.disc.rotation.y = -t * 0.6;
       P.ring.rotation.y = t * 0.15;
-      for (let s = 0; s < P.shards.length; s++) {
+      if (!SH_O) SH_O = new r.T.Object3D();
+      for (let s = 0; s < 3; s++) {
         const a = t * 1.6 + s / 3 * TAU + i;
-        P.shards[s].position.set(Math.cos(a) * 0.85, 0.55 + 0.25 * Math.sin(t * 2 + s * 2), Math.sin(a) * 0.85);
-        P.shards[s].rotation.set(t * 2, t * 3 + s, 0);
+        SH_O.position.set(Math.cos(a) * 0.85, 0.55 + 0.25 * Math.sin(t * 2 + s * 2), Math.sin(a) * 0.85);
+        SH_O.rotation.set(t * 2, t * 3 + s, 0);
+        SH_O.updateMatrix();
+        P.shards.setMatrixAt(s, SH_O.matrix);
       }
-      if (r.fx && k > 0.5 && Math.random() < dt * 5) r.fx.emit('rise', wx(r, P.x) + (Math.random() - 0.5) * 1.2, 0.1, wz(r, P.y) + (Math.random() - 0.5) * 1.2, 0.5, 1, PCOL[i][1], PCOL[i][0]);
-      if (hz.ph === 2 && r.fx && Math.random() < dt * 12) r.fx.emit('sparkle', wx(r, P.x), 0.5, wz(r, P.y), 0.8, 1, PCOL[i][1], PCOL[i][0]);
+      P.shards.instanceMatrix.needsUpdate = true;
+      if (r.fx && k > 0.5 && Math.random() < dt * mfx(r) * 5) r.fx.emit('rise', wx(r, P.x) + (Math.random() - 0.5) * 1.2, 0.1, wz(r, P.y) + (Math.random() - 0.5) * 1.2, 0.5, 1, PCOL[i][1], PCOL[i][0]);
+      if (hz.ph === 2 && r.fx && Math.random() < dt * mfx(r) * 12) r.fx.emit('sparkle', wx(r, P.x), 0.5, wz(r, P.y), 0.8, 1, PCOL[i][1], PCOL[i][0]);
     }
   }
 
@@ -97047,6 +98128,8 @@ body { font-weight: 700; letter-spacing: 0; }
   'use strict';
   const M24 = CR.Maps24 || (CR.Maps24 = {});
   const TAU = Math.PI * 2;
+  // v26 perf: map ambience (bubbles / sparks) per quality tier ('low': half), 1 = unchanged
+  function mfx(r) { return r._qp ? r._qp.mapFx : 1; }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 
   /** Citadel geometry (live CR.Arena on the map, else the rules): band, wall, gate, ladder, holes. */
@@ -97117,7 +98200,7 @@ body { font-weight: 700; letter-spacing: 0; }
     wg.setIndex(idx);
     wg.computeBoundingSphere();
     C.wU = { uT: { value: 0 } };
-    const wm = new T.ShaderMaterial({ uniforms: C.wU, vertexShader: MOAT_VS, fragmentShader: moatFs(), side: T.DoubleSide });
+    const wm = new T.ShaderMaterial({ defines: r._lq ? { CR_LQ: 1 } : {}, uniforms: C.wU, vertexShader: MOAT_VS, fragmentShader: moatFs(), side: T.DoubleSide });
     wm.toneMapped = false;
     M.geos.push(wg); M.mats.push(wm);
     const water = new T.Mesh(wg, wm);
@@ -97208,7 +98291,7 @@ body { font-weight: 700; letter-spacing: 0; }
         gl.position.set(x, 0.05, z);
         gl.scale.setScalar(0.35 + 0.6 * k);
         gl.material.opacity = 0.18 + 0.4 * k + 0.05 * Math.sin(t * 9);
-        if (r.fx && Math.random() < dt * (2 + 10 * k)) {
+        if (r.fx && Math.random() < dt * mfx(r) * (2 + 10 * k)) {
           const a = Math.random() * TAU;
           r.fx.emit('rise', x + Math.cos(a) * 0.9, 0.08, z + Math.sin(a) * 0.9, 0.5, 1, C.PC[i][1], C.PC[i][0]);
         }
