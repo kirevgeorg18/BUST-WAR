@@ -6890,6 +6890,18 @@ body { font-weight: 700; letter-spacing: 0; }
   .cr-playmark { animation: none; transition: none; }
 }
 
+/* v28 "Torturm" picker (Optionen sheet; gate weapon of the siege maps) */
+.mm-opt-gate { gap: 6px; margin-top: 4px; }
+.gate-head { display: flex; align-items: baseline; gap: 8px; padding: 0 4px; }
+.gate-title { font-family: var(--font-head, inherit); font-weight: 900; font-size: 16px; color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55); }
+.gate-only { font-size: 11.5px; font-weight: 800; color: var(--text-mute); }
+.gate-pick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.gate-btn { min-height: 48px; padding: 6px; border-radius: 12px; border: 2px solid rgba(0, 0, 0, 0.45); background: linear-gradient(#3d5a86, #2b4268); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.gate-btn svg { width: 30px; height: 30px; display: block; }
+.gate-btn.on { background: linear-gradient(#ffd34d, #f0a91c); border-color: #7a4f05; }
+.gate-btn:active { transform: scale(0.95); }
+.gate-desc { min-height: 2.6em; }
+
 </style>
 </head>
 <body>
@@ -8750,6 +8762,14 @@ body { font-weight: 700; letter-spacing: 0; }
  *   a1, b1 - the partner of end i is i ^ 1; spots[k].list = the ends of a spot) and the JUMP
  *   MUSHROOMS CR.Arena.PADS (buildPads, padTile, nearPad, padPlan; nav.pad). The router compares a
  *   pad with a portal plan and takes the cheaper one. Other maps: PADS null, two portal ends as before.
+ * v28 (docs/V28-SIEGE.md): tower layout "Belagerung" (siege) on fortress / kraken / skyislands / portals
+ *   (RULES.arena.siege, Arena.useSiege(on)): CR.Arena.SIEGE = null | { walls: [{ side, y0, y1, outer, back,
+ *   mid, dir, gates: [{ id, lane, x0, x1, y0, y1, open }], segs, blocks, town: { well, tavern, smithy,
+ *   militia } }], height, pass, noBuild }; towerLayout entries carry `siege: 'gate' | 'hall'` (gates 3 x 1.5
+ *   in the wall line); siegeZone(y), siegeZoneStrict(y), siegeSync(towers), siegeReach(team, ay, by),
+ *   siegeGateAt(x, y, pad), siegeNoBuild(cx, cy), siegeWaypoint (first step of waypoint: through an open
+ *   gate; out of the own town straight over the own wall); newNav().team / sgGate; troops deploy on the
+ *   own wall (sgOwnWall); pocket up to the hall front; SIEGE_RULES; gate weapons RULES.towers.siegeWeapons.
  */
 (function (CR) {
   'use strict';
@@ -9123,6 +9143,107 @@ body { font-weight: 700; letter-spacing: 0; }
       };
     }
   })();
+  // ---------------------------------------------------------------------------
+  // v28 tower layout "Belagerung" (siege, user request, docs/V28-SIEGE.md): a CITY behind a WALL with
+  // two GATES. Used for testing on every map that had the long fortress tower (fortress, kraken,
+  // skyislands, portals - each keeps its own hazard). Per side (side 0 numbers, side 1 = 180 deg):
+  //   - a straight stone WALL across the full width, y 6.5..8 (front face y 8 = the front edge of the
+  //     classic princess towers = the first line an attack meets). Indestructible terrain, never a
+  //     target; nobody walks / deploys through it (static obstacles {siegeWall: side});
+  //   - two GATES in it at the lanes = the princess tower spots (3x3, x 2..5 / 13..16, y 5..8 - the
+  //     gatehouse reaches 1.5 tiles into the town). The gate tower IS the gate: towerKind 'princess'
+  //     (1 crown, opens the pocket, wakes the town hall), a gate weapon on top (CR.RULES.towers.siegeGate,
+  //     modular: `weapon`). While it stands it blocks the enemy; its OWN side's troops pass through it
+  //     (the gate opens for them - sim.sgRects: per-team movement rects without the own gates). When it
+  //     falls the 3-wide gap is open ground for everybody (no rubble in the way).
+  //   - the TOWN behind it: the town hall = the king tower (4x4 at (9, 3), wakes when a gate falls or it
+  //     is hit, 3 crowns = win), two house blocks x 0..2 / 16..18, y 1..6.5 (static obstacles, filling
+  //     the dead corners behind the outer wall pieces) and decorative houses / stalls on the back-row
+  //     corners (renderer only). Gap wall -> hall front: 1.5 tiles.
+  //   - classic clock (crowns are possible again) and classic pockets (4 rows past the middle band on
+  //     the lane of a fallen gate = in front of the enemy town).
+  // CR.Arena.useSiege(on) switches the four maps between this layout and their v21/v24 long tower (the
+  // long-tower data is kept as `fortressLong` / `clockLong`; tests of the old layout switch it off).
+  // ---------------------------------------------------------------------------
+  (function () {
+    const A = CR.RULES.arena;
+    if (!A.siege) {
+      A.siege = {
+        maps: ['fortress', 'kraken', 'skyislands', 'portals'],
+        wall: { y0: 6.5, y1: 8, height: 1.7 },      // side 0; renderer height in tiles
+        gateBack: 6.5,                              // gate back face (the gates sit in the wall line)
+        gates: [{ x0: 2, x1: 5 }, { x0: 13, x1: 16 }],
+        blocks: [{ x0: 0, y0: 1, x1: 2, y1: 6.5 }, { x0: 16, y0: 1, x1: 18, y1: 6.5 }],   // house blocks
+        noBuild: 1,                                 // no buildings within 1 row in front of / behind a gate
+        // the town's three FUNCTIONAL buildings (on the house blocks - never targets, never in the way;
+        // CR.Units.siegeTown): Elixier-Brunnen (+1 elixir / 10 s for its owner), Schmiede (+10 % troop
+        // damage), Taverne (2 militia per breach). An enemy ground troop within `reach` tiles of one for
+        // `plunder` s (accumulated, slowly forgotten) PLUNDERS it: well -> +3 elixir for the plunderers
+        // and dry; smithy -> its bonus goes to the plunderers; tavern -> no more militia. x / y = centre
+        // (side 0), w / h = size. The well and the tavern stand behind the left gate, the smithy behind
+        // the right one (side 1: the 180-degree mirror - each player sees the same town).
+        town: {
+          well: { x: 1.0, y: 4.7, w: 1.4, h: 1.4 }, tavern: { x: 1.0, y: 2.3, w: 1.6, h: 1.8 }, smithy: { x: 17.0, y: 4.6, w: 1.6, h: 1.6 },
+          reach: 1.6, plunder: 1.5, forget: 0.5,
+          wellEvery: 10, wellAmount: 1, wellLoot: 3, smithyBonus: 0.1,
+          militia: { unit: 'barbarian', count: 2, hp: 0.55, damage: 0.6, x: 3.1, y: 2.6 },
+        },
+        pass: 0.35,                                 // router: mouth points r + pass outside the faces
+      };
+    }
+    const T = CR.RULES.towers;
+    // Gate tower base (princess-tower balance: HP 3052, range 7.5, air + ground) + the gate WEAPON
+    // ("Torturm"), chosen per player (sim cfg players[i].gate / options.gates[i], default 'gatling';
+    // 2v2: each player arms the gate of his home lane). Weapon fields override the base; the
+    // behaviour lives in CR.Units (thinkGate / gateFire, 04-units.js). Bot-tuned, docs/V28-SIEGE.md.
+    if (T && !T.siegeGate) T.siegeGate = { hp: 3700, damage: 109, hitSpeed: 0.8, firstHit: 0.5, range: 7.5, projectileSpeed: 10.0, splashRadius: 0 };
+    if (T && !T.siegeWeapons) {
+      T.siegeWeapons = {
+        // 1 Gatling-Armbrust: hand-cranked drum of crossbows - spins up while it keeps its target
+        //   (shot interval hitSpeed * spin^n, floor minHit), spins down when idle / retargeting
+        gatling: { name: 'Gatling-Armbrust', damage: 42, hitSpeed: 0.55, firstHit: 0.25, minHit: 0.2, spin: 0.86, projectileSpeed: 15, air: true },
+        // 2 Harpune: slow heavy harpoon on a chain; a hit ground troop is yanked `pull` tiles towards the
+        //   gate (mass >= heavyMass: `heavyPull`; buildings never), air targets only take the damage
+        harpoon: { name: 'Harpune', damage: 235, hitSpeed: 1.5, firstHit: 0.6, projectileSpeed: 12, air: true, pull: 2.5, heavyPull: 1.0, heavyMass: 8 },
+        // 3 Lava-Gießer: pours lava onto ground troops in front of the gate (area + a burning puddle),
+        //   an ember shot for air targets and ground troops beyond the pour reach; a little more HP
+        lava: { name: 'Lava-Gießer', damage: 215, hitSpeed: 1.6, firstHit: 0.6, reach: 4.2, splashRadius: 1.2, burn: { dps: 35, radius: 1.1, time: 2.5 },
+          ember: { damage: 85, hitSpeed: 0.9, projectileSpeed: 11 }, hpMult: 1.05, air: true },
+        // 4 Steinlawine: rocks break from the wall onto ground troops near it (area + a short stun, at
+        //   most once per troop every `stunEvery` s);
+        //   a slingshot for air targets and ground troops out of reach; a little more HP
+        rockfall: { name: 'Steinlawine', damage: 165, hitSpeed: 1.5, firstHit: 0.5, reach: 5.5, wallReach: 4.0, splashRadius: 1.1, stun: 0.4, stunEvery: 3,
+          ember: { damage: 85, hitSpeed: 0.9, projectileSpeed: 11 }, hpMult: 1.06, air: true },
+        // 5 Drachenkopf: a stone dragon head spitting fireballs with a small splash
+        dragon: { name: 'Drachenkopf', damage: 126, hitSpeed: 0.8, firstHit: 0.45, splashRadius: 0.6, projectileSpeed: 8.5, air: true },
+      };
+      T.siegeWeaponIds = ['gatling', 'harpoon', 'lava', 'rockfall', 'dragon'];
+      T.siegeWeaponDefault = 'gatling';
+    }
+    if (T && !T.siegeHall) T.siegeHall = { hp: 5600, damage: 109, hitSpeed: 1.0, firstHit: 0.5, range: 7.0, projectileSpeed: 10.0 };
+  })();
+  /** v28: switch the siege layout on the maps of RULES.arena.siege.maps on (true) or back to their
+   *  long fortress tower (false). Rebuilds the current map. -> on. */
+  Arena.useSiege = function (on) {
+    const A = CR.RULES.arena, S = A.siege, maps = A.maps || {};
+    on = on !== false;
+    for (let i = 0; i < S.maps.length; i++) {
+      const M = maps[S.maps[i]];
+      if (!M) continue;
+      if (on && !M.siege) {
+        M.siege = true;
+        if (M.fortress) { M.fortressLong = M.fortress; delete M.fortress; }
+        if (M.clock) { M.clockLong = M.clock; delete M.clock; }
+      } else if (!on && M.siege) {
+        delete M.siege;
+        if (M.fortressLong) { M.fortress = M.fortressLong; delete M.fortressLong; }
+        if (M.clockLong) { M.clock = M.clockLong; delete M.clockLong; }
+      }
+    }
+    Arena.siegeOn = on;
+    if (Arena.rebuild && Arena.W) Arena.rebuild();
+    return on;
+  };
   // Touchdown field variants of the maps ('classic' = flat field, 'hill' = field + v5 ridge).
   (function () {
     const A = CR.RULES.arena, maps = A.maps || (A.maps = {});
@@ -9293,6 +9414,16 @@ body { font-weight: 700; letter-spacing: 0; }
       };
       for (const h of holes) obs.push({ x0: h.x - h.r, y0: h.y - h.r, x1: h.x + h.r, y1: h.y + h.r, obstacle: true, hole: h.index });
     } else Arena.TUNNEL = null;
+    // v28 siege layout: walls + house blocks are static obstacles ({siegeWall | town: side})
+    Arena.SIEGE = !td && M.siege ? buildSiege(A.siege, W, H) : null;
+    if (Arena.SIEGE) {
+      const SG = Arena.SIEGE;
+      for (let s = 0; s < 2; s++) {
+        const w = SG.walls[s];
+        for (let i = 0; i < w.segs.length; i++) obs.push(w.segs[i]);
+        for (let i = 0; i < w.blocks.length; i++) obs.push(w.blocks[i]);
+      }
+    }
     Arena.OBSTACLES = obs;
     Arena.RAILS = buildRails(M.rails || null, Arena.hasRiver ? Arena.RIVER : null);
     // v21: the fortress map's tower block (null on every other map and in touchdown).
@@ -9544,8 +9675,24 @@ body { font-weight: 700; letter-spacing: 0; }
     'Truppen, die nur Gebäude angreifen, laufen ohne Gebäude in Sicht direkt zur Endzone.',
     'Nicht erlaubt in Touchdown: Schweinereiter, Königsschweine, Widderreiterin und Frost.',
   ];
+  // v28 siege layout rules (docs/V28-SIEGE.md) - replace the long-tower lines on the siege maps
+  Arena.SIEGE_RULES = [
+    'Belagerung: Jede Seite hat eine STADT hinter einer geraden Steinmauer (auf Höhe der Prinzessinnentürme). In der Mauer sitzen links und rechts zwei TORE, auf jedem Tor steht ein Torturm, der auf Luft und Boden schießt. Die Mauer selbst ist unzerstörbar.',
+    'Gegnerische Truppen kommen nur durch ein ZERSTÖRTES Tor in die Stadt: Fällt ein Tor (1 Krone), bricht es auf und die Lücke ist für alle frei. Bis dahin greifen Bodentruppen das Tor an. Fernkämpfer, Luft und Zauber treffen über die Mauer hinweg.',
+    'Hinter der Mauer liegt die Stadt mit dem RATHAUS (wie der Königsturm: wacht auf, wenn ein Tor fällt oder es getroffen wird; fällt es, gibt es 3 Kronen und den Sieg). Sonst gewinnt wie klassisch, wer mehr Kronen hat, dann der Turm mit weniger Schaden.',
+    'Eigene Truppen setzt du vor deine Mauer, in deine Stadt oder OBEN AUF deine Mauer (keine Gebäude). Deine Truppen springen über deine eigene Mauer nach vorn – über die gegnerische Mauer nie. Fällt ein gegnerisches Tor, darfst du auf dieser Seite bis vor das Rathaus setzen (Tasche).',
+    'Den TORTURM wählst du in den Optionen: Gatling-Armbrust, Harpune, Lava-Gießer, Steinlawine oder Drachenkopf.',
+    'In der Stadt stehen drei besondere Häuser: der ELIXIER-BRUNNEN (+1 Elixier alle 10 s), die SCHMIEDE (+10 % Truppenschaden) und die TAVERNE (schickt bei jedem Torbruch 2 Milizen). Steht eine gegnerische Bodentruppe 1,5 s daneben, wird das Haus GEPLÜNDERT: Brunnen versiegt (+3 Elixier für die Plünderer), die Schmiede arbeitet für die Plünderer, die Taverne schickt niemanden mehr.',
+    'Mineur, Goblinfass, Goblin-Bohrer und Friedhof landen überall – auch hinter der Mauer, wie am Königsturm. Gebäude stehen nie auf der Mauer und nicht direkt vor oder hinter einem Tor.',
+  ];
   Arena.mapRules = function (id, mode) {
-    const lines = (Arena.MAP_RULES[id || Arena.map] || []).slice();
+    let lines = (Arena.MAP_RULES[id || Arena.map] || []).slice();
+    // v28: a siege map: its own hazard lines (not the long-tower / Festung ones) + the siege rules
+    const SM = (CR.RULES.arena.maps || {})[id || Arena.map];
+    if (SM && SM.siege && !(mode === undefined ? Arena.touchdown : mode === 'touchdown')) {
+      const keep = (id || Arena.map) === 'fortress' ? lines.filter(function (l) { return /Bau-Modus/.test(l); }) : lines.filter(function (l) { return !/langen Turm|Festung/.test(l); });
+      lines = Arena.SIEGE_RULES.concat(keep);
+    }
     if ((mode === undefined ? Arena.touchdown : mode === 'touchdown')) {
       // The touchdown field has no river: only the hill / tunnel lines apply (and the touchdown rules).
       const out = Arena.TOUCHDOWN_RULES.slice();
@@ -9921,6 +10068,10 @@ body { font-weight: 700; letter-spacing: 0; }
     if (dm > r + 0.9 || px < lo - 0.3 || px > hi + 0.3) {
       // to the mouth (on the bank, lined up in the corridor)
       out.x = mx; out.y = ey - sg * (r + 0.45);
+      // (v28: already close to the edge but just beside the corridor: sideways into it at the own
+      // distance - heading back to the mouth point and forth onto the bridge flipped a Royal Giant
+      // 0.30 beside the corridor every tick)
+      if (dm <= r + 0.9) out.y = ey - sg * Math.max(r * 0.6, Math.min(dm, r + 0.45));
       return true;
     }
     if (skyWait(S, best, S.t, need) === 0) { out.x = mx; out.y = xy + sg * 0.3; }   // step on, across
@@ -10178,8 +10329,203 @@ body { font-weight: 700; letter-spacing: 0; }
         out.push(entry({ id: 2 + lane + side * 3, side: side, kind: 'princess', lane: lane, x: px, y: py }, ps, ph, ps, ph));
       }
     }
+    // v28 siege layout: the princess spots are the GATES - as wide as a princess tower, as deep as the
+    // wall (sitting IN the wall line: side 0 y 6.5..8), flag `siege` on every entry ('gate' / 'hall')
+    if (mm && mm.siege && A.siege) {
+      const S = A.siege, d = S.wall.y1 - S.wall.y0, cy0 = (S.wall.y0 + S.wall.y1) / 2;
+      for (let i = 0; i < out.length; i++) {
+        const o = out[i];
+        if (o.kind === 'king') { o.siege = 'hall'; continue; }
+        o.siege = 'gate';
+        o.y = o.side === 0 ? cy0 : H - cy0;
+        entry(o, ps, ph, d, d);
+      }
+    }
     return out;
   };
+
+  // ---------------------------------------------------------------------------
+  // v28 siege layout helpers (docs/V28-SIEGE.md; CR.Arena.SIEGE is null on every other map / in touchdown)
+  //   SIEGE = { walls: [w0, w1], height, pass, noBuild } with per side w = { side, y0, y1 (wall band),
+  //     outer (field face y), back (gatehouse back face y), mid, dir (+1: field lies towards +y),
+  //     gates: [{ side, lane, id (tower id), x0, x1, cx, y0, y1 (passage box = gate footprint), open }],
+  //     segs: wall obstacles {siegeWall: side}, blocks: house block obstacles {town: side} }
+  //   gate.open = its tower is down (CR.Arena.siegeSync(towers), every sim tick); a gate is passable
+  //   for its own team always, for the enemy only when open.
+  // ---------------------------------------------------------------------------
+  function buildSiege(S, W, H) {
+    const walls = [];
+    for (let s = 0; s < 2; s++) {
+      const my = function (y) { return s === 0 ? y : H - y; };
+      const y0 = Math.min(my(S.wall.y0), my(S.wall.y1)), y1 = Math.max(my(S.wall.y0), my(S.wall.y1));
+      const outer = my(S.wall.y1), back = my(S.gateBack);
+      const gates = [];
+      for (let i = 0; i < S.gates.length; i++) {
+        const g = S.gates[i];
+        const x0 = s === 0 ? g.x0 : W - g.x1, x1 = s === 0 ? g.x1 : W - g.x0, cx = (x0 + x1) / 2;
+        const lane = cx < CR.RULES.arena.laneSplitX ? 0 : 1;
+        gates.push({ side: s, lane: lane, id: 2 + lane + 3 * s, index: i, x0: x0, x1: x1, cx: cx, y0: Math.min(outer, back), y1: Math.max(outer, back), open: false });
+      }
+      gates.sort(function (a, b) { return a.x0 - b.x0; });
+      const segs = [];
+      let cur = 0;
+      for (let i = 0; i < gates.length; i++) {
+        if (gates[i].x0 > cur + 1e-9) segs.push({ x0: cur, y0: y0, x1: gates[i].x0, y1: y1, obstacle: true, siegeWall: s });
+        cur = Math.max(cur, gates[i].x1);
+      }
+      if (cur < W - 1e-9) segs.push({ x0: cur, y0: y0, x1: W, y1: y1, obstacle: true, siegeWall: s });
+      const blocks = (S.blocks || []).map(function (b) {
+        return s === 0 ? { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, obstacle: true, town: s } : { x0: W - b.x1, y0: H - b.y1, x1: W - b.x0, y1: H - b.y0, obstacle: true, town: s };
+      });
+      // the town's functional buildings (sim coords, mirrored for side 1)
+      const town = {};
+      const TW = S.town || {};
+      ['well', 'tavern', 'smithy'].forEach(function (k) {
+        const b = TW[k];
+        if (!b) return;
+        const x = s === 0 ? b.x : W - b.x, y = s === 0 ? b.y : H - b.y;
+        town[k] = { k: k, x: x, y: y, x0: x - b.w / 2, y0: y - b.h / 2, x1: x + b.w / 2, y1: y + b.h / 2 };
+      });
+      if (TW.militia) town.militia = { x: s === 0 ? TW.militia.x : W - TW.militia.x, y: s === 0 ? TW.militia.y : H - TW.militia.y };
+      walls.push({ side: s, y0: y0, y1: y1, outer: outer, back: back, mid: (y0 + y1) / 2, dir: s === 0 ? 1 : -1, gates: gates, segs: segs, blocks: blocks, town: town,
+        // band of the whole fortification line (wall + gatehouses): zone memory is ambiguous inside it
+        b0: Math.min(y0, outer, back), b1: Math.max(y1, outer, back) });
+    }
+    return { walls: walls, height: S.wall.height > 0 ? S.wall.height : 1.7, pass: S.pass > 0 ? S.pass : 0.35, noBuild: S.noBuild >= 0 ? S.noBuild : 1 };
+  }
+  /** v28: zone of a y on a siege map: 0 = side 0's town (behind its wall), 1 = side 1's town, -1 = the field. */
+  function sgZone(y) { const w = Arena.SIEGE.walls; return y < w[0].mid ? 0 : (y > w[1].mid ? 1 : -1); }
+  Arena.siegeZone = function (y) { return Arena.SIEGE ? sgZone(y) : -1; };
+  /** v28: zone of y, or null inside a fortification band (wall + gatehouses: ambiguous). */
+  Arena.siegeZoneStrict = function (y) {
+    const S = Arena.SIEGE;
+    if (!S) return -1;
+    for (let s = 0; s < 2; s++) { const w = S.walls[s]; if (y >= w.b0 - 1e-9 && y <= w.b1 + 1e-9) return null; }
+    return sgZone(y);
+  };
+  function sgOpen(g, team) { return g.open; }   // (a gate only opens when it is destroyed - for everybody)
+  /** v28: copy the gate states from the sim towers (a gate is open when its tower is down / gone). */
+  Arena.siegeSync = function (towers) {
+    const S = Arena.SIEGE;
+    if (!S) return;
+    for (let s = 0; s < 2; s++) {
+      const gs = S.walls[s].gates;
+      for (let i = 0; i < gs.length; i++) {
+        let open = true;
+        for (let k = 0; k < towers.length; k++) { const t = towers[k]; if (t.id === gs[i].id) { open = !(t.alive !== false && !(t.hp <= 0)); break; } }
+        gs[i].open = open;
+      }
+    }
+  };
+  /** v28: may a ground troop of `team` walk from (ax, ay) to (bx, by)? (every wall it crosses has a
+   *  gate open for it). True on every other map. */
+  Arena.siegeReach = function (team, ay, by) {
+    const S = Arena.SIEGE;
+    if (!S) return true;
+    const za = sgZone(ay), zb = sgZone(by);
+    if (za === zb) return true;
+    for (let s = 0; s < 2; s++) {
+      if (za !== s && zb !== s) continue;
+      if (s === team && za === s) continue;   // out of the own town: over the own wall (hop)
+      const gs = S.walls[s].gates;
+      let ok = false;
+      for (let i = 0; i < gs.length && !ok; i++) ok = sgOpen(gs[i], team);
+      if (!ok) return false;
+    }
+    return true;
+  };
+  /** v28: the gate whose passage box (gate footprint) contains (x, y) within pad, or null. */
+  Arena.siegeGateAt = function (x, y, pad) {
+    const S = Arena.SIEGE;
+    if (!S) return null;
+    const p = pad || 0;
+    for (let s = 0; s < 2; s++) {
+      const gs = S.walls[s].gates;
+      for (let i = 0; i < gs.length; i++) { const g = gs[i]; if (x >= g.x0 - p && x <= g.x1 + p && y >= g.y0 - p && y <= g.y1 + p) return g; }
+    }
+    return null;
+  };
+  /** v28: no building footprint on a gate passage and `noBuild` rows in front of / behind it; nor
+   *  in the 2 rows in front of a wall or the 1.5-row strip between the wall and the town hall (a
+   *  building there left 1-tile slots against the wall that troops could not pass - stress soak). */
+  function siegeNoBuild(cx, cy) {
+    const S = Arena.SIEGE;
+    if (!S) return false;
+    const n = S.noBuild;
+    for (let s = 0; s < 2; s++) {
+      const w = S.walls[s];
+      const f0 = Math.min(w.outer, w.outer + 2 * w.dir), f1 = Math.max(w.outer, w.outer + 2 * w.dir);
+      if (cy > f0 && cy < f1) return true;
+      const b0 = Math.min(w.back, w.back - 1.5 * w.dir), b1 = Math.max(w.back, w.back - 1.5 * w.dir);
+      if (cy > b0 && cy < b1) return true;
+      const gs = w.gates;
+      for (let i = 0; i < gs.length; i++) { const g = gs[i]; if (cx > g.x0 && cx < g.x1 && cy > g.y0 - n && cy < g.y1 + n) return true; }
+    }
+    return false;
+  }
+  Arena.siegeNoBuild = siegeNoBuild;
+  /**
+   * v28 router step (called first in Arena.waypoint on a siege map). nav.team = the troop's team.
+   *   0: nothing to do (no wall between troop and goal, or no gate open for it - the target filter in
+   *      CR.Units keeps such goals rare);
+   *   1: a wall is in the way: SGW = the mouth point in front of the best open gate (the new goal for
+   *      the normal routing: bridges / portals / detours);
+   *   2: the troop is lined up at a mouth or inside a passage: out = straight through to the far mouth
+   *      (no detour: an own gate is not in the troop's rects, an open one is gone).
+   */
+  const SGW = { x: 0, y: 0 };
+  function siegeWaypoint(px, py, r, gx, gy, out, nav) {
+    const S = Arena.SIEGE, team = nav && nav.team >= 0 ? nav.team : -1;
+    const rp = r + S.pass;
+    // 1) inside a passage that is open for us: straight on to the far mouth on the goal's side
+    for (let s = 0; s < 2; s++) {
+      const w = S.walls[s], gs = w.gates;
+      for (let i = 0; i < gs.length; i++) {
+        const g = gs[i];
+        if (!sgOpen(g, team) || px < g.x0 - 0.05 || px > g.x1 + 0.05 || py < g.y0 - 0.05 || py > g.y1 + 0.05) continue;
+        if (gx >= g.x0 && gx <= g.x1 && gy >= g.y0 && gy <= g.y1) return 0;   // the goal is in the passage
+        const hw = (g.x1 - g.x0) / 2, lo = g.x0 + Math.min(r, hw - 0.05), hi = g.x1 - Math.min(r, hw - 0.05);
+        const toTown = sgZone(gy) === s;
+        out.x = CR.clamp(px, lo, hi);
+        out.y = toTown ? w.back - w.dir * rp : w.outer + w.dir * rp;
+        if (nav) { nav.rect = null; nav.sgGate = g.id; }
+        return 2;
+      }
+    }
+    // 2) a wall between troop and goal: the wall next to the troop's zone towards the goal
+    const zp = sgZone(py), zg = sgZone(gy);
+    if (zp === zg) return 0;
+    const w = S.walls[zp !== -1 ? zp : zg];
+    const fromTown = zp === w.side;
+    // out of the OWN town: straight over the own wall (not in the troop's rects; CR.Units hops it down)
+    if (fromTown && w.side === team) return 0;
+    const ny = fromTown ? w.back - w.dir * rp : w.outer + w.dir * rp;   // near mouth y
+    const fy = fromTown ? w.outer + w.dir * rp : w.back - w.dir * rp;   // far mouth y
+    let best = null, bc = Infinity, blo = 0, bhi = 0;
+    for (let i = 0; i < w.gates.length; i++) {
+      const g = w.gates[i];
+      if (!sgOpen(g, team)) continue;
+      const hw = (g.x1 - g.x0) / 2, lo = g.x0 + Math.min(r, hw - 0.05), hi = g.x1 - Math.min(r, hw - 0.05);
+      const ex = CR.clamp(px, lo, hi), fx = CR.clamp(gx, lo, hi);
+      let c = CR.dist(px, py, ex, ny) + Math.abs(fy - ny) + CR.dist(fx, fy, gx, gy);
+      if (nav && nav.sgGate === g.id) c -= 1.5;   // hysteresis: keep the chosen gate
+      if (c < bc) { bc = c; best = g; blo = lo; bhi = hi; }
+    }
+    if (!best) return 0;
+    if (nav) nav.sgGate = best.id;
+    const ex = CR.clamp(px, blo, bhi);
+    // lined up at the mouth (own x in the corridor, within reach of the face): step in
+    const face = fromTown ? w.back : w.outer;
+    const off = (py - face) * (fromTown ? -w.dir : w.dir);   // distance in front of the face (> 0 outside)
+    if (px >= blo - 0.12 && px <= bhi + 0.12 && off <= rp + 0.3) {
+      out.x = ex; out.y = fy;
+      if (nav) nav.rect = null;
+      return 2;
+    }
+    SGW.x = ex; SGW.y = ny;
+    return 1;
+  }
+  Arena.siegeWaypoint = function (px, py, r, gx, gy, out, nav) { return Arena.SIEGE ? siegeWaypoint(px, py, r, gx, gy, out, nav) : 0; };
 
   // ---------------------------------------------------------------------------
   // v12 tunnel map helpers (CR.Arena.TUNNEL is null on every other map)
@@ -10320,9 +10666,18 @@ body { font-weight: 700; letter-spacing: 0; }
     if (side === 0) rects.push({ x0: 0, y0: 0, x1: W, y1: Math.min(A.ownRows, rv.y0) });
     else rects.push({ x0: 0, y0: Math.max(H - A.ownRows, rv.y1), x1: W, y1: H });
     if (noPocket) return rects;
+    // v28 siege: a fallen gate opens the lane half of the enemy side from the middle band up to the
+    // town hall's front face (in front of the wall, the gate gap and the strip behind the wall)
+    const SGP = Arena.SIEGE ? CR.RULES.arena.king : null;
+    const hf = SGP ? SGP.y + (CR.RULES.towers.king.depth > 0 ? CR.RULES.towers.king.depth : CR.RULES.towers.king.size) / 2 : 0;
     for (let lane = 0; lane < 2; lane++) {
       if (!Arena.pocketOpen(side, lane, sim)) continue;
       const x0 = lane === 0 ? 0 : Arena.LANE_X, x1 = lane === 0 ? Arena.LANE_X : W;
+      if (SGP) {
+        if (side === 0) rects.push({ x0: x0, y0: rv.y1, x1: x1, y1: H - hf, pocket: lane });
+        else rects.push({ x0: x0, y0: hf, x1: x1, y1: rv.y0, pocket: lane });
+        continue;
+      }
       if (side === 0) rects.push({ x0: x0, y0: rv.y1, x1: x1, y1: Math.min(H, rv.y1 + A.pocketRows), pocket: lane });
       else rects.push({ x0: x0, y0: Math.max(0, rv.y0 - A.pocketRows), x1: x1, y1: rv.y0, pocket: lane });
     }
@@ -10354,6 +10709,14 @@ body { font-weight: 700; letter-spacing: 0; }
     return out;
   };
 
+  /** v28 siege: troops ('own' placement) may be deployed ON TOP of their own wall - its pieces are
+   *  no deploy block for them (buildings, Miner & co. stay off every wall). */
+  function sgOwnWall(blocks, side, kind) {
+    if (!Arena.SIEGE || kind !== 'own') return blocks;
+    const out = [];
+    for (let i = 0; i < blocks.length; i++) if (blocks[i].siegeWall !== side) out.push(blocks[i]);
+    return out;
+  }
   /** A tile (centre cx, cy) is blocked when its centre lies inside a rect or on its edge: the
    *  3x3 king tower (half-tile edges) therefore blocks every tile it touches. Rects on the tile
    *  grid (princess hit boxes, snapped buildings) block exactly the tiles they cover. */
@@ -10434,7 +10797,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const C = Arena.COLS, Rw = Arena.ROWS;
     const grid = new Uint8Array(C * Rw);
     if (kind === 'anywhere') { grid.fill(1); return grid; }
-    const blocks = Arena.blockRects(sim, true);
+    const blocks = sgOwnWall(Arena.blockRects(sim, true), side, kind);
     const zone = kind === 'anywhere-ground' ? null : Arena.zoneRects(side, sim, kind === 'building' && !CR.RULES.arena.buildingsInPocket);
     for (let ty = 0; ty < Rw; ty++) {
       for (let tx = 0; tx < C; tx++) {
@@ -10506,7 +10869,7 @@ body { font-weight: 700; letter-spacing: 0; }
     return (cy >= rv.y0 - 1 && cy < rv.y0) || (cy >= rv.y1 && cy < rv.y1 + 1);
   }
   /** Tiles where no building may stand: next to a tunnel hole (v12) or on a rail track (v14). */
-  function noBuilding(cx, cy) { return nearHole(cx, cy) || onTrack(cx, cy) || nearPortalSpot(cx, cy) || pierMouth(cx, cy) || nearPad(cx, cy); }   // (v24: + portal spots, v26: + citadel pier mouth, v27: + jump mushrooms / landing spots)
+  function noBuilding(cx, cy) { return nearHole(cx, cy) || onTrack(cx, cy) || nearPortalSpot(cx, cy) || pierMouth(cx, cy) || nearPad(cx, cy) || siegeNoBuild(cx, cy); }   // (v28: + siege gate passages)   // (v24: + portal spots, v26: + citadel pier mouth, v27: + jump mushrooms / landing spots)
   Arena.noBuilding = noBuilding;
 
   /** Reason for the middle band: river (classic), hill (plateau) or plain zone (flat tunnel map). */
@@ -10523,7 +10886,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const p = Arena.snap(x, y, c);
     const kind = Arena.placementKind(c);
     if (kind === 'anywhere') return { ok: true, reason: null, x: p.x, y: p.y };
-    const blocks = Arena.blockRects(sim, true);
+    const blocks = sgOwnWall(Arena.blockRects(sim, true), side, kind);
     if (kind === 'anywhere-ground') {
       // v22 pyramid: not on the wall (top, tunnels) nor on the ladder rungs.
       if (Arena.WALL && (Arena.inRiverBand(p.y) || ladderTile(p.x, p.y))) return { ok: false, reason: Arena.inRiverBand(p.y) ? 'zone' : 'blocked', x: p.x, y: p.y };
@@ -10619,7 +10982,7 @@ body { font-weight: 700; letter-spacing: 0; }
   const SIDE_COST = new Float64Array(3), SIDE_FIRST = new Int8Array(3);
 
   /** Fresh routing memory for a troop (stored on the entity, owned by the router). */
-  Arena.newNav = function () { return { rect: null, side: 0, bridge: -1, lad: 1, spd: 0, portal: -1, pad: -1 }; };   // (v27: + pad)
+  Arena.newNav = function () { return { rect: null, side: 0, bridge: -1, lad: 1, spd: 0, portal: -1, pad: -1, team: -1, sgGate: -1 }; };   // (v28: + team / sgGate)   // (v27: + pad)
 
   function bridgeCost(b, px, py, r, gx, gy) {
     const lo = b.x0 + Math.min(r, (b.x1 - b.x0) / 2), hi = b.x1 - Math.min(r, (b.x1 - b.x0) / 2);
@@ -10665,6 +11028,12 @@ body { font-weight: 700; letter-spacing: 0; }
    * nav: optional per-troop memory from Arena.newNav() (bridge + detour side hysteresis).
    */
   Arena.waypoint = function (px, py, r, gx, gy, jumps, rects, out, nav) {
+    // v28 siege: through a gate open for the troop's team (nav.team) when a wall is in the way
+    if (Arena.SIEGE) {
+      const k = siegeWaypoint(px, py, r, gx, gy, out, nav);
+      if (k === 2) return out;
+      if (k === 1) { gx = SGW.x; gy = SGW.y; }
+    }
     let wx = gx, wy = gy;
     const rv = Arena.RIVER;
     if (Arena.WALL) {
@@ -11158,6 +11527,7 @@ body { font-weight: 700; letter-spacing: 0; }
     return true;
   };
 
+  Arena.useSiege(CR.RULES.arena.siegeOn !== false);   // v28: the four long-tower maps use the siege layout
   Arena.rebuild();
 })(globalThis.CR || (globalThis.CR = {}));
 
@@ -11289,6 +11659,9 @@ body { font-weight: 700; letter-spacing: 0; }
  *   sim.units (troops+buildings), sim.towers, sim.projectiles, sim.areas, sim.players, sim.rng
  *   sim.staticRects (this tick's movement obstacles: tower footprints `t.col`, buildings, obstacles)
  *   sim.hooks = { onUnitSpawn, onAttack, onDamage, onDeath, onTick, modifyStats } (lists)
+ * v28 siege: sgGates (weapon per player: players[i].gate | options.gates[i]), sgGateType(side, lane),
+ *   sgRects (per-team movement rects), siegeSync in _assertArena / _rebuildStatic, Units.siegeTown each
+ *   tick, view tower extras sg / gw / sp, view.sg (town state).
  */
 (function (CR) {
   'use strict';
@@ -11416,6 +11789,14 @@ body { font-weight: 700; letter-spacing: 0; }
         rounds: 1,
       } : null;
 
+      // v28 siege: the gate weapon ("Torturm") of every player (cfg.players[i].gate | options.gates[i]),
+      // read by CR.Units.createTower through sgGateType(side, lane) (docs/V28-SIEGE.md).
+      {
+        const pc0 = Sim.normalizePlayers(cfg), og = Array.isArray(opt.gates) ? opt.gates : null;
+        this.sgGates = pc0.map(function (p, i) { const g = p.gate || (og ? og[i] : null); return CR.Units.gateWeapon ? (CR.Units.gateWeapon(g) || { id: 'gatling' }).id : 'gatling'; });
+        this.sgSides = [[], []];
+        for (let i = 0; i < pc0.length; i++) this.sgSides[pc0[i].side].push(i);
+      }
       // Towers (none in touchdown).
       this.towers = isTd ? [] : CR.Arena.towerLayout().map((L) => CR.Units.createTower(this, L));
       if (opt.kingsActive) for (const t of this.towers) if (t.towerKind === 'king') t.active = true;
@@ -11483,7 +11864,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const n = cfg.players.length >= 4 ? 4 : 2;
         for (let i = 0; i < n; i++) {
           const p = cfg.players[i] || {};
-          out.push({ name: String(p.name === undefined || p.name === null ? 'Spieler ' + (i + 1) : p.name), deck: p.deck, side: p.side === 1 ? 1 : (p.side === 0 ? 0 : -1), bot: !!p.bot });
+          out.push({ name: String(p.name === undefined || p.name === null ? 'Spieler ' + (i + 1) : p.name), deck: p.deck, side: p.side === 1 ? 1 : (p.side === 0 ? 0 : -1), bot: !!p.bot, gate: typeof p.gate === 'string' ? p.gate : null });
         }
         let c0 = 0, c1 = 0;
         for (const p of out) { if (p.side === 0) c0++; else if (p.side === 1) c1++; }
@@ -11680,6 +12061,15 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < this.towers.length; i++) if (this.towers[i].id === id) return this.towers[i];
       for (let i = 0; i < this.units.length; i++) if (this.units[i].id === id) return this.units[i];
       return null;
+    }
+
+    /** v28 siege: weapon id of the gate of `side` in `lane` (1v1: the side's player; 2v2: the
+     *  side's first player arms the left gate (lane 0), the second the right one). */
+    sgGateType(side, lane) {
+      const ps = this.sgSides ? this.sgSides[side] : null;
+      if (!ps || !ps.length) return null;
+      const i = ps.length > 1 ? ps[lane === 1 ? 1 : 0] : ps[0];
+      return this.sgGates ? this.sgGates[i] : null;
     }
 
     addArea(a) {
@@ -12092,6 +12482,9 @@ body { font-weight: 700; letter-spacing: 0; }
         // AI between another sim's (card preview) tick and the next MapHz.pre saw the wrong state).
         if (this.hz && CR.MapHz && typeof CR.MapHz.resync === 'function') CR.MapHz.resync(this);
       }
+      // v28 siege: the gate states (router / reach) are this battle's (another sim on the same map
+      // may have ticked in between)
+      if (CR.Arena.SIEGE && this.towers.length) CR.Arena.siegeSync(this.towers);
     }
 
     tick() {
@@ -12132,6 +12525,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (this.hz) CR.MapHz.pre(this);
       this._unitsPhase();
       if (this.hz) CR.MapHz.post(this);
+      if (CR.Arena.SIEGE && !this.touchdown && CR.Units.siegeTown) { CR.Units.siegeTown(this); this._owner = -1; }   // v28 siege town
       // 6. projectiles
       CR.Units.updateProjectiles(this);
       this._owner = -1;
@@ -12214,6 +12608,17 @@ body { font-weight: 700; letter-spacing: 0; }
       for (let i = 0; i < CR.Arena.OBSTACLES.length; i++) r.push(CR.Arena.OBSTACLES[i]);
       // v14: the mine carts are movement obstacles too (collision pushes walkers off the rails).
       if (this.rails) for (let i = 0; i < this.rails.rects.length; i++) r.push(this.rails.rects[i]);
+      // v28 siege: gate states for the router + per-team rects (the own wall is no obstacle for the own
+      // team: its troops stand on it and hop down over it - CR.Units)
+      if (CR.Arena.SIEGE) {
+        CR.Arena.siegeSync(this.towers);
+        const g = this.sgRects || (this.sgRects = [[], []]);
+        for (let k = 0; k < 2; k++) {
+          const l = g[k];
+          l.length = 0;
+          for (let i = 0; i < r.length; i++) { const b = r[i]; if (b.siegeWall !== k) l.push(b); }
+        }
+      } else this.sgRects = null;
     }
 
     _unitsPhase() {
@@ -12520,6 +12925,9 @@ body { font-weight: 700; letter-spacing: 0; }
           size: t.size, depth: t.depth, targetId: t.target && t.alive ? t.target.id : 0, fx: fx,
           attackProg: t.atk > t.s.loadTime && t.s.firstHit > 0 ? r3(Math.min(1, (t.atk - t.s.loadTime) / t.s.firstHit)) : 0,
         };
+        // v28 siege: sg 1 = gate (+ gw weapon id, sp gatling spin 0..1), 2 = town hall (view.sg: the town)
+        if (t.sgGate !== undefined) { tv.sg = 1; tv.gw = t.sgType || 'gatling'; if (t.sgSpin > 0) tv.sp = r3(t.sgSpin); }
+        else if (t.sgHall !== undefined) tv.sg = 2;
         // v21 fortress tower: flag + per-gun target ids / wind-up (renderers aim both crews).
         if (t.guns) {
           tv.fortress = true;
@@ -12615,6 +13023,17 @@ body { font-weight: 700; letter-spacing: 0; }
       if (this.rails) out.rails = CR.Rails.view(this);
       // v24 hazard maps: view.hz (kraken telegraph, sky bridges, portal ends - CR.MapHz.view)
       if (this.hz) out.hz = CR.MapHz.view(this);
+      // v28 siege town: st = [well, smithy, tavern] of side 0 then side 1 (1 intact, 0 plundered),
+      // pr = their plunder progress 0..1, sm = side the smithy works for, dm = troop damage bonus per side
+      if (this.sgTown) {
+        const T = this.sgTown, P = CR.RULES.arena.siege.town.plunder || 1.5, r2 = function (v) { return Math.round(v * 100) / 100; };
+        out.sg = {
+          st: [T[0].well.ok ? 1 : 0, T[0].smithy.ok ? 1 : 0, T[0].tavern.ok ? 1 : 0, T[1].well.ok ? 1 : 0, T[1].smithy.ok ? 1 : 0, T[1].tavern.ok ? 1 : 0],
+          pr: [r2(T[0].well.p / P), r2(T[0].smithy.p / P), r2(T[0].tavern.p / P), r2(T[1].well.p / P), r2(T[1].smithy.p / P), r2(T[1].tavern.p / P)],
+          sm: [T[0].smithy.to, T[1].smithy.to],
+          dm: this.sgDmg ? [r2(this.sgDmg[0]), r2(this.sgDmg[1])] : [0, 0],
+        };
+      }
       return out;
     }
 
@@ -12776,6 +13195,11 @@ body { font-weight: 700; letter-spacing: 0; }
  * troop stuck for 1 s next to a building / tower follows CR.Arena.gridWaypoint (pockets of several flush
  * rects) until the normal router agrees again (nav.gUntil / gwx / gwy / gAgree); a troop heading for a
  * portal warps within 0.6 + r / 4 of the pad centre.
+ * v28 siege (docs/V28-SIEGE.md): createTower (gate weapon stats T.siegeWeapons + u.sgGate / sgHall / sgW /
+ *   sgType), thinkGate / gateFire / gatePull (five gate weapons), hopCheck / stepHop (own wall hop, u.sgHop),
+ *   siegePush (no pushing through a wall: u.sgZ zone memory), siegeApart (no targets across a closed wall
+ *   unless in range), rectsFor(sim, u) = sim.sgRects[team], siegeTown (well / smithy / tavern, plunder,
+ *   militia, sim.sgTown / sim.sgDmg; smithy bonus in Units.damage), gateWeapon(id).
  */
 (function (CR) {
   'use strict';
@@ -12789,6 +13213,10 @@ body { font-weight: 700; letter-spacing: 0; }
   const TMP = { x: 0, y: 0 };
   const TN_OUT = { x: 0, y: 0 };
   const ROUTE_R = CR.RULES.routing.maxRouteRadius > 0 ? CR.RULES.routing.maxRouteRadius : 0.9;
+  /** v28 siege: this tick's movement rects for troop u - on a siege map without the alive gates of its
+   *  own team (a gate opens for its own troops, sim.sgRects), else sim.staticRects. */
+  function SR(sim, u) { const g = sim.sgRects; return g && (u.side === 0 || u.side === 1) ? g[u.side] : sim.staticRects; }
+  Units.rectsFor = SR;
 
   // v15 behaviour rules (docs/V15-BEHAVIOUR.md), added to CR.RULES.routing here (engine tuning, no
   // gameplay numbers; an explicit value in CR.RULES wins):
@@ -13172,22 +13600,30 @@ body { font-weight: 700; letter-spacing: 0; }
     const T = CR.RULES.towers;
     // v21 'fortress' map: one long tower per side (towerKind 'king', L.fortress) with its own stats.
     const fort = !!(L.fortress && T.fortress);
-    const base = fort ? T.fortress : (L.kind === 'king' ? T.king : T.princess);
+    // v28 siege layout (docs/V28-SIEGE.md): the princess spots are the GATES (gate weapon stats
+    // T.siegeGate), the king is the TOWN HALL (T.siegeHall); same kinds / ids / crown rules.
+    const SG = !fort && CR.Arena.SIEGE && !CR.Arena.touchdown ? (L.kind === 'king' ? T.siegeHall : T.siegeGate) : null;
+    const base = fort ? T.fortress : (SG || (L.kind === 'king' ? T.king : T.princess));
     const DT = CR.DATA && CR.DATA.towers;
-    const dataT = fort ? (DT && DT.fortress) || null : (DT ? (L.kind === 'king' ? (DT.king || DT['king-tower']) : (DT.princess || DT['princess-tower'])) : null);
+    const dataT = SG ? null : (fort ? (DT && DT.fortress) || null : (DT ? (L.kind === 'king' ? (DT.king || DT['king-tower']) : (DT.princess || DT['princess-tower'])) : null));
     const ov = T.override ? T.override[fort ? 'fortress' : L.kind] : null;
-    const st = Object.assign({}, base, dataT || {}, ov || {});
+    // v28: the gate weapon chosen by the gate's player (T.siegeWeapons, default gatling)
+    const WP = SG && L.kind !== 'king' ? Units.gateWeapon(sim && typeof sim.sgGateType === 'function' ? sim.sgGateType(L.side, L.lane) : null) : null;
+    const st = Object.assign({}, base, dataT || {}, WP ? WP.def : {}, ov || {});
+    if (WP && WP.def.hpMult > 0) st.hp = Math.round(num(st.hp, 3000) * WP.def.hpMult);
     // v24: a hazard map may tune its long tower's HP (match length, docs/V24-MAPS.md)
     const MM = fort && CR.Arena.MAP && !CR.Arena.touchdown ? CR.Arena.MAP : null;
     if (MM && MM.towerHp > 0 && !(ov && ov.hp > 0)) st.hp = MM.towerHp;
     // v25: a map may scale its classic crown towers' HP (Chaos-Zitadelle: four ways in, docs/V25-COMBO.md)
     const MC = !fort && CR.Arena.MAP && !CR.Arena.touchdown ? CR.Arena.MAP : null;
     if (MC && MC.towerHpMult > 0 && !(ov && ov.hp > 0)) st.hp = Math.round(num(st.hp, 3000) * MC.towerHpMult);
+    // v28: per-map siege tuning (gate / hall HP factors, bot balance - docs/V28-SIEGE.md)
+    if (SG && MC && MC.siegeHp && !(ov && ov.hp > 0)) { const f = L.kind === 'king' ? MC.siegeHp.hall : MC.siegeHp.gate; if (f > 0) st.hp = Math.round(num(st.hp, 3000) * f); }
     const hitSpeed = Math.max(0.05, num(st.hitSpeed, 1));
     const firstHit = CR.clamp(num(st.firstHit, hitSpeed * 0.5), 0, hitSpeed);
     const hitSize = L.hitSize > 0 ? L.hitSize : L.size;
     let s = {
-      id: fort ? 'fortress-tower' : (L.kind === 'king' ? 'king-tower' : 'princess-tower'), name: fort ? 'fortress' : L.kind,
+      id: fort ? 'fortress-tower' : (L.kind === 'king' ? 'king-tower' : 'princess-tower'), name: fort ? 'fortress' : (SG ? (L.kind === 'king' ? 'hall' : 'gate') : L.kind),
       hp: num(st.hp, 3000), shield: 0, damage: num(st.damage, 100), ct: null,
       hitSpeed: hitSpeed, firstHit: firstHit, loadTime: hitSpeed - firstHit, loadFirstHit: false,
       range: num(st.range, 7), minRange: 0, sightRange: num(st.range, 7), sightClip: 0, speed: 0,
@@ -13206,11 +13642,14 @@ body { font-weight: 700; letter-spacing: 0; }
       }
       s.loadTime = s.hitSpeed - s.firstHit;
     }
+    if (WP) { s.hitSpeedBase = s.hitSpeed; s.firstHitBase = s.firstHit; }   // v28: the gate weapon's own timing (thinkGate varies it)
     const u = baseEntity(sim, L.side, L.x, L.y);
     u.id = L.id;
     // v21: the fortress crews are tower archers - its shots are princess-tower arrows for the
     // renderers / sound (projectile kind = u.unit); the stats keep their own id 'fortress-tower'.
     u.unit = fort ? 'princess-tower' : s.id;
+    // v28: the gate weapon's projectile kind (modular: T.siegeGate.weapon.projectile)
+    if (WP) { u.unit = 'siege-' + WP.id; u.sgW = WP.def; u.sgType = WP.id; u.sgSpin = 0; u.sgShots = 0; u.sgTid = 0; }
     u.s = s;
     u.tower = true;
     u.building = true;
@@ -13227,6 +13666,8 @@ body { font-weight: 700; letter-spacing: 0; }
     const hx1 = L.hx1 !== undefined ? L.hx1 : L.x1, hy1 = L.hy1 !== undefined ? L.hy1 : L.y1;
     u.x0 = hx0; u.y0 = hy0; u.x1 = hx1; u.y1 = hy1;
     u.col = { x0: L.x0, y0: L.y0, x1: L.x1, y1: L.y1, tower: u };
+    // v28 siege: gate towers (side) - passable for their own team, approached at the nearest point
+    if (SG) { if (L.kind === 'king') u.sgHall = L.side; else { u.sgGate = L.side; u.col.sgGate = L.side; } }
     u.hp = u.maxHp = s.hp;
     u.mass = Infinity;
     u.deployEnd = -1;
@@ -13325,11 +13766,21 @@ body { font-weight: 700; letter-spacing: 0; }
     if (t.side === u.side || !isTargetable(t)) return false;
     const s = u.s;
     if (s.buildingsOnly && !t.building) return false;
-    if (t.air) return s.targetsAir || (s.targetsGround && CR.Arena.RIDGE !== null && (levelled(u) || airAtGround(t)));
+    if (t.air) return (s.targetsAir || (s.targetsGround && CR.Arena.RIDGE !== null && (levelled(u) || airAtGround(t)))) && !(CR.Arena.SIEGE && siegeApart(u, t));   // (v28: + siege wall)
     if (CR.Arena.WALL && wallApart(u, t)) return false;   // v22 pyramid: melee only on the same level
+    if (CR.Arena.SIEGE && siegeApart(u, t)) return false;   // v28 siege: not across a closed wall (unless in range)
     return s.targetsGround;
   }
   Units.canTarget = canTarget;
+  /** v28 siege: ground troop u and target t on two sides of a wall without a gate open for u's team
+   *  (and t beyond u's attack range - ranged troops shoot over the wall). Gate towers stand in the
+   *  wall line: reachable from both sides. Air units, buildings and towers are never apart. */
+  function siegeApart(u, t) {
+    if (u.air || u.building || u.tower || u.tunnel || u.underground || t.sgGate !== undefined) return false;
+    if (CR.Arena.siegeReach(u.side, u.y, t.y)) return false;
+    return gap(u, t) > u.s.range + 0.05;
+  }
+  Units.siegeApart = siegeApart;
 
   // ---------------------------------------------------------------------------------------------
   // v22 pyramid wall (docs/V22-PYRAMID.md, geometry CR.Arena.WALL): levels, height bonus, jumpers.
@@ -13353,6 +13804,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const W = CR.Arena.WALL;
     if (W) n.lad = u.s.buildingsOnly ? 0 : (u.s.range >= W.rangedMin - EPS ? 2 : 1);
     if (CR.Arena.SKY || CR.Arena.PORTALS) n.spd = u.s.speed > 0 ? u.s.speed : 1;   // v24: bridge / portal timing
+    n.team = u.side === 0 || u.side === 1 ? u.side : -1;   // v28 siege: own gates are passable
     return n;
   }
   Units.newNav = newNav;
@@ -13592,6 +14044,8 @@ body { font-weight: 700; letter-spacing: 0; }
   Units.damage = function (sim, t, amount, src, kind, srcSide) {
     if (!t || t.dead || !(amount > 0) || t.immune || (t.tower && !t.alive)) return 0;
     const side = srcSide !== undefined ? srcSide : (src ? src.side : -1);
+    // v28 siege: the smithies working for the attacker's side (+10 % each) - troop hits only
+    if (sim.sgDmg && src && !src.building && !src.tower && (src.side === 0 || src.side === 1) && kind !== 'spell' && sim.sgDmg[src.side] > 0) amount *= 1 + sim.sgDmg[src.side];
     const hit = { amount: amount, src: src || null, kind: kind || 'melee', side: side, target: t };
     // v12: Kung-Fu-Legende dodge (ranged) / Schwarzklingen-Meister parry (troop melee).
     const tsp = t.s && t.s.special;
@@ -14738,7 +15192,7 @@ body { font-weight: 700; letter-spacing: 0; }
   /** Is (x, y) a free spot for ground troop u (no water, no obstacle, no end zone)? */
   function freeSpot(sim, u, x, y) {
     if (CR.Arena.isWater(x, y)) return false;
-    const R = sim.staticRects || [], ri = u.r * 0.8;
+    const R = SR(sim, u) || [], ri = u.r * 0.8;
     for (let i = 0; i < R.length; i++) {
       const b = R[i];
       if (x > b.x0 - ri && x < b.x1 + ri && y > b.y0 - ri && y < b.y1 + ri) return false;
@@ -14926,7 +15380,7 @@ body { font-weight: 700; letter-spacing: 0; }
    */
   const SQ = { x: 0, y: 0 };   // routing origin of a squeezed troop (squeezeRadius)
   function squeezeRadius(sim, u, rr) {
-    const rs = sim.staticRects, lim = rr - CR.RULES.routing.shrink;
+    const rs = SR(sim, u), lim = rr - CR.RULES.routing.shrink;
     let m = rr;
     SQ.x = u.x; SQ.y = u.y;
     for (let i = 0; i < rs.length; i++) {
@@ -14966,11 +15420,11 @@ body { font-weight: 700; letter-spacing: 0; }
     if (!(nav.gUntil > now + EPS)) return false;
     if (!(nav.gwT > now - 0.25 + EPS) || Math.abs(nav.ggx - gx) + Math.abs(nav.ggy - gy) > 0.5 || CR.dist2(u.x, u.y, nav.gwx, nav.gwy) < 0.01) {
       nav.gwT = now; nav.ggx = gx; nav.ggy = gy;
-      if (!CR.Arena.gridWaypoint(u.x, u.y, rr, gx, gy, sim.staticRects, GWP, nav.lad === 0)) { nav.gUntil = 0; return false; }
+      if (!CR.Arena.gridWaypoint(u.x, u.y, rr, gx, gy, SR(sim, u), GWP, nav.lad === 0)) { nav.gUntil = 0; return false; }
       nav.gwx = GWP.x; nav.gwy = GWP.y;
       // back to the normal router once it agrees with the grid route for 1 s (else it would lead
       // straight back into the pocket); at the latest after 20 s
-      CR.Arena.waypoint(u.x, u.y, rr, gx, gy, u.s.jumpsRiver, sim.staticRects, GWP, nav);
+      CR.Arena.waypoint(u.x, u.y, rr, gx, gy, u.s.jumpsRiver, SR(sim, u), GWP, nav);
       const ax = nav.gwx - u.x, ay = nav.gwy - u.y, bx = GWP.x - u.x, by = GWP.y - u.y;
       const la = Math.sqrt(ax * ax + ay * ay), lb = Math.sqrt(bx * bx + by * by);
       nav.gAgree = la > 1e-6 && lb > 1e-6 && (ax * bx + ay * by) > 0.8 * la * lb ? nav.gAgree + 1 : 0;
@@ -14980,7 +15434,7 @@ body { font-weight: 700; letter-spacing: 0; }
   }
   const GWP = { x: 0, y: 0 };
   function nearRect(sim, u, d) {
-    const rs = sim.staticRects;
+    const rs = SR(sim, u);
     for (let i = 0; i < rs.length; i++) {
       const b = rs[i];
       if (b.x1 === undefined || b.cart) continue;
@@ -15011,7 +15465,7 @@ body { font-weight: 700; letter-spacing: 0; }
       else if (grid && leg === 0) { wx = u.nav.gwx; wy = u.nav.gwy; }
       else {
         const ox = sq && leg === 0 ? SQ.x : u.x, oy = sq && leg === 0 ? SQ.y : u.y;
-        CR.Arena.waypoint(ox, oy, rr, gx, gy, s.jumpsRiver, sim.staticRects, WP, u.nav || (u.nav = newNav(u)));
+        CR.Arena.waypoint(ox, oy, rr, gx, gy, s.jumpsRiver, SR(sim, u), WP, u.nav || (u.nav = newNav(u)));
         wx = WP.x; wy = WP.y;
       }
       const isFinal = Math.abs(wx - gx) < 1e-9 && Math.abs(wy - gy) < 1e-9;
@@ -15065,7 +15519,7 @@ body { font-weight: 700; letter-spacing: 0; }
     if (cx < u.r || cx > W - u.r || cy < u.r || cy > H - u.r) return false;
     if (!u.air) {
       if (!jumper(u.s) && CR.Arena.isWater(cx, cy)) return false;
-      const rs = sim.staticRects;
+      const rs = SR(sim, u);
       for (let i = 0; i < rs.length; i++) {
         const b = rs[i];
         if (b.x1 === undefined) continue;
@@ -15235,6 +15689,9 @@ body { font-weight: 700; letter-spacing: 0; }
    */
   Units.think = function (sim, u) {
     if (u.guns) { thinkGuns(sim, u); return; }   // v21 fortress tower: one think per gun
+    if (u.sgW) { thinkGate(sim, u); return; }    // v28 siege gate weapon
+    if (u.sgHop) { stepHop(sim, u); return; }    // v28 siege: hopping down from the own wall
+    if (CR.Arena.SIEGE && !u.building && !u.air) { const hx = u.x, hy = u.y; u.moved = false; think(sim, u); if (!u.dead && u.moved && u.state === 'moving') hopCheck(sim, u, u.x - hx, u.y - hy); return; }
     if (CR.Arena.WALL && !u.building && !u.air) wallStats(u);   // v22 pyramid: height bonus on the wall
     if (!CR.Arena.TUNNEL || u.building || u.air) { think(sim, u); return; }
     tunnelBefore(sim, u);
@@ -15243,6 +15700,247 @@ body { font-weight: 700; letter-spacing: 0; }
     Units.layer = 0; Units.layerSrc = null;
     tunnelAfter(sim, u);
   };
+
+  // ===========================================================================
+  // v28 siege gate weapons ("Torturm", docs/V28-SIEGE.md; defs CR.RULES.towers.siegeWeapons)
+  // ===========================================================================
+  /** v28: a troop that walks on its OWN wall (deployed on the top / coming out of the own town) hops
+   *  down off it in its walking direction (outward to the field face, inward to the town face) - a
+   *  short arc of HOP_T s (u.sgHop, u.z for the renderers; no collision while in the air, targetable).
+   *  Walking along the top (sideways) and standing / fighting on it: no hop. */
+  const HOP_T = 0.6, HOP_H = 0.9;
+  function hopCheck(sim, u, mx, my) {
+    const S = CR.Arena.SIEGE, w = S.walls[u.side];
+    if (!(u.y > w.y0 + 1e-6 && u.y < w.y1 - 1e-6) || u.tunnel || u.underground || u.jump || u.dash || u.riding) return;
+    if (CR.Arena.siegeGateAt(u.x, u.y, 0)) return;
+    // the direction of this tick's step (the facing lags behind a turn: maxTurn)
+    const ml = Math.sqrt(mx * mx + my * my);
+    if (!(ml > 1e-6)) return;
+    const k = my / ml * w.dir;
+    if (k > -0.25 && k < 0.25) return;
+    const out = k > 0;
+    const ey = out ? w.outer + w.dir * (u.r + 0.05) : (w.side === 0 ? w.y0 - u.r - 0.05 : w.y1 + u.r + 0.05);
+    u.sgHop = { sx: u.x, sy: u.y, ex: u.x, ey: ey, t: 0, dur: HOP_T };
+    u.noCollide = true;
+    u.state = 'moving';
+    sim.emit('sg', { k: 'hop', side: u.side, id: u.id, x: CR.round(u.x, 2), y: CR.round(u.y, 2), ty: CR.round(ey, 2) });
+  }
+  function stepHop(sim, u) {
+    const h = u.sgHop;
+    h.t += sim.dt;
+    const k = Math.min(1, h.t / h.dur);
+    u.x = h.sx + (h.ex - h.sx) * k; u.y = h.sy + (h.ey - h.sy) * k;
+    u.z = 4 * HOP_H * k * (1 - k);
+    u.dir = Math.atan2(h.ey - h.sy, (h.ex - h.sx) || 1e-9);
+    u.state = 'moving'; u.moved = true;
+    if (k >= 1 - 1e-9) { u.sgHop = null; u.z = 0; u.noCollide = false; }
+  }
+  Units.hopCheck = hopCheck;
+
+  /**
+   * v28 siege town (docs/V28-SIEGE.md; geometry CR.Arena.SIEGE.walls[s].town, rules RULES.arena.siege.town):
+   * once per tick. State sim.sgTown = [side 0, side 1] with per town { well, smithy, tavern: { ok (intact),
+   * p (plunder progress s) }, wellT (s to the next drop), breaches (militia waves sent) } and
+   * sim.sgDmg = [troop damage bonus of side 0, of side 1] (smithies working for that side).
+   * Events {t: 'sg', k: 'elixir' | 'plunder' | 'militia', side (town owner), by, b (building), x, y}.
+   */
+  Units.siegeTown = function (sim) {
+    const SG = CR.Arena.SIEGE, R = CR.RULES.arena.siege.town;
+    if (!SG || !R || sim.touchdown || !sim.towers.length) return;
+    let T = sim.sgTown;
+    if (!T) {
+      T = sim.sgTown = [0, 1].map(function () { return { well: { ok: true, p: 0 }, smithy: { ok: true, p: 0, to: -1 }, tavern: { ok: true, p: 0 }, wellT: R.wellEvery, breaches: 0 }; });
+      for (let s = 0; s < 2; s++) T[s].smithy.to = s;
+    }
+    const dt = sim.dt, us = sim.units;
+    for (let s = 0; s < 2; s++) {
+      const town = T[s], geo = SG.walls[s].town;
+      // a dead town hall ends the match anyway; the buildings work while the match runs
+      // 1) elixir well
+      if (town.well.ok && geo.well) {
+        town.wellT -= dt;
+        if (town.wellT <= EPS) {
+          town.wellT += R.wellEvery;
+          const ps = sim.sidePlayers[s];
+          for (let i = 0; i < ps.length; i++) sim.addElixir(ps[i], R.wellAmount, null);
+          sim.emit('sg', { k: 'elixir', side: s, b: 'well', x: CR.round(geo.well.x, 2), y: CR.round(geo.well.y, 2), amount: R.wellAmount });
+        }
+      }
+      // 2) plunder progress: enemy ground troops within reach (accumulated, slowly forgotten)
+      ['well', 'smithy', 'tavern'].forEach(function (k) {
+        const b = town[k], g = geo[k];
+        if (!b.ok || !g) return;
+        let near = false, who = null;
+        for (let i = 0; i < us.length && !near; i++) {
+          const u = us[i];
+          if (u.side === s || u.dead || u.building || u.air || u.tunnel || u.underground || u.sgHop || u.deployEnd > sim.tickStart + EPS) continue;
+          if (CR.boxDist(u.x, u.y, g.x0, g.y0, g.x1, g.y1) <= R.reach + u.r) { near = true; who = u; }
+        }
+        b.p = near ? b.p + dt : Math.max(0, b.p - dt * R.forget);
+        if (b.p < R.plunder - EPS) return;
+        b.ok = false; b.p = R.plunder;
+        const by = 1 - s;
+        if (k === 'well') { const ps = sim.sidePlayers[by]; for (let i = 0; i < ps.length; i++) sim.addElixir(ps[i], R.wellLoot, null); }
+        if (k === 'smithy') b.to = by;
+        sim.emit('sg', { k: 'plunder', side: s, by: by, b: k, x: CR.round(g.x, 2), y: CR.round(g.y, 2), unitId: who ? who.id : 0 });
+      });
+      // 3) tavern militia: one wave per breach (an enemy ground troop in the town and fewer waves sent
+      //    than gates fallen)
+      if (town.tavern.ok && geo.militia) {
+        let open = 0;
+        const gs = SG.walls[s].gates;
+        for (let i = 0; i < gs.length; i++) if (gs[i].open) open++;
+        if (open > town.breaches) {
+          let inside = false;
+          for (let i = 0; i < us.length && !inside; i++) {
+            const u = us[i];
+            if (u.side !== s && !u.dead && !u.building && !u.air && u.deployEnd <= sim.tickStart + EPS && CR.Arena.siegeZone(u.y) === s) inside = true;
+          }
+          if (inside) {
+            town.breaches++;
+            const M = R.militia, own = sim._owner;
+            sim._owner = sim.sidePlayers[s][0];
+            const list = Units.spawnGroup(sim, s, M.unit, geo.militia.x, geo.militia.y, M.count, 0.6, { deployTime: 0.6 });
+            sim._owner = own;
+            for (let i = 0; i < list.length; i++) {
+              const m = list[i];
+              m.militia = true;
+              m.hp = m.maxHp = Math.max(1, Math.round(m.maxHp * M.hp));
+              m.s = Object.assign({}, m.s, { damage: Math.round(m.s.damage * M.damage) });
+            }
+            sim.emit('sg', { k: 'militia', side: s, b: 'tavern', x: CR.round(geo.militia.x, 2), y: CR.round(geo.militia.y, 2), count: list.length });
+          }
+        }
+      }
+    }
+    const D = sim.sgDmg || (sim.sgDmg = [0, 0]);
+    D[0] = 0; D[1] = 0;
+    for (let s = 0; s < 2; s++) if (T[s].smithy.to === 0 || T[s].smithy.to === 1) D[T[s].smithy.to] += R.smithyBonus;
+  };
+
+  /** -> { id, def } of a weapon id (unknown / missing: the default). */
+  Units.gateWeapon = function (id) {
+    const T = CR.RULES.towers, W = T.siegeWeapons || {};
+    const k = typeof id === 'string' && W[id] ? id : (T.siegeWeaponDefault || 'gatling');
+    return W[k] ? { id: k, def: W[k] } : null;
+  };
+  /** Reach of the main (ground) attack of a gate weapon: lava / rockfall pour within `reach` (from the
+   *  gate centre, rockfall also only on troops within `wallReach` of the wall face), else the range. */
+  function gateMain(u, W, t) {
+    if (!(W.reach > 0)) return true;   // gatling / harpoon / dragon: one attack for air + ground
+    if (t.air) return false;           // lava / rockfall: air gets the ember / slingshot
+    if (gap(u, t) > W.reach + EPS) return false;
+    if (W.wallReach > 0) {
+      const w = CR.Arena.SIEGE ? CR.Arena.SIEGE.walls[u.side] : null;
+      if (w && Math.abs(t.y - w.outer) > W.wallReach + EPS && CR.Arena.siegeZone(t.y) !== u.side) return false;
+    }
+    return true;
+  }
+  /** Gate tower think: closest target in range (lock until it dies / leaves range), its own attack
+   *  clock with the weapon's fire pattern; stun / freeze / slow / rage act like on every tower. */
+  function thinkGate(sim, u) {
+    const s = u.s, W = u.sgW, dt = sim.dt, t0 = sim.tickStart;
+    let rate = 1;
+    if (u.slowUntil > t0 + EPS) rate *= u.slowMult;
+    if (u.rageUntil > t0 + EPS) rate *= u.rageMult;
+    u.rate = rate;
+    if (u.freezeUntil > t0 + EPS || u.stunUntil > t0 + EPS) { u.state = 'idle'; u.sgSpin = 0; u.sgShots = 0; return; }
+    let t = u.target;
+    if (t && (!canTarget(u, t) || deployingBlocked(t, sim) || gap(u, t) > s.range + EPS)) t = null;
+    if (!t) t = findTarget(sim, u, s.range, 0, null);
+    if (t !== u.target) { setTarget(u, t); u.sgShots = 0; }
+    // the fire pattern of this shot: main attack or the ember / slingshot side shot
+    const main = !!t && gateMain(u, W, t);
+    const side = !!t && !main && !!W.ember;
+    const hb = s.hitSpeedBase > 0 ? s.hitSpeedBase : s.hitSpeed;
+    let hs = hb;
+    if (W.minHit > 0) hs = Math.max(W.minHit * hb / Math.max(1e-6, W.hitSpeed), hb * Math.pow(W.spin > 0 ? W.spin : 1, u.sgShots));   // gatling spin-up
+    else if (side) hs = W.ember.hitSpeed * hb / Math.max(1e-6, W.hitSpeed);
+    const fh = Math.min(s.firstHitBase > 0 ? s.firstHitBase : s.firstHit, hs * 0.6);
+    // the view's wind-up (attackProg = (atk - loadTime) / firstHit) follows this shot's timing
+    s.loadTime = hs - fh; s.firstHit = fh; s.hitSpeed = hs;
+    if (!t || (!main && !side)) {
+      u.atk = Math.min(s.loadTime, u.atk + dt * rate);
+      u.locked = false; u.state = 'idle';
+      u.sgSpin = Math.max(0, u.sgSpin - dt * 0.8);
+      if (!t) u.sgShots = 0;
+      return;
+    }
+    u.state = 'attacking';
+    u.locked = true;
+    u.dir = Math.atan2(t.y - u.y, t.x - u.x);
+    u.atk += dt * rate;
+    if (u.atk >= hs - EPS) {
+      u.atk -= hs;
+      if (u.atk < EPS) u.atk = 0;
+      gateFire(sim, u, W, t, main);
+      u.sgShots++;
+      if (W.minHit > 0) u.sgSpin = CR.clamp((hb - hs) / Math.max(1e-6, hb - W.minHit * hb / Math.max(1e-6, W.hitSpeed)), 0, 1);
+    }
+  }
+  /** One shot of a gate weapon at t (main = the weapon's own attack, else the ember / slingshot). */
+  function gateFire(sim, u, W, t, main) {
+    const s = u.s, id = u.sgType;
+    const ox = u.x, oy = u.y;
+    if (!main) {
+      const E = W.ember;
+      const dmg = E.damage * (s.damage / Math.max(1, W.damage));   // C.H.A.O.S damage changes scale it too
+      Units.launch(sim, { kind: 'siege-' + id + '-shot', side: u.side, x: ox, y: oy, target: t, tx: t.x, ty: t.y, speed: E.projectileSpeed || 11, homing: true, air: true, src: u,
+        effect: { damage: dmg, ct: s.ct, radius: 0, air: true, ground: true, kind: 'ranged' } });
+      return;
+    }
+    const base = { damage: s.damage, ct: s.ct, radius: 0, air: true, ground: true, kind: 'ranged' };
+    if (id === 'lava' || id === 'rockfall') {
+      // poured / dropped: lands after a short fall at the target's spot (not homing), area on the ground
+      const e = { damage: s.damage, ct: s.ct, radius: W.splashRadius || 1.2, air: false, ground: true, kind: 'splash' };
+      const stun = id === 'rockfall' && W.stun > 0 ? W.stun : 0;
+      const B = W.burn;
+      const self = u;
+      Units.launch(sim, { kind: 'siege-' + id, side: u.side, x: ox, y: oy, tx: t.x, ty: t.y, speed: W.projectileSpeed || 9, homing: false, src: u, effect: e,
+        onArrive: function (sim2, p) {
+          const list = Units.applyEffect(sim2, p.side, p.x, p.y, null, e, self.dead ? null : self);
+          if (!t.dead && list.indexOf(t) < 0 && edgeDist(p.x, p.y, t) < e.radius + 0.5) { Units.applyEffect(sim2, p.side, t.x, t.y, t, Object.assign({}, e, { radius: 0 }), self.dead ? null : self); list.push(t); }
+          // rockfall: a short stun, at most once per troop every `stunEvery` s (a stun is a Zap reset -
+          // on every rock slow hitters would never swing)
+          if (stun > 0) for (let i = 0; i < list.length; i++) { const v = list[i]; if (!v.dead && !v.tower && !(v.sgStunAt > sim2.time - (W.stunEvery || 3))) { v.sgStunAt = sim2.time; Units.stun(sim2, v, stun); } }
+          if (B && B.dps > 0) {
+            const tick = 0.5;
+            const dmgK = s.damage / Math.max(1, W.damage);   // (C.H.A.O.S damage changes scale the puddle too)
+            sim2.addArea({ kind: 'siege-lava', card: 'siege-lava', side: p.side, x: p.x, y: p.y, radius: B.radius, left: B.time, mode: 'pulse', srcUnit: 'siege-lava',
+              interval: tick, next: tick, ticks: 0, maxTicks: Math.round(B.time / tick), tickDamage: B.dps * tick * dmgK, tickCt: s.ct, air: false, ground: true });
+          }
+          sim2.emit('sg', { k: id, side: p.side, x: CR.round(p.x, 2), y: CR.round(p.y, 2), tower: self.id });
+        } });
+      return;
+    }
+    if (id === 'dragon') base.radius = W.splashRadius || 0;
+    const self = u;
+    const p = Units.launch(sim, { kind: 'siege-' + id, side: u.side, x: ox, y: oy, target: t, tx: t.x, ty: t.y, speed: W.projectileSpeed || s.projectile.speed, homing: true, air: true, src: u, effect: base });
+    if (id === 'harpoon' && W.pull > 0) {
+      p.onArrive = function (sim2, q) {
+        const tt = q.target;
+        if (!tt || tt.dead || (tt.tower && !tt.alive)) return;
+        Units.applyEffect(sim2, q.side, tt.x, tt.y, tt, base, self.dead ? null : self);
+        if (!tt.dead && !tt.air && !tt.building) gatePull(sim2, self, tt, W);
+      };
+    }
+  }
+  /** Harpoon: yank ground troop t towards the gate's nearest face (stops r + 0.6 in front of it). */
+  function gatePull(sim, g, t, W) {
+    if (t.immune || t.tunnel || t.underground || unmovable(sim, t) || t.riding) return;
+    const heavy = (t.mass >= (W.heavyMass || 8)) || t.s.ignorePushback;
+    let d = heavy ? (W.heavyPull || 0) : W.pull;
+    aimAt(t, g, AIM);
+    const dx = AIM.x - t.x, dy = AIM.y - t.y, L = sqrt(dx * dx + dy * dy);
+    d = Math.min(d, L - t.r - 0.6);
+    if (!(d > 0.05) || L < 1e-6) return;
+    const T = Math.max(sim.dt, CR.RULES.combat.knockbackTime);
+    t.kbVx = dx / L * d / T; t.kbVy = dy / L * d / T; t.kbLeft = T; t.kbSelf = false;
+    if (CR.RULES.combat.resetOnKnockback) resetAttack(t);
+    if (t.jump) { t.jump = null; t.untargetable = false; t.noCollide = false; t.z = 0; }
+    sim.emit('sg', { k: 'pull', side: g.side, x: CR.round(t.x, 2), y: CR.round(t.y, 2), tower: g.id, target: t.id, d: CR.round(d, 2) });
+  }
+  Units.gatePull = gatePull;
 
   /**
    * v21 fortress tower (map 'fortress', docs/V21-FORTRESS.md): the long tower thinks once per gun.
@@ -15278,7 +15976,7 @@ body { font-weight: 700; letter-spacing: 0; }
   /** v21: where a troop heads for a target: the nearest point of a long fortress tower's box (kept
    *  half a tile inside its ends), else the target's centre. */
   function aimAt(u, t, out) {
-    if (t.fortress && t.x1 !== undefined) {
+    if ((t.fortress || t.sgGate !== undefined) && t.x1 !== undefined) {   // (v28: + siege gates - front face from the field, back face from the town)
       out.x = CR.clamp(u.x, Math.min(t.x, t.x0 + 0.5), Math.max(t.x, t.x1 - 0.5));
       out.y = CR.clamp(u.y, t.y0, t.y1);
     } else { out.x = t.x; out.y = t.y; }
@@ -15470,10 +16168,12 @@ body { font-weight: 700; letter-spacing: 0; }
     if (t) {
       const g = gap(u, t);
       // Mega Knight jump / Bandit dash triggers (target between min and max range, cooldown ready).
-      if (sp.jump && !t.air && u.jumpCd <= 0 && g >= num(sp.jump.minRange, 3.5) - EPS && g <= num(sp.jump.maxRange, 5) + EPS) {
+      // (v28 siege: never across a wall line - the target must stand in the same zone or be a gate)
+      const sgOk = !CR.Arena.SIEGE || t.sgGate !== undefined || CR.Arena.siegeZone(t.y) === CR.Arena.siegeZone(u.y);
+      if (sp.jump && sgOk && !t.air && u.jumpCd <= 0 && g >= num(sp.jump.minRange, 3.5) - EPS && g <= num(sp.jump.maxRange, 5) + EPS) {
         startJump(sim, u, t); return;
       }
-      if (sp.dash && !t.air && u.dashCd <= 0 && g >= num(sp.dash.minRange, 3.5) - EPS && g <= num(sp.dash.maxRange, 6) + EPS) {
+      if (sp.dash && sgOk && !t.air && u.dashCd <= 0 && g >= num(sp.dash.minRange, 3.5) - EPS && g <= num(sp.dash.maxRange, 6) + EPS) {
         startDash(sim, u, t); return;
       }
       const inRange = g <= s.range + EPS && (s.minRange <= 0 || g >= s.minRange - EPS);
@@ -15516,7 +16216,7 @@ body { font-weight: 700; letter-spacing: 0; }
           const dd = wrapA(want - d0);
           if (dd > SLOT_TURN) want = d0 + SLOT_TURN; else if (dd < -SLOT_TURN) want = d0 - SLOT_TURN;
           u.dir = wrapA(want);
-        } else if (t.fortress) { aimAt(u, t, AIM); m = moveToward(sim, u, AIM.x, AIM.y, rangeStop(g, s.range)); }
+        } else if (t.fortress || t.sgGate !== undefined) { aimAt(u, t, AIM); m = moveToward(sim, u, AIM.x, AIM.y, rangeStop(g, s.range)); }
         else m = moveToward(sim, u, t.x, t.y, rangeStop(g, s.range));
         u.state = m > 0 ? 'moving' : 'idle';
         accumulateCharge(u, m);
@@ -15563,7 +16263,7 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     const g = gap(u, tw);
     // v21: a long fortress tower is approached at its nearest point, not its centre.
-    if (tw.fortress) aimAt(u, tw, AIM); else { AIM.x = tw.x; AIM.y = tw.y; }
+    if (tw.fortress || tw.sgGate !== undefined) aimAt(u, tw, AIM); else { AIM.x = tw.x; AIM.y = tw.y; }
     const m = moveToward(sim, u, AIM.x, AIM.y, rangeStop(g, Math.max(u.s.range, 0.1)));
     u.state = m > 0 ? 'moving' : 'idle';
     accumulateCharge(u, m);
@@ -15925,6 +16625,31 @@ body { font-weight: 700; letter-spacing: 0; }
   }
 
   /**
+   * v28 siege: push troop a out of a wall piece / closed gate b. A centre that got INTO the rect (spawn
+   * formation, knockback, a crowd push) leaves through the face of the zone the troop came from (a.sgZ:
+   * its own town or the field) - never through the wall to the other side. Sideways out into a gate
+   * passage that is open for its team is fine (that is where it walked). Touching from outside: the
+   * plain push.
+   */
+  function siegePush(a, b, rects, out) {
+    if (a.x <= b.x0 || a.x >= b.x1 || a.y <= b.y0 || a.y >= b.y1) return CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, out, rects);
+    const s = b.siegeWall !== undefined ? b.siegeWall : b.sgGate;
+    let z = a.sgZ;
+    if (z === undefined) {
+      if (a.side === s) return CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, out, rects);   // own fresh troop: nearest face
+      z = -1;   // a fresh enemy troop belongs to the field
+    }
+    if (CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, out, rects) && Math.abs(out.y - a.y) < 1e-9) {
+      const g = CR.Arena.siegeGateAt(out.x, a.y, 0);
+      if (g && g.open) return true;
+    }
+    const town = z === s;
+    out.x = a.x;
+    out.y = town ? (s === 0 ? b.y0 - a.r : b.y1 + a.r) : (s === 0 ? b.y1 + a.r : b.y0 - a.r);
+    return true;
+  }
+
+  /**
    * Resolve troop-troop overlaps and push troops out of static rects and water.
    * Troop pairs come from a uniform grid (cell >= the largest diameter, O(n) instead of
    * O(n^2)). Each iteration accumulates, for every overlapping pair, a mass-weighted push of
@@ -16035,12 +16760,14 @@ body { font-weight: 700; letter-spacing: 0; }
         }
       }
     }
-    const rects = sim.staticRects;
+    let rects = sim.staticRects;
     const water = CR.Arena.WATER;
     const wcap = C.waterRadiusCap;
+    const SGM = CR.Arena.SIEGE;
     for (let i = 0; i < n; i++) {
       const a = us[i];
       if (a.dead || a.building || a.riding) continue;   // v14: cart riders sit in their seats
+      if (SGM) rects = SR(sim, a);   // v28: the own gates are no obstacle for the own team
       if (a.underground) {
         // v12: underground troops stay inside the tunnel corridor (no towers / water down there).
         CR.Arena.clampTunnel(a.x, a.y, a.r, TMP);
@@ -16052,8 +16779,11 @@ body { font-weight: 700; letter-spacing: 0; }
           const b = rects[j];
           if (b === a) continue;
           if (b.cart) { cartPush(a, b); continue; }   // v14 mine cart: off the rails, to the field side
+          if (SGM && (b.siegeWall !== undefined || b.sgGate !== undefined)) { if (siegePush(a, b, rects, TMP)) { a.x = TMP.x; a.y = TMP.y; } continue; }
           if (CR.Arena.pushOutOfRect(a.x, a.y, a.r, b, TMP, rects)) { a.x = TMP.x; a.y = TMP.y; }
         }
+        // v28: remember the zone (own town / field / enemy town) while clear of the fortification band
+        if (SGM) { const z = CR.Arena.siegeZoneStrict(a.y); if (z !== null) a.sgZ = z; }
         if (!jumper(a.s)) {
           for (let j = 0; j < water.length; j++) {
             if (pushOutOfWater(a.x, a.y, Math.min(a.r, wcap), water[j], W, TMP)) { a.x = TMP.x; a.y = TMP.y; }
@@ -20508,7 +21238,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const pick = options[0];
       const u = unitOf(pick.c);
       // (v12 tunnel map: buildings keep their distance to the hole at (9, 8))
-      if (pick.c.type === 'building') return this.play(sim, pick.i, 9, sim.map === 'tunnel' ? 12 : (sim.map === 'citadel' || sim.map === 'jungle' ? 11 : 9));   // (v27: + jungle)
+      if (pick.c.type === 'building') return this.play(sim, pick.i, 9, sim.map === 'tunnel' ? 12 : (sim.map === 'citadel' || sim.map === 'jungle' ? 11 : (CR.Arena.SIEGE ? 11.5 : 9)));   // (v27: + jungle; v28 siege: 2 rows off the wall)
       if (u && u.buildingsOnly) return false; // never defend with a building-only unit
       const x = lane === 0 ? Math.max(2, Math.min(8, th.x + 1)) : Math.min(16, Math.max(10, th.x - 1));
       const y = Math.max(5, Math.min(11, th.y - 4));
@@ -20566,14 +21296,58 @@ body { font-weight: 700; letter-spacing: 0; }
       const tank = troops[0];
       const bx = weak === 0 ? 3.5 : 14.5;
       const u = unitOf(tank.c);
+      // v28 siege (docs/V28-SIEGE.md): a fallen enemy gate opens the pocket in front of / behind it -
+      // half of those pushes start there (in front of the wall, sometimes right in the gate gap)
+      if (CR.Arena.SIEGE && this.siegePocket(sim, view, troops, weak)) return true;
       // Heavy tanks start in the back to build a push, fast building-hunters go to the bridge.
       if (u && u.buildingsOnly && (u.speed || 1) >= 1.5) return this.play(sim, tank.i, bx, 13.5);
       // (v21 fortress map: the long tower fills the back rows x 5..13 - start just beside its front)
       // (v24: the same on every map with the long tower - kraken / sky islands / portals)
-      if (cardHp(tank.c) >= 2500) return view.map === 'fortress' || CR.Arena.FORTRESS ? this.play(sim, tank.i, weak === 0 ? 4 : 14, 4) : this.play(sim, tank.i, weak === 0 ? 6 : 12, 1.5);
+      // (v28 siege: heavy tanks start in front of the own gate - from the town they would hop the wall)
+      if (cardHp(tank.c) >= 2500) return CR.Arena.SIEGE ? this.play(sim, tank.i, bx, 9.5) : (view.map === 'fortress' || CR.Arena.FORTRESS ? this.play(sim, tank.i, weak === 0 ? 4 : 14, 4) : this.play(sim, tank.i, weak === 0 ? 6 : 12, 1.5));
       return this.play(sim, tank.i, bx, 12.5);
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // v28 siege layout (docs/V28-SIEGE.md)
+  // ---------------------------------------------------------------------------
+  /** A push into the pocket of a fallen enemy gate (own frame: enemy wall front y 24, the gap behind
+   *  it up to the town hall's front y 27): 50 % of the pushes, a cheap fast troop first. */
+  AI.prototype.siegePocket = function (sim, view, troops, lane) {
+    let open = false;
+    for (const t of view.towers) {
+      if (t.side === this.side || t.kind !== 'princess' || t.alive) continue;
+      const p = this.toMine(t.x, t.y);
+      if ((p.x < 9 ? 0 : 1) === lane) open = true;
+    }
+    if (!open || this.rng() >= 0.3) return false;
+    const ok = troops.slice().sort(function (a, b) { return (a.c.elixir || 0) - (b.c.elixir || 0); });
+    const x = lane === 0 ? 3.5 : 14.5;
+    const y = this.rng() < 0.15 ? 26.5 : 21.5;
+    if (this.play(sim, ok[0].i, x, y)) { this.pocketPlays = (this.pocketPlays || 0) + 1; return true; }
+    return false;
+  };
+  /** v28: the gate weapon ("Torturm") a bot picks for its deck: air-heavy decks the Gatling / Dragon,
+   *  swarm / ground-heavy decks Lava / Rockfall, big tanks the Harpoon; else random (seeded). */
+  AI.pickGate = function (deck, seed) {
+    const ids = (CR.RULES.towers && CR.RULES.towers.siegeWeaponIds) || ['gatling'];
+    const r = CR.rng(seed === undefined ? 1 : seed);
+    if (r() < 0.5) return ids[Math.floor(r() * ids.length) % ids.length];
+    let air = 0, swarm = 0, tank = 0;
+    (deck || []).forEach(function (id) {
+      const c = cardOf(id), u = unitOf(c);
+      if (!u) return;
+      const n = c.summon.reduce(function (a, q) { return a + (q.count || 1); }, 0);
+      if (u.air) air++;
+      if (n >= 3) swarm++;
+      if ((u.hp || 0) * n >= 2500) tank++;
+    });
+    if (air >= 2) return r() < 0.5 ? 'gatling' : 'dragon';
+    if (swarm >= 2) return r() < 0.5 ? 'lava' : 'rockfall';
+    if (tank >= 2) return 'harpoon';
+    return ids[Math.floor(r() * ids.length) % ids.length];
+  };
 
   // ---------------------------------------------------------------------------
   // Portals map (v24, docs/V24-MAPS.md)
@@ -21623,6 +22397,11 @@ body { font-weight: 700; letter-spacing: 0; }
     return s;
   }
   function sanitizeName(v) { return cleanText(v, 24); }
+  /** v28 siege: a gate weapon id ("Torturm") or null (unknown / missing: the engine default). */
+  function sanitizeGate(g) {
+    const ids = CR.RULES && CR.RULES.towers && CR.RULES.towers.siegeWeaponIds;
+    return typeof g === 'string' && Array.isArray(ids) && ids.indexOf(g) >= 0 ? g : null;
+  }
   function sanitizeDeck(d) {
     const out = [];
     if (!Array.isArray(d)) return out;
@@ -21965,6 +22744,10 @@ body { font-weight: 700; letter-spacing: 0; }
     'citadel',
     // v27 Chaos-Dschungel (view.hz {m: 'jungle', k, p, j: pads, f: flights}, 'hz' events hop / land)
     'jungle', 'hop', 'land', 'pad',
+    // v28 siege layout (view tower extras sg / gw / sp, view.sg town state, 'sg' events, gate weapons)
+    'siege', 'sg', 'gw', 'sp', 'pr', 'sm', 'dm', 'gt', 'gate', 'hall', 'well', 'smithy', 'tavern', 'plunder', 'militia', 'pull',
+    'gatling', 'harpoon', 'lava', 'rockfall', 'dragon', 'siege-gatling', 'siege-harpoon', 'siege-lava', 'siege-rockfall', 'siege-dragon',
+    'siege-lava-shot', 'siege-rockfall-shot',
   ];
 
   function cardIdsOf(cards) {
@@ -24747,6 +25530,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this.code = normalizeCode(opts.code) || (opts.code ? String(opts.code).toUpperCase() : '');
       this.name = sanitizeName(opts.name);
       this.deck = sanitizeDeck(opts.deck);
+      this.gate = sanitizeGate(opts.gate);   // v28: the own gate weapon (siege maps)
       this.onStatus = typeof opts.onStatus === 'function' ? opts.onStatus : null;
       this.id = randomId(10);
       this.dh = strTable().hash;
@@ -25096,7 +25880,7 @@ body { font-weight: 700; letter-spacing: 0; }
     }
     return {
       gid: gid, n: n, bye: false,
-      name: sanitizeName(b.name), deck: sanitizeDeck(b.deck), ready: b.ready === true, cmds: cmds,
+      name: sanitizeName(b.name), deck: sanitizeDeck(b.deck), gt: sanitizeGate(b.gt), ready: b.ready === true, cmds: cmds,
       rematch: intIn(b.rematch, 0, 2147483647) || 0, bid: intIn(b.bid, 0, 2147483647) || 0,
       ea: intIn(b.ea, 0, MAXU) || 0, dh: intIn(b.dh, 0, 65535), cv: cv,
       team: b.team === 0 || b.team === 1 ? b.team : -1,
@@ -25206,13 +25990,13 @@ body { font-weight: 700; letter-spacing: 0; }
     _read(raw) { return readGuestBlob(raw); }
 
     // ---- slots
-    _emptySlot(i) { return { slot: i, kind: 'empty', team: i % 2, name: '', gid: null, deck: [], ready: false, level: null, gone: false }; }
+    _emptySlot(i) { return { slot: i, kind: 'empty', team: i % 2, name: '', gid: null, deck: [], gate: null, ready: false, level: null, gone: false }; }
     _initSlots(ts) {
       this.teamSize = ts;
       this.slots = [];
       for (let i = 0; i < 2 * ts; i++) this.slots.push(this._emptySlot(i));
       const h = this.slots[0];
-      h.kind = 'host'; h.name = this.name; h.deck = this.deck.slice(); h.ready = true; h.team = 0;
+      h.kind = 'host'; h.name = this.name; h.deck = this.deck.slice(); h.gate = this.gate; h.ready = true; h.team = 0;
       this._balance();
     }
     _filled(team, except) {
@@ -25286,6 +26070,7 @@ body { font-weight: 700; letter-spacing: 0; }
       pick.gid = g.id;
       if (g.name || this.phase === 'lobby') pick.name = g.name;
       pick.deck = g.deck.slice();
+      pick.gate = g.gate || null;
       pick.ready = g.ready;
       pick.level = null;
       pick.gone = false;
@@ -25373,7 +26158,7 @@ body { font-weight: 700; letter-spacing: 0; }
         }
         g = {
           id: b.gid, lastN: -1, lastRecv: now, blob: null, lastApplied: null, minOffered: null, pend: new Map(), ea: 0, left: false,
-          rec: null, recvBy: new Map(), eps: new Map(), primary: null, slot: -1, name: b.name, deck: b.deck.slice(), ready: false,
+          rec: null, recvBy: new Map(), eps: new Map(), primary: null, slot: -1, name: b.name, deck: b.deck.slice(), gate: b.gt || null, ready: false,
           teamReq: -1, reqOpen: false, rematchBid: 0, encCtx: newEncodeCtx(), lastSnap: null, lastSnapBudget: 0, dh: b.dh,
           rtt: null, peerTs: null, peerTsAt: 0,
         };
@@ -25388,6 +26173,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (this.pz.state === 'paused') this._pauseUpdate(now);   // a player is back: resume soon
       g.name = b.name;
       g.deck = b.deck.slice();
+      g.gate = b.gt || null;
       g.ready = b.ready && (b.dh === null || b.dh === this.dh);
       const req = b.team;
       const reqChanged = req !== g.teamReq;
@@ -25407,7 +26193,7 @@ body { font-weight: 700; letter-spacing: 0; }
       g.encCtx.ack = b.cv ? (b.bid === this.bid && this.bid > 0 ? b.cv : [0, 0, 0, 0]) : null;
       // lobby info of its seat
       const s = this.slots[g.slot];
-      if (this.phase === 'lobby') { s.name = g.name; s.deck = g.deck.slice(); }
+      if (this.phase === 'lobby') { s.name = g.name; s.deck = g.deck.slice(); s.gate = g.gate || null; }
       s.ready = g.ready;
       if (reqChanged) g.reqOpen = req >= 0 && this.phase === 'lobby' && !this._moveTeam(g.slot, req, false);
       // v7: a draft pick of this guest's player (each draft round once; the app validates it)
@@ -25700,6 +26486,7 @@ body { font-weight: 700; letter-spacing: 0; }
       s.name = sanitizeName(o.name) || ('KI ' + (++this.botSeq));
       s.level = typeof o.level === 'string' ? cleanText(o.level, 16) : null;
       s.deck = sanitizeDeck(o.deck);
+      s.gate = sanitizeGate(o.gate);
       s.ready = true;
       s.gid = null;
       this._balance();
@@ -25719,7 +26506,7 @@ body { font-weight: 700; letter-spacing: 0; }
     /** Every slot as a player entry for new CR.Sim({players}) (player index = slot index). */
     lobbyPlayers() {
       return this.slots.map(function (s) {
-        return { slot: s.slot, name: s.name, side: s.team, kind: s.kind, bot: s.kind === 'bot', deck: s.deck.slice(), level: s.level };
+        return { slot: s.slot, name: s.name, side: s.team, kind: s.kind, bot: s.kind === 'bot', deck: s.deck.slice(), level: s.level, gate: s.gate || null };
       });
     }
     /** The host's own rematch wish (shown to the guests on the result screen). */
@@ -25757,10 +26544,10 @@ body { font-weight: 700; letter-spacing: 0; }
         return src.map(function (p, i) {
           p = isObj(p) ? p : {};
           const slot = intIn(p.slot, 0, MAX_PLAYERS - 1);
-          return { name: sanitizeName(p.name), side: p.side === 0 || p.side === 1 ? p.side : i % 2, bot: p.bot === true || p.kind === 'bot', slot: slot === null ? i : slot, deck: sanitizeDeck(p.deck) };
+          return { name: sanitizeName(p.name), side: p.side === 0 || p.side === 1 ? p.side : i % 2, bot: p.bot === true || p.kind === 'bot', slot: slot === null ? i : slot, deck: sanitizeDeck(p.deck), gate: sanitizeGate(p.gate) };
         });
       }
-      return this.lobbyPlayers().map(function (p) { return { name: p.name, side: p.side, bot: p.bot, slot: p.slot, deck: p.deck }; });
+      return this.lobbyPlayers().map(function (p) { return { name: p.name, side: p.side, bot: p.bot, slot: p.slot, deck: p.deck, gate: p.gate }; });
     }
     _seatPlayers(pl) {
       this.players = pl.map(function (p) { return { name: p.name, side: p.side, bot: p.bot, slot: p.slot }; });
@@ -25828,7 +26615,7 @@ body { font-weight: 700; letter-spacing: 0; }
         pl = src.map(function (p, i) {
           p = isObj(p) ? p : {};
           const slot = intIn(p.slot, 0, MAX_PLAYERS - 1);
-          return { name: sanitizeName(p.name), side: p.side === 0 || p.side === 1 ? p.side : i % 2, bot: p.bot === true || p.kind === 'bot', slot: slot === null ? i : slot, deck: sanitizeDeck(p.deck) };
+          return { name: sanitizeName(p.name), side: p.side === 0 || p.side === 1 ? p.side : i % 2, bot: p.bot === true || p.kind === 'bot', slot: slot === null ? i : slot, deck: sanitizeDeck(p.deck), gate: sanitizeGate(p.gate) };
         });
       } else if (Array.isArray(cfg.decks) || Array.isArray(cfg.names)) {
         const names = sanitizeNames(cfg.names, 2);
@@ -25836,7 +26623,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const self = this;
         pl = [0, 1].map(function (i) { return { name: names[i], side: i, bot: !!(self.slots[i] && self.slots[i].kind === 'bot'), slot: i, deck: sanitizeDeck(decks[i]) }; });
       } else {
-        pl = this.lobbyPlayers().map(function (p) { return { name: p.name, side: p.side, bot: p.bot, slot: p.slot, deck: p.deck }; });
+        pl = this.lobbyPlayers().map(function (p) { return { name: p.name, side: p.side, bot: p.bot, slot: p.slot, deck: p.deck, gate: p.gate }; });
       }
       this.bid++;
       this.phase = 'battle';
@@ -26678,7 +27465,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const lim = Math.min(this.pending.length, this._cmdLimit || CFG.maxCmdsPerBlob);
       for (let i = 0; i < lim; i++) cmds.push(this.pending[i]);
       return {
-        v: PROTOCOL, role: 'guest', gid: this.gid, n: this.n, name: this.name, deck: this.deck, ready: this.ready,
+        v: PROTOCOL, role: 'guest', gid: this.gid, n: this.n, name: this.name, deck: this.deck, gt: this.gate || undefined, ready: this.ready,
         cmds: cmds, rematch: this.rematchBid, bid: this.bid, ea: this.evMax, dh: this.dh,
         cv: chaosRevs(this.decCtx), team: this.teamReq,
         dp: this.dp || undefined,
@@ -27334,7 +28121,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this._refreshSearch();
       const self = this;
       const so = {
-        code: code, name: this.opts.name, deck: this.opts.deck, mode: this.mode, teamSize: this.ts,
+        code: code, name: this.opts.name, deck: this.opts.deck, gate: this.opts.gate, mode: this.mode, teamSize: this.ts,
         map: this.pref === 'any' ? MAPS[Math.floor(randomInts(1)[0] / 4294967296 * MAPS.length)] : this.pref, options: this.opts.options, env: this.env, allow: this.opts.allow,
         onStatus: function (s) { self._onHostStatus(code, s); },
       };
@@ -27511,7 +28298,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this._status('found', MM_MSG.connect);
       if (this.done) return;   // cancelled from the status callback
       const self = this;
-      const so = { code: code, name: this.opts.name, deck: this.opts.deck, env: this.env, allow: this.opts.allow,
+      const so = { code: code, name: this.opts.name, deck: this.opts.deck, gate: this.opts.gate, env: this.env, allow: this.opts.allow,
         onStatus: function (s) { self._onGuestStatus(code, s); } };
       const tr = this._transports('guest', code);
       if (tr) so.transports = tr;
@@ -32291,6 +33078,8 @@ body { font-weight: 700; letter-spacing: 0; }
       tdDraft: r.tdDraft !== false,
       // v13: "Schnelles Elixier (1,5×)" (default off, every mode)
       elixirBoost: r.elixirBoost === true,
+      // v28: the own gate weapon ("Torturm") of the siege maps
+      gate: typeof r.gate === 'string' && CR.RULES && CR.RULES.towers && Array.isArray(CR.RULES.towers.siegeWeaponIds) && CR.RULES.towers.siegeWeaponIds.indexOf(r.gate) >= 0 ? r.gate : 'gatling',
       // v13 "Spiel suchen": map wish "Karte egal" (default on = faster matches)
       mmAnyMap: r.mmAnyMap !== false,
     };
@@ -34405,7 +35194,11 @@ body { font-weight: 700; letter-spacing: 0; }
     // v21: the layout of THIS map (towerLayout(id)), not the current arena's - 'fortress' has one
     // long tower per side.
     try { lay = CR.Arena && typeof CR.Arena.towerLayout === 'function' ? CR.Arena.towerLayout(id) : null; } catch (e) { lay = null; }
-    const longT = id === 'fortress' || id === 'kraken' || id === 'skyislands' || id === 'portals' || !!(dynDef && dynDef.fortress);   // v24: one long tower too (v25: + new maps with a fortress block)
+    // (v28: the siege layout replaces the long tower on these maps: walls + gates + town drawn below)
+    const sgDef = CR.RULES && CR.RULES.arena && CR.RULES.arena.maps ? CR.RULES.arena.maps[id] : null;
+    const sgMap = !!(sgDef && sgDef.siege);
+    const longT = !sgMap && (id === 'fortress' || id === 'kraken' || id === 'skyislands' || id === 'portals' || !!(dynDef && dynDef.fortress));   // v24: one long tower too (v25: + new maps with a fortress block)
+    if (sgMap) b += siegeSvg();
     if (longT && !(Array.isArray(lay) && lay.length === 2)) lay = [{ side: 0, kind: 'king', x: 9, y: 1.25, x0: 5, y0: 0, x1: 13, y1: 2.5 }, { side: 1, kind: 'king', x: 9, y: 30.75, x0: 5, y0: 29.5, x1: 13, y1: 32 }];
     const okLay = Array.isArray(lay) && lay.length >= (longT ? 2 : 6) && lay.every(function (t) { return t && [t.x0, t.y0, t.x1, t.y1].every(Number.isFinite) && t.x1 > t.x0 && t.y1 > t.y0; });
     if (okLay) {
@@ -34508,7 +35301,7 @@ body { font-weight: 700; letter-spacing: 0; }
   // unknown maps take their group / tags / text from their CR.RULES.arena.maps definition.
   const MAP_GROUPS = [
     { id: 'classic', label: 'Klassisch', short: 'Klassisch', sub: 'Drei Türme pro Seite' },
-    { id: 'one', label: 'Ein-Turm-Karten', short: 'Ein Turm', sub: 'Ein langer Turm pro Seite' },
+    { id: 'one', label: 'Belagerungs-Karten', short: 'Belagerung', sub: 'Mauer, zwei Tore, eine Stadt' },   // (v28: the siege layout; was the long tower)
     { id: 'special', label: 'Spezial', short: 'Spezial', sub: 'Besondere Wege über das Feld' },
   ];
   // tag kinds: tw = towers, ft = feature, hz = danger, nw = new
@@ -34518,14 +35311,32 @@ body { font-weight: 700; letter-spacing: 0; }
     flat: { group: 'classic', desc: 'Offenes Feld ohne Fluss – überall angreifen.', tags: [['3 Türme', 'tw'], ['Offen', 'ft']] },
     tunnel: { group: 'special', desc: 'Truppen kriechen durch einen Tunnel unter dem Feld.', tags: [['3 Türme', 'tw'], ['Tunnel', 'ft']] },
     pyramid: { group: 'special', desc: 'Mauer statt Fluss: zwei Tore und eine Leiter.', tags: [['Pyramiden', 'tw'], ['Mauer', 'ft']] },
-    fortress: { group: 'one', desc: 'Ein langer Turm pro Seite und Spezial-Gebäude.', tags: [['1 Turm', 'tw'], ['Bauen', 'ft']] },
-    kraken: { group: 'one', desc: 'Ein Krake im See packt Truppen an den Brücken.', tags: [['1 Turm', 'tw'], ['Gefahr', 'hz'], ['See', 'ft']] },
-    skyislands: { group: 'one', desc: 'Schwebende Inseln – die Brücken versinken.', tags: [['1 Turm', 'tw'], ['Gefahr', 'hz'], ['Inseln', 'ft']] },
-    portals: { group: 'one', desc: 'Zwei Portale teleportieren Truppen und wandern.', tags: [['1 Turm', 'tw'], ['Portale', 'ft']] },
+    // v28 (docs/V28-SIEGE.md): the four former long-tower maps use the siege layout "Belagerung"
+    fortress: { group: 'one', desc: 'Belagerung: Stadt hinter einer Mauer – brich durch eines der zwei Tore.', tags: [['Mauer + Tore', 'tw'], ['Stadt', 'ft'], ['Neu', 'nw']] },
+    kraken: { group: 'one', desc: 'Belagerung am See: ein Krake packt Truppen an den Brücken.', tags: [['Mauer + Tore', 'tw'], ['Gefahr', 'hz'], ['See', 'ft']] },
+    skyislands: { group: 'one', desc: 'Belagerung auf schwebenden Inseln – die Brücken versinken.', tags: [['Mauer + Tore', 'tw'], ['Gefahr', 'hz'], ['Inseln', 'ft']] },
+    portals: { group: 'one', desc: 'Belagerung mit zwei wandernden Portalen.', tags: [['Mauer + Tore', 'tw'], ['Portale', 'ft']] },
     // v27 Chaos-Dschungel (docs/V27-JUNGLE.md)
     jungle: { group: 'special', desc: 'Grüne Ruine im Sumpf: Sprungpilze, Portale über Kreuz, Leiter – und ein Riesenfrosch.', tags: [['3 Türme', 'tw'], ['Gefahr', 'hz'], ['Sprungpilz', 'ft'], ['Neu', 'nw']] },
   };
   UI.MAP_GROUPS = MAP_GROUPS;
+  /** v28: walls, house blocks and the town's three buildings of the siege layout (svg y = 32 - sim y). */
+  function siegeSvg() {
+    const S = CR.RULES && CR.RULES.arena && CR.RULES.arena.siege;
+    if (!S) return '';
+    let o = '';
+    const rect = function (x0, y0, x1, y1, fill, stroke) { return '<rect x="' + x0 + '" y="' + (32 - y1) + '" width="' + (x1 - x0) + '" height="' + (y1 - y0) + '" fill="' + fill + '"' + (stroke ? ' stroke="' + stroke + '" stroke-width=".22"' : '') + '/>'; };
+    for (let s = 0; s < 2; s++) {
+      const m = function (x0, y0, x1, y1) { return s === 0 ? [x0, y0, x1, y1] : [18 - x1, 32 - y1, 18 - x0, 32 - y0]; };
+      // wall pieces between the gates (the gates are the tower rects)
+      const xs = [0];
+      S.gates.forEach(function (g) { xs.push(g.x0, g.x1); });
+      xs.push(18);
+      for (let i = 0; i + 1 < xs.length; i += 2) { const r = m(xs[i], S.wall.y0, xs[i + 1], S.wall.y1); o += rect(r[0], r[1], r[2], r[3], '#a69f92', '#5c564c'); }
+      (S.blocks || []).forEach(function (b) { const r = m(b.x0, b.y0, b.x1, b.y1); o += rect(r[0], r[1], r[2], r[3], '#c98f5a', '#6b4422'); });
+    }
+    return o;
+  }
   /** v25: card data of a map: { id, label, desc, group, tags: [{label, kind}], isNew }. Maps without
    *  an entry in MAP_META (new modules) are described from their arena definition. */
   UI.mapMeta = function (mapId) {
@@ -34893,6 +35704,46 @@ body { font-weight: 700; letter-spacing: 0; }
     };
   }
   UI.modePicker = modePicker;
+
+  // v28 "Torturm": the gate weapon of the siege maps (docs/V28-SIEGE.md) - five small icon buttons +
+  // one line of description. Icons: simple inline SVGs (trusted, static).
+  const GATE_INFO = {
+    gatling: { label: 'Gatling-Armbrust', desc: 'Kurbel-Trommel voller Armbrüste: schießt immer schneller, je länger sie am selben Ziel bleibt. Luft + Boden.',
+      svg: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="#8a5a34" stroke="#3b2414" stroke-width="2"/><g stroke="#e8e2d6" stroke-width="2.4" stroke-linecap="round"><path d="M16 4v6M16 22v6M4 16h6M22 16h6"/></g><circle cx="16" cy="16" r="3" fill="#c9a24a"/></svg>' },
+    harpoon: { label: 'Harpune', desc: 'Schwere Harpune an der Kette: langsame Schüsse, zieht Bodentruppen zum Tor heran (schwere weniger). Luft + Boden.',
+      svg: '<svg viewBox="0 0 32 32"><path d="M5 27L22 10" stroke="#6b6f77" stroke-width="3" stroke-dasharray="3 2"/><path d="M20 6l7-1-1 7-3-1-3 3-2-2 3-3z" fill="#d8dde3" stroke="#3a3d42" stroke-width="1.5"/></svg>' },
+    lava: { label: 'Lava-Gießer', desc: 'Ein Kessel gießt Lava auf Bodentruppen direkt vor dem Tor – Flächenschaden und brennende Pfütze. Gegen Luft nur Glut.',
+      svg: '<svg viewBox="0 0 32 32"><path d="M6 10h20l-3 11H9z" fill="#3b3b40" stroke="#1d1d21" stroke-width="2"/><path d="M12 21c0 4 2 5 2 7M19 21c0 3-1 4-1 6" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round"/><ellipse cx="16" cy="10" rx="9" ry="2.5" fill="#ffb23a"/></svg>' },
+    rockfall: { label: 'Steinlawine', desc: 'Felsbrocken brechen aus der Mauer auf Bodentruppen nahe der Mauer – Flächenschaden und kurze Betäubung. Gegen Luft eine Schleuder.',
+      svg: '<svg viewBox="0 0 32 32"><path d="M4 24l6-8 5 3 4-6 9 11z" fill="#8d8c86" stroke="#45443f" stroke-width="2"/><circle cx="11" cy="8" r="3.5" fill="#a6a49c" stroke="#45443f" stroke-width="1.5"/><circle cx="21" cy="5" r="2.5" fill="#a6a49c" stroke="#45443f" stroke-width="1.5"/></svg>' },
+    dragon: { label: 'Drachenkopf', desc: 'Ein steinerner Drachenkopf speit Feuerbälle mit kleinem Flächenschaden. Luft + Boden.',
+      svg: '<svg viewBox="0 0 32 32"><path d="M5 20c0-8 6-13 14-13l3-4 1 5c3 1 5 4 5 7l-7 1-1 4H11z" fill="#8f8a80" stroke="#3f3c36" stroke-width="2"/><circle cx="19" cy="12" r="1.8" fill="#ffcf3a"/><circle cx="27" cy="20" r="3" fill="#ff7a1a"/></svg>' },
+  };
+  UI.GATE_INFO = GATE_INFO;
+  /** -> { el, set(id) }: the "Torturm" row (onChange(id)). */
+  function gatePicker(cur, onChange) {
+    const ids = (CR.RULES && CR.RULES.towers && CR.RULES.towers.siegeWeaponIds) || Object.keys(GATE_INFO);
+    let now0 = ids.indexOf(cur) >= 0 ? cur : ids[0];
+    const btns = [];
+    const desc = h('p', { class: 'mm-opt-note gate-desc' });
+    const row = h('div', { class: 'gate-pick', role: 'radiogroup', 'aria-label': 'Torturm' });
+    ids.forEach(function (id) {
+      const inf = GATE_INFO[id] || { label: id, desc: '', svg: '' };
+      const b = h('button', { class: 'gate-btn', type: 'button', role: 'radio', title: inf.label, 'aria-label': inf.label, html: inf.svg });
+      b.addEventListener('click', function () { if (now0 === id) return; now0 = id; paint(); Sound.play('select'); if (onChange) onChange(id); });
+      btns.push({ id: id, b: b });
+      row.appendChild(b);
+    });
+    function paint() {
+      for (let i = 0; i < btns.length; i++) { const on = btns[i].id === now0; btns[i].b.classList.toggle('on', on); btns[i].b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+      const inf = GATE_INFO[now0] || {};
+      desc.textContent = (inf.label ? inf.label + ': ' : '') + (inf.desc || '');
+    }
+    paint();
+    const el = h('div', { class: 'mm-opt-row mm-opt-gate' }, [h('div', { class: 'gate-head' }, [h('span', { class: 'gate-title' }, 'Torturm'), h('span', { class: 'gate-only' }, 'nur auf Belagerungs-Karten')]), row, desc]);
+    return { el: el, set: function (id) { if (ids.indexOf(id) >= 0) { now0 = id; paint(); } } };
+  }
+  UI.gatePicker = gatePicker;
 
   /**
    * v13: the switch "Schnelles Elixier (1,5×)" (menu panes + host lobby; keeps the toggle look of
@@ -35804,8 +36655,11 @@ body { font-weight: 700; letter-spacing: 0; }
       can2 ? null : h('div', { class: 'hint info' }, notes.team2 || '2 gegen 2 ist gerade nicht verfügbar.'),
     ]);
     const anyRow = h('div', { class: 'mm-opt-row mm-opt-any' }, [anyMap.el, h('p', { class: 'mm-opt-note' }, 'Nur für „Spiel suchen“: eine zufällige Karte – du findest schneller Gegner.')]);
+    // v28: the gate weapon of the siege maps ("Torturm", remembered like the elixir switch)
+    const gatePick = gatePicker(s.gate, function (id) { if (typeof app.setGate === 'function') app.setGate(id); });
     const optSheet = menuSheet('mm-sheet-opt', 'Optionen', 'gear', [
       h('div', { class: 'mm-opt-row' }, [boosts[0].el, h('p', { class: 'mm-opt-note' }, 'Elixier lädt 1,5-mal so schnell – schnellere, wildere Kämpfe.')]),
+      gatePick.el,
       anyRow,
       h('p', { class: 'mm-opt-note mm-opt-more' }, 'Ton, Grafik und Spieltempo findest du in den Einstellungen (Zahnrad oben).'),
     ]);
@@ -36651,7 +37505,7 @@ body { font-weight: 700; letter-spacing: 0; }
       '<b>Hügel</b>: überall Rasen, kein Fluss und keine Brücken. Quer über die Mitte zieht sich ein Hügel, so hoch, wie Lufteinheiten fliegen. Bodentruppen können ihn überall überqueren.',
       'Bergauf laufen Bodentruppen <b>langsamer</b>, bergab und oben auf dem Hügel ganz normal.',
       'Oben auf dem Hügel stehen Bodentruppen auf <b>gleicher Höhe wie Lufteinheiten</b>: Dort treffen auch Nahkämpfer fliegende Gegner. Und fliegt eine Lufteinheit über dem Hügel, können sie auch Bodenkämpfer angreifen, die sonst nur Bodenziele treffen.',
-    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts(), UI.fortressRuleTexts(), UI.pyramidRuleTexts(), UI.maps24RuleTexts(), UI.citadelRuleTexts(), UI.jungleRuleTexts());
+    ].concat(UI.tunnelRuleTexts(), UI.flatRuleTexts(), UI.siegeRuleTexts(), UI.pyramidRuleTexts(), UI.maps24RuleTexts(), UI.citadelRuleTexts(), UI.jungleRuleTexts());   // (v28: siege instead of the long-tower Festung text)
   };
   /** v27: the Chaos-Dschungel for the rules screen (docs/V27-JUNGLE.md). */
   UI.jungleRuleTexts = function () {
@@ -36673,7 +37527,15 @@ body { font-weight: 700; letter-spacing: 0; }
       '<b>Kraken-See</b>: ein breiter See in der Mitte mit zwei Brücken. Etwa alle 24 Sekunden blubbert es am Ufer, ein Tentakel steigt auf – dann packt der <b>Krake</b> eine Bodentruppe in der Nähe (egal von welcher Seite) und zieht sie ins Wasser. Schwere Truppen bekommen nur Schaden und werden weggeschleudert.',
       '<b>Himmelsinseln</b>: drei schwebende Inseln über den Wolken. Die Brücken zwischen den Inseln <b>tauchen abwechselnd auf und versinken</b> (12 s oben, 8 s weg; vorher leuchten die Runen). Wer auf einer versinkenden Brücke steht, stürzt ab – Truppen warten am Rand, wenn es knapp wird. Du setzt nur auf deiner Insel.',
       '<b>Portale</b>: ein blaues und ein oranges Portal. Bodentruppen, die hineinlaufen, kommen sofort aus dem anderen heraus – sie nehmen ein Portal, wenn es ihren Weg deutlich kürzer macht. Alle 30 Sekunden wandern die Portale an einen neuen, gespiegelten Platz.',
-      'Auf allen drei Karten hat jede Seite <b>einen langen Turm</b> wie auf „Festung“: fällt er, gibt es 3 Kronen.',
+      'Auf allen drei Karten gilt das <b>Belagerungs-Layout</b> wie auf „Festung“: eine Stadt hinter einer Mauer mit zwei Toren.',
+    ];
+  };
+  /** v28: the siege layout ("Belagerung") for the rules screen (docs/V28-SIEGE.md). */
+  UI.siegeRuleTexts = function () {
+    return [
+      '<b>Belagerung</b> (Festung, Kraken-See, Himmelsinseln, Portale): Jede Seite hat eine <b>Stadt hinter einer Mauer</b> mit zwei <b>Toren</b>. Auf jedem Tor steht ein <b>Torturm</b> (in den Optionen wählbar: Gatling-Armbrust, Harpune, Lava-Gießer, Steinlawine, Drachenkopf). Gegner kommen nur durch ein <b>zerstörtes Tor</b> in die Stadt.',
+      'Ein Tor = 1 Krone, das <b>Rathaus</b> = 3 Kronen (wie der Königsturm). Deine Truppen setzt du auch in die eigene Stadt oder <b>oben auf die eigene Mauer</b> – sie springen über die eigene Mauer nach vorn. Fällt ein gegnerisches Tor, darfst du dahinter bis vor das Rathaus setzen.',
+      'In jeder Stadt: <b>Elixier-Brunnen</b> (+1 Elixier alle 10 s), <b>Schmiede</b> (+10 % Truppenschaden), <b>Taverne</b> (2 Milizen bei jedem Torbruch). Eine gegnerische Bodentruppe, die 1,5 s daneben steht, <b>plündert</b> das Haus.',
     ];
   };
   /** v22: the pyramid map (Pyramide) for the rules screen. */
@@ -40362,7 +41224,14 @@ body { font-weight: 700; letter-spacing: 0; }
     if (cfg.map) out.map = normMap(cfg.map);
     let bots = null;
     if (Array.isArray(cfg.players) && cfg.players.length) {
-      out.players = cfg.players.map(function (p) { return { name: p.name, deck: p.deck, side: p.side === 1 ? 1 : 0, bot: !!p.bot }; });
+      // (v28: + gate = the player's gate weapon on the siege maps; bots pick one fitting their deck)
+      out.players = cfg.players.map(function (p, i) {
+        const o = { name: p.name, deck: p.deck, side: p.side === 1 ? 1 : 0, bot: !!p.bot };
+        const ids = CR.RULES && CR.RULES.towers && CR.RULES.towers.siegeWeaponIds;
+        if (typeof p.gate === 'string' && ids && ids.indexOf(p.gate) >= 0) o.gate = p.gate;
+        else if (o.bot && CR.AI && typeof CR.AI.pickGate === 'function') o.gate = CR.AI.pickGate(p.deck, ((cfg.seed >>> 0) + i * 977) >>> 0);
+        return o;
+      });
       bots = [];
       for (let i = 0; i < out.players.length; i++) if (out.players[i].bot) bots.push(i);
       // legacy fields as well (an engine without the players form still runs a 1v1)
@@ -41689,6 +42558,7 @@ body { font-weight: 700; letter-spacing: 0; }
       tdChaos: store.get('tdChaos', false),
       tdDraft: store.get('tdDraft', true),
       elixirBoost: store.get('elixirBoost', false),
+      gate: store.get('gate', 'gatling'),   // v28 siege maps: the own gate weapon ("Torturm")
       mmAnyMap: store.get('mmAnyMap', true),
     });
     UI.Sound.muted = settings.muted;
@@ -41841,7 +42711,8 @@ body { font-weight: 700; letter-spacing: 0; }
           const s = new CR.Sim({ seed: 27, mode: 'classic', map: 'fortress', decks: [deck, deck], names: ['A', 'B'] });
           for (let i = 0; i < 3; i++) s.tick();
           const v = s.view();
-          f.fortress = (v.map === 'fortress' || CR.Arena.map === 'fortress') && v.towers.length === 2 && v.towers.every(function (t) { return t.fortress === true; });
+          // (v28: the siege layout - six towers, gates + town hall - or the v21 long tower)
+          f.fortress = (v.map === 'fortress' || CR.Arena.map === 'fortress') && ((v.towers.length === 2 && v.towers.every(function (t) { return t.fortress === true; })) || (!!CR.Arena.SIEGE && v.towers.length === 6 && v.towers.every(function (t) { return t.sg === 1 || t.sg === 2; })));
           if (!f.fortress) f.notes.fortress = 'Die Karte „Festung“ ist in dieser Version noch nicht verfügbar.';
         } catch (e) {
           logError('fortress probe', e);
@@ -41864,7 +42735,7 @@ body { font-weight: 700; letter-spacing: 0; }
             const s = new CR.Sim({ seed: 27, mode: 'classic', map: mid, decks: [deck, deck], names: ['A', 'B'] });
             for (let i = 0; i < 3; i++) s.tick();
             const v = s.view();
-            f[mid] = (v.map === mid || CR.Arena.map === mid) && v.towers.length === 2 && !!v.hz && !!CR.MapHz;
+            f[mid] = (v.map === mid || CR.Arena.map === mid) && (v.towers.length === 2 || (!!CR.Arena.SIEGE && v.towers.length === 6)) && !!v.hz && !!CR.MapHz;   // (v28: + siege layout)
             if (!f[mid]) f.notes[mid] = 'Die Karte „' + MAPS24[mid] + '“ ist in dieser Version noch nicht verfügbar.';
           } catch (e) {
             logError(mid + ' probe', e);
@@ -42108,6 +42979,15 @@ body { font-weight: 700; letter-spacing: 0; }
       settings.elixirBoost = !!b;
       store.set('elixirBoost', settings.elixirBoost);
     };
+    /** v28: the own gate weapon ("Torturm") on the siege maps (remembered per device, default gatling). */
+    app.setGate = function (g) {
+      const ids = CR.RULES && CR.RULES.towers && CR.RULES.towers.siegeWeaponIds;
+      if (typeof g !== 'string' || !ids || ids.indexOf(g) < 0) return settings.gate;
+      settings.gate = g;
+      store.set('gate', g);
+      return g;
+    };
+    app.getGate = function () { return settings.gate; };
     /** v13 "Spiel suchen": map wish "Karte egal" (remembered, default on). */
     app.setMmAnyMap = function (b) {
       settings.mmAnyMap = !!b;
@@ -42360,7 +43240,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (two) {
         const decks = last ? last.decks : [0, 1, 2].map(function () { return UI.deckForMode(App.pickAiDeck(myDeck), mode); });
         players = [
-          { name: settings.name, deck: myDeck, side: 0, bot: false },
+          { name: settings.name, deck: myDeck, side: 0, bot: false, gate: settings.gate },
           { name: 'Partner-KI', deck: decks[0], side: 0, bot: true, level: level },
           { name: botName, deck: decks[1], side: 1, bot: true, level: level },
           { name: botName, deck: decks[2], side: 1, bot: true, level: level },
@@ -42368,7 +43248,7 @@ body { font-weight: 700; letter-spacing: 0; }
       } else {
         const aiDeck = last ? last.decks[0] : UI.deckForMode(App.pickAiDeck(myDeck), mode);
         players = [
-          { name: settings.name, deck: myDeck, side: 0, bot: false },
+          { name: settings.name, deck: myDeck, side: 0, bot: false, gate: settings.gate },
           { name: botName, deck: aiDeck, side: 1, bot: true, level: level },
         ];
       }
@@ -42588,6 +43468,7 @@ body { font-weight: 700; letter-spacing: 0; }
           code: code,
           name: settings.name,
           deck: app.getDeck(),
+          gate: settings.gate,   // v28: own gate weapon (siege maps)
           mode: online.mode,
           options: online.options,
           teamSize: online.teamSize,
@@ -43031,6 +43912,7 @@ body { font-weight: 700; letter-spacing: 0; }
           code: code,
           name: settings.name,
           deck: app.getDeck(),
+          gate: settings.gate,   // v28: own gate weapon (siege maps)
           onStatus: function (s) { onGuestStatus(online, s); },
         });
       } catch (e) { p = Promise.reject(e); }
@@ -43113,7 +43995,7 @@ body { font-weight: 700; letter-spacing: 0; }
       let p;
       try {
         p = CR.Net.findMatch({
-          mode: mode, teamSize: teamSize, map: mapPref, name: settings.name, deck: app.getDeck(), options: options,
+          mode: mode, teamSize: teamSize, map: mapPref, name: settings.name, deck: app.getDeck(), gate: settings.gate, options: options,
           onStatus: function (s) { if (app.search === search && app.screen === scr) scr.setStatus(s); },
           // the session's status after the match (lost / error) -> the normal online handlers
           onSessionStatus: function (s) {
@@ -48129,17 +49011,21 @@ body { font-weight: 700; letter-spacing: 0; }
     };
     const wp0 = A.waypoint;
     A.waypoint = function (px, py, r, gx, gy, jumps, rects, out, nav) {
-      if (RIFT.n !== 0 && RIFT.seen.length && !jumps && RIFT.sim && rects === RIFT.sim.staticRects) {
-        const B = RIFT.sim.build;
-        if (B.routeTick !== RIFT.sim.tickNo || B.routeLen !== rects.length) {
-          const rt = B.route;
+      // (v28 siege: the per-team movement rects sim.sgRects[team] count as well - one route list each)
+      const SS = RIFT.sim;
+      const rk = !SS ? -1 : (rects === SS.staticRects ? 2 : (SS.sgRects && rects === SS.sgRects[0] ? 0 : (SS.sgRects && rects === SS.sgRects[1] ? 1 : -1)));
+      if (RIFT.n !== 0 && RIFT.seen.length && !jumps && rk >= 0) {
+        const B = SS.build;
+        if (!B.routes) { B.routes = [[], [], B.route]; B.routeTicks = [-1, -1, -1]; B.routeLens = [-1, -1, -1]; }
+        if (B.routeTicks[rk] !== SS.tickNo || B.routeLens[rk] !== rects.length) {
+          const rt = B.routes[rk];
           rt.length = 0;
           for (let i = 0; i < rects.length; i++) rt.push(rects[i]);
           for (let i = 0; i < RIFT.seen.length; i++) rt.push(RIFT.seen[i]);
-          B.routeTick = RIFT.sim.tickNo;
-          B.routeLen = rects.length;
+          B.routeTicks[rk] = SS.tickNo;
+          B.routeLens[rk] = rects.length;
         }
-        rects = B.route;
+        rects = B.routes[rk];
       }
       return wp0.call(this, px, py, r, gx, gy, jumps, rects, out, nav);
     };
@@ -48726,7 +49612,7 @@ body { font-weight: 700; letter-spacing: 0; }
           enemy: { name: 'Belagerungstrupp', speaker: 'malgorn', deck: ['mortar', 'bomb-tower', 'royal-giant', 'archers', 'skeletons', 'arrows', 'cannon', 'knight'] },
           unlock: ['mortar', 'bomb-tower'],
           intro: [
-            ['aldo', 'Ein einziger, langer Turm pro Seite. Und vor dem Kampf setzt jeder ein Spezialgebäude.'],
+            ['aldo', 'Eine Stadt hinter einer Mauer mit zwei Toren – erst muss ein Tor fallen. Und vor dem Kampf setzt jeder ein Spezialgebäude.'],   // (v28: siege layout)
             ['malgorn', 'Steinwall gehört mir. Ihr werdet euch die Zähne an meinen Mauern ausbeißen.'],
           ],
           outro: [
@@ -75871,7 +76757,7 @@ body { font-weight: 700; letter-spacing: 0; }
     for (let i = 0; i < (td ? 0 : towers.length); i++) {
       const t = towers[i];
       const fs = t.size || (t.kind === 'king' ? 4 : 3);
-      const sd0 = t.kind === 'king' && t.depth > 0 ? t.depth : fs;
+      const sd0 = (t.kind === 'king' || t.siege) && t.depth > 0 ? t.depth : fs;   // (v28: + the siege gates, 3 x 1.5)
       const s = fs + 0.3, sd = sd0 + 0.3;
       const x0 = X(t.x - s / 2), y0 = Y(t.y + sd / 2), w = s * PX, hpx = sd * PX;
       // (v15 dusk: v10 dark slate flags with a gold inlay, same v14 footprint)
@@ -77501,7 +78387,7 @@ body { font-weight: 700; letter-spacing: 0; }
       let same = lay.length === this._towerList.length;
       for (let i = 0; same && i < lay.length; i++) {
         const tm = this._towers.get(lay[i].id);
-        if (!tm || tm.kind !== lay[i].kind || !!tm.fortress !== !!lay[i].fortress || !!tm.pyr !== (this.map === 'pyramid')) same = false;   // (v22: + pyramid models)
+        if (!tm || tm.kind !== lay[i].kind || !!tm.fortress !== !!lay[i].fortress || !!tm.pyr !== (this.map === 'pyramid') || !!tm.sg !== !!lay[i].siege || tm.depth !== (lay[i].depth || lay[i].size || 0)) same = false;   // (v22: + pyramid models, v28: + siege models)
       }
       if (same) return false;
       for (let i = 0; i < this._towerList.length; i++) {
@@ -80011,6 +80897,7 @@ body { font-weight: 700; letter-spacing: 0; }
         tm.e.x = L.x - this.hw; tm.e.z = this.hh - L.y;
         tm.group.position.set(tm.e.x, 0, tm.e.z);
         tm.pyr = this.map === 'pyramid';   // v22: pyramid tower models on the pyramid map
+        tm.sg = !!L.siege;                 // v28: siege layout ('gate' / 'hall' models of 36-gfx-siege.js)
         if (tm.fortress) {
           // v21 fortress: second crew + per-gun aim / crew state (gun 0 uses crewInst / cst / dirS)
           tm.crew2Inst = null; tm.crew2Meshes = null; tm.crew2 = null; tm.dirS2 = tm.dirS; tm.posed2 = false;
@@ -80095,6 +80982,8 @@ body { font-weight: 700; letter-spacing: 0; }
       tm.cside = cs;
       if (tm.fortress) { this._dressFortress(tm, cs); return; }
       const X = gfx();
+      // v28 siege layout: gate / town hall bodies (+ the gate weapon as the crew) from 36-gfx-siege.js
+      const SGD = tm.sg && CR.Siege3D && typeof CR.Siege3D.dressBody === 'function' ? CR.Siege3D : null;
       // v22 map 'pyramid': the stepped sandstone pyramids (same geometry / pivots as the crown towers)
       const pyrId = tm.pyr ? (tm.king ? 'pyramid-king' : 'pyramid-princess') : '';
       const bodyId = pyrId && X && gfxHas(pyrId) ? pyrId : (tm.king ? 'king-tower' : 'princess-tower');
@@ -80106,7 +80995,9 @@ body { font-weight: 700; letter-spacing: 0; }
       const target = tm.king ? tm.size * KING_VIS : Math.max(tm.size, tm.hitSize || tm.size) * PRINCESS_VIS;
       tm.depthK = tm.king && tm.depth > 0 ? clamp(tm.depth / tm.size, 0.6, 1.2) : 1;   // v12 king 3 x 2.5
       tm.rubbleSz = target / ((tm.king ? 3.5 : 2.6) + 0.5);
-      if (X && gfxHas(bodyId)) {
+      if (SGD) { try { SGD.dressBody(this, tm, cs, yaw); } catch (e) { tm.body = null; } }
+      if (SGD && tm.body) { /* v28: siege body built */ }
+      else if (X && gfxHas(bodyId)) {
         try {
           // the crown tower models are designed on 3x3 / 4x4 tiles; their measured base (plinth +
           // footing stones) is TOWER_REF_FOOT then. A model rebuilt to another base still fits.
@@ -80128,7 +81019,7 @@ body { font-weight: 700; letter-spacing: 0; }
           tm.topY = h * tm.ts * kh;
         } catch (e) { tm.bodyInst = null; tm.bodyMeshes = null; }
       }
-      if (!tm.bodyInst) {
+      if (!tm.bodyInst && !(SGD && tm.body)) {
         tm.ts = target / ((tm.king ? 3.5 : 2.6) + 0.5);
         const geo = this._towerGeo(tm.king, cs);
         tm.body = new T.Mesh(geo, this.matToon);
@@ -80140,7 +81031,9 @@ body { font-weight: 700; letter-spacing: 0; }
         tm.topY = tm.crewY + 1.2;
       }
       tm.cs = CREW_VIS[tm.king ? 0 : 1];
-      if (X && gfxHas(crewId)) {
+      if (SGD && !tm.king) { try { SGD.dressWeapon(this, tm, cs); } catch (e) { tm.crew = null; } }
+      if (SGD && !tm.king && tm.crew) { /* v28: the gate weapon is the crew */ }
+      else if (X && gfxHas(crewId)) {
         const cm = this._measure(crewId);
         if (cm.h > 0.3) tm.cs = clamp(CREW_H[tm.king ? 0 : 1] / cm.h, 0.4, 1.6);
         try {
@@ -80154,7 +81047,7 @@ body { font-weight: 700; letter-spacing: 0; }
           tm.topY = Math.max(tm.topY, tm.crewY + tm.crewH);
         } catch (e) { tm.crewInst = null; tm.crewMeshes = null; }
       }
-      if (!tm.crewInst) {
+      if (!tm.crewInst && !tm.crew) {
         tm.crew = new T.Mesh(this._crewGeo(tm.king, cs), this.matToon);
         tm.crew.position.set(0, tm.crewY, 0);
         tm.crew.rotation.y = yaw;
@@ -100223,6 +101116,857 @@ body { font-weight: 700; letter-spacing: 0; }
   }
 
   M24.jungle = { build: build, update: update, dispose: dispose, paint2d: paint2d, draw2d: draw2d, geo: geo, PC: PC };
+})(globalThis.CR || (globalThis.CR = {}));
+
+</script>
+<script>
+/* src/36-gfx-siege.js */
+/* 36-gfx-siege.js - v28 tower layout "Belagerung" (siege, docs/V28-SIEGE.md): the 3D models +
+ * animations and the 2D fallback of the CITY behind a WALL with two GATES. The sim side: CR.Arena
+ * (02-arena.js: SIEGE walls / gates / house blocks / the town's three buildings), CR.Units
+ * (04-units.js: gate weapons thinkGate / gateFire, wall hop, siegeTown) and the view (tower extras
+ * sg 1 gate | 2 hall, gw weapon id, sp gatling spin; view.sg town state; 'sg' events).
+ *
+ *  CR.Siege3D (called from 26-gfx-render3d.js _dressTower for towers with tm.sg):
+ *    dressBody(r, tm, cs, yaw)  gate: gatehouse (two stone pillars, arch, chained portcullis, team
+ *                               banners, merlons) | hall: the town hall (stone base, timbered upper
+ *                               floor, roofs, belfry, balcony for the king). Pre-builds the rubble:
+ *                               gate = pillar stumps + the fallen portcullis on the ground, the gap
+ *                               between them clear (it is passable); hall = a big heap.
+ *    dressWeapon(r, tm, cs)     the gate weapon (tm.crew, aimed by 26): gatling drum | harpoon
+ *                               ballista | lava cauldron | rock sling | stone dragon head.
+ *  Render3D wraps: _buildArena (static scenery: walls with merlons + walkway, house blocks with
+ *    houses, market stalls / barrels / lanterns / trees on the back corners, well / smithy / tavern
+ *    (intact + plundered variants), glows), _disposeArena, _syncTowers (weapon swap when gw changes,
+ *    weapon animations: drum spin, cauldron tilt, sling arm, dragon eyes glow + nostril smoke,
+ *    harpoon bolt; gate break FX), _syncAreas (town building states, glows, chimney smoke),
+ *    _onEvent ('sg' events: plunder / militia / elixir / pull / lava / rockfall / hop),
+ *    _paintExtras (cobbles of the two towns on the field texture).
+ *  CR.VFX.projStyle: shot styles of the gate weapons (bolt, harpoon, lava blob, rock, fireball).
+ *  Draw calls: walls + houses + stalls 1 merged mesh, town buildings 6 meshes (+6 ruined), glows 1
+ *  per building; per gate body 2 (frame + portcullis) + weapon 1-3; hall 1. Low quality (r._lq):
+ *  fewer decorations, no chimney smoke.
+ *  Render (2D fallback): walls, house blocks, the town buildings, gates as dark arches over the
+ *  princess sprites.
+ * Must not throw without THREE / DOM (jsc syntax check, headless tests).
+ */
+(function (CR) {
+  'use strict';
+  const G = globalThis;
+  const M24 = CR.Maps24 || (CR.Maps24 = {});
+  const S3 = CR.Siege3D = {};
+  const TAU = Math.PI * 2;
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function seeded(s) { let a = s >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  // palette (v20 towers: warm grey stone, honey wood, slate roofs, team banners)
+  const C = {
+    stone: 0xb9b2a4, stoneL: 0xcfc8b9, stoneD: 0x8e877a, stoneDD: 0x6e685d, mortar: 0x7d776b,
+    wood: 0x9a6a3c, woodL: 0xb98a52, woodD: 0x6b4526, iron: 0x3c3f45, ironL: 0x6b7078, chain: 0x8a8f98,
+    roof: [0xb4483a, 0x4f6d9a, 0xc06a2c, 0x6d7f3a, 0x8a5a9a], roofD: 0x5a2a22, plaster: 0xf0e2c4, plasterD: 0xd6c39c,
+    leaf: 0x4f9a3a, leafD: 0x3a7a2c, bark: 0x6e4a2c, gold: 0xf2c43c, lava: 0xff7a1a, lavaL: 0xffc24a,
+    elixir: 0xd04cff, forge: 0xff8a2a, lamp: 0xffd27a, awn: [0xe8493a, 0x3a7fe0, 0xf2c43c],
+  };
+  const TEAMC = [0x2f6dff, 0xe5322b], TEAML = [0x8fb6ff, 0xff9a90];
+
+  function siegeMap(id) { const M = CR.RULES && CR.RULES.arena && CR.RULES.arena.maps ? CR.RULES.arena.maps[id] : null; return !!(M && M.siege); }
+  S3.siegeMap = siegeMap;
+  function mat(r) {
+    if (r._sgMat) return r._sgMat;
+    const T = r.T;
+    const o = { vertexColors: true };
+    if (r.gradient) o.gradientMap = r.gradient;
+    r._sgMat = new T.MeshToonMaterial(o);
+    return r._sgMat;
+  }
+  function glowMat(r, col) {
+    const T = r.T;
+    const m = new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
+    return m;
+  }
+  function geoCache(r) { return r._sgGeo || (r._sgGeo = new Map()); }
+  function cached(r, key, fn) { const c = geoCache(r); let g = c.get(key); if (!g) { g = fn(); c.set(key, g); } return g; }
+
+  // ------------------------------------------------------------------ primitive helpers (Merge)
+  function B(T) { return new T.BoxGeometry(1, 1, 1); }
+  function Cy(T, rt, rb, n) { return new T.CylinderGeometry(rt, rb, 1, n || 8); }
+  function Sp(T, d) { return new T.IcosahedronGeometry(1, d || 0); }
+  /** pitched roof (prism along x): width w (x), depth d (z), height h, at (x, y, z) */
+  function roof(T, mg, x, y, z, w, d, h, col, ry) {
+    const g = new T.BufferGeometry();
+    const hw = 0.5, hd = 0.5;
+    const p = [-hw, 0, -hd, hw, 0, -hd, hw, 0, hd, -hw, 0, hd, -hw, 1, 0, hw, 1, 0];
+    const tri = [0, 4, 1, 1, 4, 5, 3, 2, 4, 2, 5, 4, 0, 3, 4, 1, 5, 2, 0, 1, 2, 0, 2, 3];
+    const pos = [];
+    for (let i = 0; i < tri.length; i++) pos.push(p[tri[i] * 3], p[tri[i] * 3 + 1], p[tri[i] * 3 + 2]);
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    mg.add(g, x, y, z, 0, ry || 0, 0, w, h, d, col, [0, 1, 0.25]);
+  }
+  /** small house: plaster walls, timber corners, a pitched roof, a door, windows, optional chimney */
+  function house(T, mg, x, z, w, d, h, roofCol, ry, rnd, chim) {
+    const c = Math.cos(ry || 0), s = Math.sin(ry || 0);
+    const P = function (lx, lz) { return [x + lx * c + lz * s, z - lx * s + lz * c]; };
+    mg.add(B(T), x, h / 2, z, 0, ry || 0, 0, w, h, d, rnd() < 0.5 ? C.plaster : C.plasterD, [0, h, 0.2]);
+    // timber corner posts + beam
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const q = P(sx * (w / 2 - 0.04), sz * (d / 2 - 0.04)); mg.add(B(T), q[0], h / 2, q[1], 0, ry || 0, 0, 0.09, h, 0.09, C.woodD); }
+    { const q = P(0, -d / 2 - 0.01); mg.add(B(T), q[0], h * 0.62, q[1], 0, ry || 0, 0, w, 0.07, 0.04, C.woodD); }
+    // door (front = -z local) + window
+    { const q = P(-w * 0.18, -d / 2 - 0.02); mg.add(B(T), q[0], 0.22, q[1], 0, ry || 0, 0, 0.22, 0.44, 0.04, C.woodD); }
+    { const q = P(w * 0.2, -d / 2 - 0.02); mg.add(B(T), q[0], h * 0.4, q[1], 0, ry || 0, 0, 0.18, 0.16, 0.04, C.lamp); }
+    roof(T, mg, x, h, z, w + 0.18, d + 0.16, 0.42 + w * 0.12, roofCol, ry);
+    if (chim) { const q = P(w * 0.25, d * 0.15); mg.add(B(T), q[0], h + 0.38, q[1], 0, ry || 0, 0, 0.16, 0.5, 0.16, C.stoneD); }
+  }
+  function tree(T, mg, x, z, s, rnd) {
+    mg.add(Cy(T, 0.06, 0.09, 6), x, 0.25 * s, z, 0, 0, 0, s, 0.5 * s, s, C.bark);
+    mg.add(Sp(T, 1), x, 0.72 * s, z, rnd(), rnd(), 0, 0.42 * s, 0.46 * s, 0.42 * s, rnd() < 0.5 ? C.leaf : C.leafD, [0.3, 1.2, 0.3]);
+    mg.add(Sp(T, 0), x + 0.1 * s, 0.95 * s, z - 0.05 * s, rnd(), rnd(), 0, 0.26 * s, 0.26 * s, 0.26 * s, C.leaf);
+  }
+  function lantern(T, mg, x, z) {
+    mg.add(Cy(T, 0.03, 0.04, 5), x, 0.4, z, 0, 0, 0, 1, 0.8, 1, C.woodD);
+    mg.add(B(T), x, 0.84, z, 0, 0, 0, 0.12, 0.13, 0.12, C.lamp);
+    mg.add(B(T), x, 0.93, z, 0, 0.78, 0, 0.16, 0.04, 0.16, C.iron);
+  }
+  function stall(T, mg, x, z, ry, col) {
+    mg.add(B(T), x, 0.2, z, 0, ry, 0, 0.7, 0.4, 0.4, C.wood);
+    for (const sx of [-0.32, 0.32]) mg.add(Cy(T, 0.025, 0.025, 4), x + sx * Math.cos(ry), 0.42, z - sx * Math.sin(ry), 0, 0, 0, 1, 0.84, 1, C.woodD);
+    mg.add(B(T), x, 0.86, z, 0.25, ry, 0, 0.82, 0.05, 0.56, col);
+    mg.add(Sp(T, 0), x - 0.15, 0.45, z, 0, 0, 0, 0.09, 0.07, 0.09, 0xe0503a);
+    mg.add(Sp(T, 0), x + 0.12, 0.45, z, 0, 0, 0, 0.09, 0.07, 0.09, 0xf2c43c);
+  }
+  function barrel(T, mg, x, z, s) { mg.add(Cy(T, 0.13 * s, 0.13 * s, 8), x, 0.16 * s, z, 0, 0, 0, 1, 0.32 * s, 1, C.wood); mg.add(Cy(T, 0.135 * s, 0.135 * s, 8), x, 0.16 * s, z, 0, 0, 0, 1, 0.04, 1, C.iron); }
+
+  // ------------------------------------------------------------------ gate (local: front = -z)
+  const GATE_H = 2.5;
+  // footprint 3 wide (x) x 1.5 deep (z); the passage between the pillars x -0.7..0.7
+  function gateGeo(T, cs) {
+    const mg = new M24.Merge(T);
+    const H = GATE_H, PW = 0.78, PX = 1.5 - PW / 2;
+    for (const sx of [-1, 1]) {
+      const x = sx * PX;
+      mg.add(B(T), x, 0.1, 0, 0, 0, 0, PW + 0.12, 0.2, 1.62, C.stoneDD);                      // plinth
+      mg.add(B(T), x, H / 2, 0, 0, 0, 0, PW, H, 1.5, C.stone, [0, H, 0.22]);                  // pillar
+      for (let k = 0; k < 4; k++) mg.add(B(T), x, 0.35 + k * 0.5, -0.76, 0, 0, 0, PW + 0.02, 0.06, 0.02, C.mortar);   // courses
+      mg.add(B(T), x, H + 0.05, 0, 0, 0, 0, PW + 0.12, 0.1, 1.62, C.stoneL);                 // cap
+      // team banner on the front of the pillar
+      mg.add(B(T), x, 1.25, -0.77, 0, 0, 0, 0.42, 0.78, 0.03, TEAMC[cs]);
+      mg.add(B(T), x, 1.66, -0.78, 0, 0, 0, 0.5, 0.06, 0.04, C.gold);
+      mg.add(B(T), x, 0.88, -0.775, 0, 0, 0.785, 0.2, 0.2, 0.03, TEAMC[cs]);
+    }
+    // arch / lintel over the passage + walkway platform on top
+    mg.add(B(T), 0, H - 0.5, 0, 0, 0, 0, 2.2, 1.0, 1.5, C.stone, [H - 1, H, 0.15]);
+    mg.add(B(T), 0, H - 1.02, -0.77, 0, 0, 0, 1.5, 0.08, 0.04, C.stoneDD);
+    mg.add(B(T), 0, H + 0.08, 0, 0, 0, 0, 3.05, 0.16, 1.62, C.stoneL);
+    // merlons on the field side + the sides
+    for (let i = 0; i < 5; i++) mg.add(B(T), -1.3 + i * 0.65, H + 0.36, -0.68, 0, 0, 0, 0.36, 0.4, 0.26, C.stone, [0, 0.4, 0.1]);
+    for (const sx of [-1, 1]) mg.add(B(T), sx * 1.38, H + 0.36, 0.1, 0, 0, 0, 0.26, 0.4, 0.5, C.stone);
+    // chain drums + chains up to the lintel
+    for (const sx of [-1, 1]) {
+      mg.add(Cy(T, 0.12, 0.12, 8), sx * 0.62, H - 0.2, 0.3, 0, 0, Math.PI / 2, 1, 0.22, 1, C.woodD);
+      for (let k = 0; k < 6; k++) mg.add(new T.TorusGeometry(0.06, 0.018, 4, 8), sx * 0.62, H - 1.0 - k * 0.11, -0.55, k % 2 ? 0 : Math.PI / 2, 0, 0, 1, 1, 1, C.chain);
+    }
+    return mg.build();
+  }
+  // the portcullis grid (separate mesh: it lifts a little on the gate's death throes)
+  function portGeo(T) {
+    const mg = new M24.Merge(T);
+    for (let i = 0; i < 6; i++) mg.add(B(T), -0.6 + i * 0.24, 0.78, 0.02, 0, 0, 0, 0.07, 1.56, 0.07, C.iron);
+    for (let k = 0; k < 5; k++) mg.add(B(T), 0, 0.12 + k * 0.33, 0.02, 0, 0, 0, 1.36, 0.06, 0.07, C.ironL);
+    for (let i = 0; i < 6; i++) mg.add(new T.ConeGeometry(0.05, 0.14, 4), -0.6 + i * 0.24, 0.0, 0.02, Math.PI, 0, 0, 1, 1, 1, C.ironL);
+    return mg.build();
+  }
+  function gateRubbleGeo(T, cs) {
+    const mg = new M24.Merge(T);
+    const rnd = seeded(28 + cs);
+    for (const sx of [-1, 1]) {
+      mg.add(B(T), sx * 1.11, 0.3, 0, rnd() * 0.1, 0, sx * 0.06, 0.78, 0.6, 1.5, C.stoneD, [0, 0.6, 0.25]);   // pillar stump
+      for (let k = 0; k < 6; k++) mg.add(Sp(T, 0), sx * (1.0 + rnd() * 0.5), 0.12, (rnd() - 0.5) * 1.6, rnd() * 3, rnd() * 3, 0, 0.18 + rnd() * 0.12, 0.12, 0.16, rnd() < 0.5 ? C.stone : C.stoneD);
+      mg.add(B(T), sx * 1.12, 0.62, -0.77, 0, 0, sx * 0.2, 0.38, 0.4, 0.03, TEAMC[cs]);   // torn banner
+    }
+    // the portcullis lying flat in front of the gap (field side), chains trailing back
+    for (let i = 0; i < 6; i++) mg.add(B(T), -0.6 + i * 0.24, 0.035, -1.2, 0, 0.08, 0, 0.07, 0.05, 1.3, C.iron);
+    for (let k = 0; k < 4; k++) mg.add(B(T), 0.02, 0.05, -0.68 - k * 0.33, 0, 0.08, 0, 1.36, 0.05, 0.06, C.ironL);
+    for (let k = 0; k < 4; k++) mg.add(new T.TorusGeometry(0.06, 0.018, 4, 8), -0.62 + k * 0.06, 0.03, -0.3 + k * 0.14, Math.PI / 2, 0, 0, 1, 1, 1, C.chain);
+    return mg.build();
+  }
+  // ------------------------------------------------------------------ town hall (local: front = -z), 4 x 4
+  function hallGeo(T, cs) {
+    const mg = new M24.Merge(T);
+    mg.add(B(T), 0, 0.12, 0, 0, 0, 0, 4.0, 0.24, 4.0, C.stoneDD);
+    mg.add(B(T), 0, 0.75, 0.15, 0, 0, 0, 3.7, 1.1, 3.4, C.stone, [0, 1.3, 0.2]);
+    for (let k = 0; k < 3; k++) mg.add(B(T), 0, 0.35 + k * 0.36, -1.56, 0, 0, 0, 3.72, 0.05, 0.02, C.mortar);
+    mg.add(B(T), 0, 0.5, -1.57, 0, 0, 0, 0.7, 0.9, 0.05, C.woodD);                    // big door
+    mg.add(Cy(T, 0.35, 0.35, 10), 0, 0.95, -1.57, Math.PI / 2, 0, 0, 1, 0.05, 1, C.woodD);
+    // timbered upper floor (set back) + roofs
+    mg.add(B(T), 0, 1.75, 0.55, 0, 0, 0, 3.3, 0.95, 2.4, C.plaster, [1.3, 2.2, 0.1]);
+    for (let i = 0; i < 6; i++) mg.add(B(T), -1.6 + i * 0.64, 1.75, -0.66, 0, 0, 0, 0.08, 0.95, 0.04, C.woodD);
+    mg.add(B(T), 0, 2.2, -0.66, 0, 0, 0, 3.32, 0.08, 0.05, C.woodD);
+    for (let i = 0; i < 4; i++) mg.add(B(T), -1.15 + i * 0.77, 1.78, -0.67, 0, 0, 0, 0.26, 0.3, 0.03, C.lamp);
+    roof(T, mg, 0, 2.22, 0.55, 3.6, 2.7, 1.25, C.roof[cs === 0 ? 1 : 0], 0);
+    // balcony at the front (the king stands here) with a railing + banners
+    mg.add(B(T), 0, 1.36, -1.05, 0, 0, 0, 2.2, 0.14, 1.2, C.wood);
+    for (let i = 0; i < 7; i++) mg.add(B(T), -1.05 + i * 0.35, 1.55, -1.62, 0, 0, 0, 0.05, 0.3, 0.05, C.woodD);
+    mg.add(B(T), 0, 1.71, -1.62, 0, 0, 0, 2.2, 0.05, 0.06, C.woodL);
+    for (const sx of [-1, 1]) {
+      mg.add(B(T), sx * 1.55, 0.9, -1.6, 0, 0, 0, 0.4, 0.9, 0.03, TEAMC[cs]);
+      mg.add(B(T), sx * 1.55, 1.38, -1.61, 0, 0, 0, 0.46, 0.06, 0.04, C.gold);
+    }
+    // belfry tower at the back left with a spire + team flag
+    mg.add(B(T), 1.25, 2.35, 1.25, 0, 0, 0, 0.9, 1.6, 0.9, C.stoneL, [1.6, 3.2, 0.15]);
+    mg.add(B(T), 1.25, 3.0, 1.25, 0, 0, 0, 0.5, 0.35, 1.0, C.woodD);
+    mg.add(new T.ConeGeometry(0.72, 1.1, 4), 1.25, 3.72, 1.25, 0, Math.PI / 4, 0, 1, 1, 1, C.roof[cs === 0 ? 1 : 0], [3.2, 4.3, 0.2]);
+    mg.add(Cy(T, 0.02, 0.02, 4), 1.25, 4.45, 1.25, 0, 0, 0, 1, 0.5, 1, C.woodD);
+    mg.add(B(T), 1.43, 4.55, 1.25, 0, 0, 0, 0.34, 0.2, 0.02, TEAMC[cs]);
+    mg.add(Cy(T, 0.14, 0.18, 8), 1.25, 3.0, 1.25, 0, 0, 0, 1, 0.24, 1, C.gold);   // bell
+    return mg.build();
+  }
+  function hallRubbleGeo(T, cs) {
+    const mg = new M24.Merge(T);
+    const rnd = seeded(91 + cs);
+    mg.add(B(T), 0, 0.2, 0, 0, 0, 0, 3.8, 0.4, 3.8, C.stoneD);
+    for (let k = 0; k < 22; k++) mg.add(Sp(T, 0), (rnd() - 0.5) * 3.4, 0.3 + rnd() * 0.35, (rnd() - 0.5) * 3.4, rnd() * 3, rnd() * 3, 0, 0.3 + rnd() * 0.3, 0.2 + rnd() * 0.2, 0.3 + rnd() * 0.25, rnd() < 0.6 ? C.stone : C.plasterD);
+    for (let k = 0; k < 6; k++) mg.add(B(T), (rnd() - 0.5) * 3, 0.55, (rnd() - 0.5) * 3, rnd(), rnd() * 3, rnd(), 1.4, 0.08, 0.1, C.woodD);
+    roof(T, mg, -0.4, 0.4, 0.6, 2.2, 1.6, 0.6, C.roof[cs === 0 ? 1 : 0], 0.4);
+    mg.add(B(T), 0.9, 0.5, -1.4, 0.3, 0, 0.5, 0.5, 0.7, 0.03, TEAMC[cs]);
+    return mg.build();
+  }
+
+  // ------------------------------------------------------------------ gate weapons (front = -z)
+  function part(r, geo, name) { const m = new r.T.Mesh(geo, mat(r)); m.name = name; return m; }
+  function weapon(r, type, cs) {
+    const T = r.T, g = new T.Group();
+    g.userData.sg = { type: type, parts: {}, glow: null, t: 0, smokeMs: 0, fireMs: 0 };
+    const P = g.userData.sg.parts;
+    const base = cached(r, 'wbase' + cs, function () {
+      const mg = new M24.Merge(T);
+      mg.add(Cy(T, 0.5, 0.56, 10), 0, 0.08, 0, 0, 0, 0, 1, 0.16, 1, C.woodD);
+      mg.add(Cy(T, 0.53, 0.53, 10), 0, 0.17, 0, 0, 0, 0, 1, 0.04, 1, TEAMC[cs]);
+      return mg.build();
+    });
+    g.add(part(r, base, 'base'));
+    if (type === 'gatling') {
+      g.add(part(r, cached(r, 'wgat-frame', function () {
+        const mg = new M24.Merge(T);
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.34, 0.5, 0.05, 0, 0, 0, 0.1, 0.62, 0.32, C.wood);
+        mg.add(B(T), 0.48, 0.55, 0.05, 0, 0, 0, 0.06, 0.06, 0.3, C.iron);       // crank axle
+        mg.add(B(T), 0.52, 0.42, 0.18, 0.6, 0, 0, 0.05, 0.3, 0.05, C.iron);     // crank
+        mg.add(Sp(T, 0), 0.52, 0.3, 0.27, 0, 0, 0, 0.06, 0.06, 0.06, C.woodL);
+        return mg.build();
+      }), 'frame'));
+      const drum = new T.Group(); drum.position.set(0, 0.62, -0.05); drum.name = 'drum';
+      drum.add(part(r, cached(r, 'wgat-drum', function () {
+        const mg = new M24.Merge(T);
+        mg.add(Cy(T, 0.26, 0.26, 8), 0, 0, 0, Math.PI / 2, 0, 0, 1, 0.7, 1, C.woodD);
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * TAU, x = Math.cos(a) * 0.22, y = Math.sin(a) * 0.22;
+          mg.add(B(T), x, y, -0.1, 0, 0, a, 0.06, 0.06, 0.92, C.wood);                 // stock
+          mg.add(B(T), x, y, -0.48, 0, 0, a + Math.PI / 2, 0.34, 0.035, 0.04, C.iron);  // bow
+          mg.add(B(T), x, y, -0.5, 0, 0, 0, 0.02, 0.02, 0.4, C.ironL);                  // bolt
+        }
+        mg.add(Cy(T, 0.28, 0.28, 8), 0, 0, 0.3, Math.PI / 2, 0, 0, 1, 0.06, 1, C.iron);
+        mg.add(Cy(T, 0.28, 0.28, 8), 0, 0, -0.3, Math.PI / 2, 0, 0, 1, 0.06, 1, C.iron);
+        return mg.build();
+      }), 'drumMesh'));
+      g.add(drum); P.drum = drum;
+    } else if (type === 'harpoon') {
+      const arm = new T.Group(); arm.position.set(0, 0.55, 0); arm.name = 'arm';
+      arm.add(part(r, cached(r, 'whar-bow', function () {
+        const mg = new M24.Merge(T);
+        mg.add(B(T), 0, 0, 0.0, 0, 0, 0, 0.18, 0.14, 1.2, C.wood);
+        mg.add(B(T), 0, 0.02, -0.5, 0, 0, 0, 1.25, 0.08, 0.1, C.woodD);       // bow
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.35, 0.02, -0.3, 0, sx * -0.55, 0, 0.012, 0.012, 0.75, 0xe8e2d6);   // string
+        mg.add(Cy(T, 0.16, 0.16, 8), 0.0, -0.05, 0.42, Math.PI / 2, 0, 0, 1, 0.3, 1, C.iron);   // chain spool
+        for (let k = 0; k < 5; k++) mg.add(new T.TorusGeometry(0.05, 0.015, 4, 8), 0.12, -0.1, 0.42 - k * 0.09, 0, k % 2 ? 0 : Math.PI / 2, 0, 1, 1, 1, C.chain);
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.12, -0.25, 0.1, 0, 0, sx * 0.3, 0.06, 0.45, 0.06, C.woodD);   // legs
+        return mg.build();
+      }), 'bow'));
+      const bolt = part(r, cached(r, 'whar-bolt', function () {
+        const mg = new M24.Merge(T);
+        mg.add(B(T), 0, 0, 0, 0, 0, 0, 0.05, 0.05, 1.0, C.ironL);
+        mg.add(new T.ConeGeometry(0.08, 0.22, 4), 0, 0, -0.58, -Math.PI / 2, 0, 0, 1, 1, 1, 0xdadfe6);
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.07, 0, -0.42, 0, sx * 0.6, 0, 0.02, 0.02, 0.16, 0xdadfe6);
+        return mg.build();
+      }), 'bolt');
+      bolt.position.set(0, 0.1, -0.1);
+      arm.add(bolt); P.bolt = bolt;
+      g.add(arm); P.arm = arm;
+    } else if (type === 'lava') {
+      g.add(part(r, cached(r, 'wlav-frame', function () {
+        const mg = new M24.Merge(T);
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.46, 0.55, 0, 0, 0, 0, 0.1, 0.8, 0.12, C.iron);
+        mg.add(B(T), 0, 0.92, 0, 0, 0, 0, 1.02, 0.08, 0.1, C.iron);
+        for (let k = 0; k < 5; k++) mg.add(Sp(T, 0), (k - 2) * 0.13, 0.22, 0.05 * (k % 2), 0, k, 0, 0.1, 0.07, 0.1, C.woodD);   // firewood
+        return mg.build();
+      }), 'frame'));
+      const pot = new T.Group(); pot.position.set(0, 0.62, 0); pot.name = 'pot';
+      pot.add(part(r, cached(r, 'wlav-pot', function () {
+        const mg = new M24.Merge(T);
+        mg.add(new T.SphereGeometry(0.36, 12, 8, 0, TAU, Math.PI * 0.35, Math.PI * 0.65), 0, 0.1, 0, 0, 0, 0, 1, 1, 1, 0x2e2f33, [-0.3, 0.3, 0.3]);
+        mg.add(Cy(T, 0.3, 0.3, 12), 0, 0.16, 0, 0, 0, 0, 1, 0.02, 1, C.lava);
+        mg.add(new T.ConeGeometry(0.1, 0.2, 4), 0, 0.12, -0.36, Math.PI / 2, 0, 0, 1, 1, 1, 0x2e2f33);   // spout
+        return mg.build();
+      }), 'potMesh'));
+      g.add(pot); P.pot = pot;
+      const fire = new T.Mesh(cached(r, 'wglow', function () { return new T.SphereGeometry(0.22, 8, 6); }), glowMat(r, C.forge));
+      fire.position.set(0, 0.28, 0); fire.name = 'fire';
+      g.add(fire); P.fire = fire;
+    } else if (type === 'rockfall') {
+      g.add(part(r, cached(r, 'wrock-pile', function () {
+        const mg = new M24.Merge(T);
+        const rnd = seeded(5);
+        for (let k = 0; k < 7; k++) mg.add(Sp(T, 0), (rnd() - 0.5) * 0.7, 0.28 + rnd() * 0.18, 0.15 + (rnd() - 0.5) * 0.4, rnd() * 3, rnd() * 3, 0, 0.16 + rnd() * 0.08, 0.14, 0.16, rnd() < 0.5 ? C.stone : C.stoneD);
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.3, 0.45, -0.1, 0, 0, sx * 0.2, 0.08, 0.6, 0.08, C.wood);   // A-frame
+        mg.add(B(T), 0, 0.72, -0.1, 0, 0, 0, 0.7, 0.07, 0.07, C.woodD);
+        return mg.build();
+      }), 'pile'));
+      const arm = new T.Group(); arm.position.set(0, 0.72, -0.1); arm.name = 'arm';
+      arm.add(part(r, cached(r, 'wrock-arm', function () {
+        const mg = new M24.Merge(T);
+        mg.add(B(T), 0, 0, 0.25, 0, 0, 0, 0.08, 0.08, 0.95, C.woodL);
+        mg.add(Cy(T, 0.14, 0.1, 8), 0, 0.05, 0.7, 0, 0, 0, 1, 0.1, 1, C.woodD);   // cup
+        mg.add(Sp(T, 0), 0, 0.15, 0.7, 0, 0, 0, 0.13, 0.12, 0.13, C.stoneL);         // rock
+        return mg.build();
+      }), 'armMesh'));
+      g.add(arm); P.arm = arm;
+    } else {   // dragon head
+      const head = new T.Group(); head.position.set(0, 0.55, 0); head.name = 'head';
+      head.add(part(r, cached(r, 'wdrg-head', function () {
+        const mg = new M24.Merge(T);
+        mg.add(B(T), 0, 0.12, 0.05, 0, 0, 0, 0.62, 0.55, 0.62, C.stoneD, [-0.2, 0.4, 0.2]);          // skull
+        mg.add(B(T), 0, 0.02, -0.42, 0.08, 0, 0, 0.46, 0.26, 0.5, C.stone);                          // snout
+        mg.add(B(T), 0, -0.18, -0.34, -0.1, 0, 0, 0.44, 0.12, 0.5, C.stoneDD);                       // jaw
+        for (const sx of [-1, 1]) {
+          mg.add(new T.ConeGeometry(0.08, 0.5, 5), sx * 0.24, 0.5, 0.22, -0.7, 0, sx * -0.35, 1, 1, 1, C.stoneL);   // horns
+          mg.add(new T.ConeGeometry(0.035, 0.14, 4), sx * 0.12, -0.08, -0.62, Math.PI, 0, 0, 1, 1, 1, 0xf2eadb);   // fangs
+          mg.add(B(T), sx * 0.2, 0.28, -0.17, 0, 0, sx * 0.25, 0.2, 0.06, 0.08, C.stoneDD);                      // brows
+          mg.add(B(T), sx * 0.33, 0.05, 0.1, 0, 0, 0, 0.06, 0.28, 0.36, C.stoneD);                                // cheek frills
+        }
+        mg.add(B(T), 0, 0.38, 0.1, 0, 0, 0, 0.08, 0.14, 0.5, C.stoneL);                              // crest
+        return mg.build();
+      }), 'skull'));
+      const eyes = new T.Mesh(cached(r, 'wdrg-eyes', function () {
+        const mg = new M24.Merge(T);
+        for (const sx of [-1, 1]) mg.add(Sp(T, 0), sx * 0.19, 0.2, -0.22, 0, 0, 0, 0.07, 0.05, 0.04, 0xffffff);
+        mg.add(B(T), 0, -0.07, -0.46, 0, 0, 0, 0.32, 0.05, 0.3, 0xffffff);   // mouth glow
+        return mg.build();
+      }), new T.MeshBasicMaterial({ color: 0xffb02a, toneMapped: false }));
+      eyes.name = 'eyes';
+      head.add(eyes); P.eyes = eyes;
+      g.add(head); P.head = head;
+    }
+    // (26 sets the crew's own scale every frame for the wind-up squash - the size lives one level down)
+    const outer = new T.Group();
+    g.scale.setScalar(WSCALE);
+    outer.add(g);
+    outer.userData.sg = g.userData.sg;
+    return outer;
+  }
+  const WSCALE = 1.45;
+  S3.weaponIds = function () { return (CR.RULES.towers && CR.RULES.towers.siegeWeaponIds) || ['gatling']; };
+
+  // ------------------------------------------------------------------ dressing (called by 26)
+  S3.dressBody = function (r, tm, cs, yaw) {
+    const T = r.T;
+    if (!T || !M24.Merge) return;
+    const m = mat(r);
+    tm.ts = 1; tm.rubbleSz = 1; tm.depthK = 1;
+    if (tm.king) {
+      tm.body = new T.Mesh(cached(r, 'hall' + cs, function () { return hallGeo(T, cs); }), m);
+      tm.body.rotation.y = yaw;
+      tm.crewY = 1.43;
+      tm.topY = 4.6;
+      if (!tm.rubble) { tm.rubble = new T.Mesh(cached(r, 'hallR' + cs, function () { return hallRubbleGeo(T, cs); }), m); tm.rubble.rotation.y = yaw; tm.rubble.visible = false; tm.group.add(tm.rubble); }
+    } else {
+      const g = new T.Group();
+      g.add(new T.Mesh(cached(r, 'gate' + cs, function () { return gateGeo(T, cs); }), m));
+      const pc = new T.Mesh(cached(r, 'port', function () { return portGeo(T); }), m);
+      pc.name = 'port';
+      g.add(pc);
+      g.rotation.y = yaw;
+      tm.body = g; tm.port = pc;
+      tm.crewY = GATE_H + 0.12;
+      tm.topY = GATE_H + 1.5;
+      if (!tm.rubble) { tm.rubble = new T.Mesh(cached(r, 'gateR' + cs, function () { return gateRubbleGeo(T, cs); }), m); tm.rubble.rotation.y = yaw; tm.rubble.visible = false; tm.group.add(tm.rubble); }
+    }
+    tm.group.add(tm.body);
+  };
+  S3.dressWeapon = function (r, tm, cs) {
+    const type = tm.sgType || 'gatling';
+    tm.crew = weapon(r, type, cs);
+    tm.crew.position.set(0, tm.crewY, 0);
+    tm.cs = 1;
+    tm.crewH = 1.0 * WSCALE;
+    tm.topY = Math.max(tm.topY, tm.crewY + 1.0 * WSCALE);
+    tm.group.add(tm.crew);
+  };
+  /** v28: swap the weapon of a gate when the view's gw changes (the dressing ran before the view). */
+  function setWeapon(r, tm, type) {
+    tm.sgType = type;
+    if (!tm.crew || tm.crewInst) return;
+    tm.group.remove(tm.crew);
+    tm.crew = null;
+    S3.dressWeapon(r, tm, tm.cside >= 0 ? tm.cside : 0);
+    if (!tm.alive) tm.crew.visible = false;
+  }
+
+  // ------------------------------------------------------------------ static scenery
+  function townGeo(r, W) {
+    const T = r.T, A = CR.Arena, S = A.SIEGE;
+    const mg = new M24.Merge(T);
+    const X = function (x) { return x - r.hw; }, Z = function (y) { return r.hh - y; };
+    const lq = !!r._lq, rnd = seeded(2828);
+    const H = S.height;
+    for (let s = 0; s < 2; s++) {
+      const w = S.walls[s], cs = r._cside ? r._cside(s) : s;
+      const fz = s === 0 ? -1 : 1;   // world z direction towards the field
+      // wall pieces: body, walkway, field-side merlons, buttress strips, a banner per piece
+      for (let i = 0; i < w.segs.length; i++) {
+        const b = w.segs[i];
+        const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, len = b.x1 - b.x0, dep = b.y1 - b.y0;
+        mg.add(B(T), X(cx), 0.08, Z(cy), 0, 0, 0, len + 0.04, 0.16, dep + 0.14, C.stoneDD);
+        mg.add(B(T), X(cx), H / 2, Z(cy), 0, 0, 0, len, H, dep, C.stone, [0, H, 0.25]);
+        mg.add(B(T), X(cx), H + 0.04, Z(cy), 0, 0, 0, len + 0.06, 0.08, dep + 0.06, C.stoneL);
+        const fzz = Z(cy) + fz * (dep / 2 - 0.13);
+        for (let x = b.x0 + 0.3; x < b.x1 - 0.15; x += 0.62) mg.add(B(T), X(x), H + 0.26, fzz, 0, 0, 0, 0.34, 0.36, 0.24, C.stone, [0, 0.36, 0.1]);
+        // town-side low parapet
+        mg.add(B(T), X(cx), H + 0.12, Z(cy) - fz * (dep / 2 - 0.06), 0, 0, 0, len, 0.16, 0.1, C.stoneD);
+        // stone courses on the field face
+        for (let k = 0; k < 3; k++) mg.add(B(T), X(cx), 0.36 + k * 0.48, Z(cy) + fz * (dep / 2 + 0.005), 0, 0, 0, len, 0.05, 0.02, C.mortar);
+        for (let x = b.x0 + 0.9; x < b.x1 - 0.5; x += 2.1) mg.add(B(T), X(x), H * 0.5, Z(cy) + fz * (dep / 2 + 0.06), 0, 0, 0, 0.32, H, 0.14, C.stoneD, [0, H, 0.2]);
+        if (len > 3) { mg.add(B(T), X(cx), H * 0.62, Z(cy) + fz * (dep / 2 + 0.03), 0, 0, 0, 0.5, 0.9, 0.03, TEAMC[cs]); mg.add(B(T), X(cx), H * 0.62 + 0.47, Z(cy) + fz * (dep / 2 + 0.04), 0, 0, 0, 0.58, 0.06, 0.04, C.gold); }
+        else mg.add(B(T), X(cx), H * 0.6, Z(cy) + fz * (dep / 2 + 0.03), 0, 0, 0, 0.36, 0.7, 0.03, TEAMC[cs]);
+      }
+      // house blocks: two or three houses each, a fence along the inside edge
+      for (let i = 0; i < w.blocks.length; i++) {
+        const b = w.blocks[i];
+        const bx = (b.x0 + b.x1) / 2;
+        const ry = s === 0 ? 0 : Math.PI;
+        // the functional buildings stand on these blocks (well / tavern / smithy): the free spots get houses
+        const spots = [b.y0 + 0.7, (b.y0 + b.y1) / 2, b.y1 - 0.8];
+        for (let k = 0; k < spots.length; k++) {
+          const yy = spots[k];
+          let used = false;
+          ['well', 'tavern', 'smithy'].forEach(function (kk) { const t = w.town[kk]; if (t && Math.abs(t.x - bx) < 1.2 && Math.abs(t.y - yy) < 1.1) used = true; });
+          if (used) continue;
+          house(T, mg, X(bx), Z(yy), 1.5, 1.2, 0.85 + rnd() * 0.25, C.roof[(k + i + s) % C.roof.length], ry + (rnd() - 0.5) * 0.15, rnd, rnd() < 0.6);
+        }
+        const fx = b.x0 < 1 ? b.x1 - 0.06 : b.x0 + 0.06;
+        for (let y = b.y0 + 0.2; y < b.y1 - 0.1; y += 0.45) mg.add(B(T), X(fx), 0.16, Z(y), 0, 0, 0, 0.05, 0.32, 0.05, C.woodD);
+        mg.add(B(T), X(fx), 0.24, Z((b.y0 + b.y1) / 2), 0, 0, 0, 0.04, 0.04, b.y1 - b.y0 - 0.3, C.wood);
+      }
+      // back corners: market stalls, barrels, lanterns, trees (on the corner obstacles)
+      const cy = s === 0 ? 0.5 : 31.5;
+      const xs = s === 0 ? [[0.6, 3.6], [14.4, 17.4]] : [[14.4, 17.4], [0.6, 3.6]];
+      for (let q = 0; q < 2; q++) {
+        const x0 = xs[q][0], x1 = xs[q][1];
+        stall(T, mg, X(x0 + 0.6), Z(cy), s === 0 ? 0 : Math.PI, C.awn[(q + s) % 3]);
+        if (!lq) stall(T, mg, X(x0 + 1.6), Z(cy), s === 0 ? 0 : Math.PI, C.awn[(q + s + 1) % 3]);
+        barrel(T, mg, X(x1 - 0.9), Z(cy) + 0.15, 1);
+        barrel(T, mg, X(x1 - 0.6), Z(cy) - 0.12, 0.9);
+        tree(T, mg, X(x1 - 0.2), Z(cy) + (s === 0 ? 0.2 : -0.2), 1.0, rnd);
+      }
+      // lanterns along the town side of the wall + at the hall
+      const ly = s === 0 ? 6.15 : 25.85;
+      for (const lx of [6.0, 12.0]) lantern(T, mg, X(lx), Z(ly));
+      if (!lq) {
+        const hy = s === 0 ? 0.55 : 31.45;
+        for (const lx of [5.4, 12.6]) lantern(T, mg, X(lx), Z(hy));
+      }
+    }
+    return mg.build();
+  }
+  // functional buildings (one merged mesh per kind + side, intact / plundered)
+  function fbGeo(r, kind, cs, ruined) {
+    const T = r.T, mg = new M24.Merge(T), rnd = seeded(kind.length * 7 + cs + (ruined ? 50 : 0));
+    const dk = ruined ? 0.6 : 1;
+    const col = function (c) { const o = new T.Color(c); o.multiplyScalar(dk); return o.getHex(); };
+    if (kind === 'well') {
+      mg.add(Cy(T, 0.5, 0.56, 12), 0, 0.22, 0, 0, 0, 0, 1, 0.44, 1, col(C.stone), [0, 0.44, 0.3]);
+      mg.add(Cy(T, 0.4, 0.4, 12), 0, 0.42, 0, 0, 0, 0, 1, 0.04, 1, ruined ? 0x3a3530 : C.elixir);
+      if (!ruined) {
+        for (const sx of [-1, 1]) mg.add(B(T), sx * 0.42, 0.75, 0, 0, 0, 0, 0.08, 0.7, 0.08, C.woodD);
+        roof(T, mg, 0, 1.08, 0, 1.15, 0.8, 0.38, C.roof[3], Math.PI / 2);
+        mg.add(B(T), 0, 0.98, 0, 0, 0, 0, 0.8, 0.05, 0.05, C.wood);
+        mg.add(Cy(T, 0.08, 0.07, 6), 0.05, 0.7, 0, 0, 0, 0, 1, 0.14, 1, C.wood);   // bucket
+      } else {
+        mg.add(B(T), 0.4, 0.15, 0.3, 0.3, 0.4, 1.2, 0.08, 0.7, 0.08, C.woodD);
+        roof(T, mg, -0.3, 0.05, 0.4, 1.0, 0.7, 0.3, col(C.roof[3]), 0.7);
+        for (let k = 0; k < 4; k++) mg.add(Sp(T, 0), (rnd() - 0.5) * 1.2, 0.08, (rnd() - 0.5) * 1.2, rnd(), rnd(), 0, 0.14, 0.1, 0.12, col(C.stone));
+      }
+    } else if (kind === 'smithy') {
+      mg.add(B(T), 0, 0.42, 0.15, 0, 0, 0, 1.5, 0.84, 1.1, col(C.stoneL), [0, 0.84, 0.2]);
+      roof(T, mg, 0, 0.84, 0.15, 1.7, 1.3, 0.5, col(C.roof[0]), 0);
+      mg.add(B(T), 0.45, 1.25, 0.35, 0, 0, 0, 0.26, 0.8, 0.26, col(C.stoneD));   // chimney
+      mg.add(B(T), -0.25, 0.32, -0.62, 0, 0, 0, 0.6, 0.64, 0.04, ruined ? 0x2a2622 : C.forge);   // forge opening
+      mg.add(B(T), 0.4, 0.2, -0.75, 0, 0.3, 0, 0.36, 0.2, 0.2, col(C.iron));    // anvil
+      mg.add(B(T), 0.4, 0.33, -0.75, 0, 0.3, 0, 0.44, 0.06, 0.14, col(C.ironL));
+      if (ruined) for (let k = 0; k < 5; k++) mg.add(Sp(T, 0), (rnd() - 0.5) * 1.4, 0.1, -0.8 + rnd() * 0.3, rnd(), rnd(), 0, 0.16, 0.1, 0.14, col(C.stone));
+    } else {   // tavern
+      mg.add(B(T), 0, 0.5, 0, 0, 0, 0, 1.5, 1.0, 1.6, col(C.plaster), [0, 1.0, 0.15]);
+      for (let i = 0; i < 4; i++) mg.add(B(T), -0.72 + i * 0.48, 0.5, -0.81, 0, 0, 0, 0.07, 1.0, 0.03, col(C.woodD));
+      mg.add(B(T), 0, 0.68, -0.82, 0, 0, 0, 1.5, 0.06, 0.03, col(C.woodD));
+      for (const sx of [-0.4, 0.4]) mg.add(B(T), sx, 0.62, -0.83, 0, 0, 0, 0.24, 0.2, 0.02, ruined ? 0x2a2622 : C.lamp);
+      mg.add(B(T), 0, 0.24, -0.82, 0, 0, 0, 0.3, 0.46, 0.03, col(C.woodD));
+      roof(T, mg, 0, 1.0, 0, 1.75, 1.85, 0.6, col(C.roof[2]), Math.PI / 2);
+      mg.add(B(T), 0.86, 0.95, -0.6, 0, 0, 0, 0.36, 0.04, 0.04, C.iron);                    // sign arm
+      mg.add(B(T), 0.98, 0.78, -0.6, 0, 0, ruined ? 0.6 : 0, 0.26, 0.26, 0.04, col(C.woodL));   // sign
+      mg.add(Cy(T, 0.05, 0.05, 6), 0.98, 0.78, -0.63, Math.PI / 2, 0, 0, 1, 0.02, 1, ruined ? 0x555 : C.gold);   // mug
+    }
+    return mg.build();
+  }
+
+  function build(r) {
+    const T = r.T, A = CR.Arena;
+    if (!T || !r.arena || !M24.Merge || !A || !A.SIEGE) return;
+    const SG = r._sg = { group: new T.Group(), mats: [], town: [], t: 0, smokeMs: 0, last: null };
+    r.arena.add(SG.group);
+    const m = mat(r);
+    const tg = cached(r, 'town' + (r._lq ? 'L' : 'H') + (r._cside ? r._cside(0) : 0), function () { return townGeo(r); });
+    const town = new T.Mesh(tg, m);
+    SG.group.add(town);
+    const X = function (x) { return x - r.hw; }, Z = function (y) { return r.hh - y; };
+    const GL = { well: C.elixir, smithy: C.forge, tavern: C.lamp };
+    for (let s = 0; s < 2; s++) {
+      const w = A.SIEGE.walls[s], cs = r._cside ? r._cside(s) : s;
+      const row = {};
+      ['well', 'smithy', 'tavern'].forEach(function (k) {
+        const b = w.town[k];
+        if (!b) return;
+        const ry = s === 0 ? 0 : Math.PI;
+        const ok = new T.Mesh(cached(r, 'fb' + k + cs, function () { return fbGeo(r, k, cs, false); }), m);
+        const bad = new T.Mesh(cached(r, 'fbR' + k + cs, function () { return fbGeo(r, k, cs, true); }), m);
+        // the buildings face the town's free ground (towards the lane x of the gate behind them)
+        const face = b.x < 9 ? -Math.PI / 2 : Math.PI / 2;
+        for (const o of [ok, bad]) { o.position.set(X(b.x), 0, Z(b.y)); o.rotation.y = face + (s === 0 ? 0 : 0); SG.group.add(o); }
+        bad.visible = false;
+        const gm = glowMat(r, GL[k]);
+        SG.mats.push(gm);
+        const glow = new T.Mesh(cached(r, 'fbglow', function () { return new T.SphereGeometry(0.42, 10, 8); }), gm);
+        glow.position.set(X(b.x), k === 'well' ? 0.55 : 0.5, Z(b.y));
+        glow.scale.set(1, 0.6, 1);
+        SG.group.add(glow);
+        row[k] = { ok: ok, bad: bad, glow: glow, b: b, state: 1, ry: ry };
+      });
+      SG.town.push(row);
+    }
+  }
+  function dispose(r) {
+    const SG = r._sg;
+    if (!SG) return;
+    if (SG.group.parent) SG.group.parent.remove(SG.group);
+    for (let i = 0; i < SG.mats.length; i++) SG.mats[i].dispose();
+    r._sg = null;
+  }
+
+  // ------------------------------------------------------------------ per frame
+  function update(r, cur, dt) {
+    const SG = r._sg;
+    if (!SG) return;
+    SG.t += dt;
+    const t = SG.t, fx = r.fx, v = cur && cur.sg;
+    for (let s = 0; s < SG.town.length; s++) {
+      const row = SG.town[s];
+      const ks = ['well', 'smithy', 'tavern'];
+      for (let i = 0; i < 3; i++) {
+        const k = ks[i], o = row[k];
+        if (!o) continue;
+        const st = v && v.st ? (v.st[s * 3 + i] ? 1 : 0) : 1;
+        if (st !== o.state) {
+          o.state = st;
+          o.ok.visible = !!st; o.bad.visible = !st;
+          if (!st && fx) { const x = o.b.x - r.hw, z = r.hh - o.b.y; fx.burst('poof', x, 0.6, z, 1.1); fx.emit('dust', x, 0.1, z, 1.0, 10); fx.emit('stoneChunk', x, 0.5, z, 0.8, 6); }
+        }
+        const pr = v && v.pr ? +v.pr[s * 3 + i] || 0 : 0;
+        o.glow.visible = !!st;
+        if (st) {
+          const pulse = 0.5 + 0.5 * Math.sin(t * (k === 'smithy' ? 7 : 2.4) + i);
+          o.glow.material.opacity = (k === 'tavern' ? 0.18 : 0.28) + 0.18 * pulse + pr * 0.4;
+          const sc = 1 + 0.08 * pulse + pr * 0.4;
+          o.glow.scale.set(sc, 0.6 * sc, sc);
+          // being plundered: the building shakes a little
+          o.ok.position.x = o.b.x - r.hw + (pr > 0.05 ? Math.sin(t * 40) * 0.03 * pr : 0);
+        }
+        if (fx && !r._lq && Math.random() < dt * (st ? (k === 'smithy' ? 1.6 : 0.5) : 0.9)) {
+          const x = o.b.x - r.hw, z = r.hh - o.b.y;
+          if (st) fx.emit('smoke', x + (k === 'smithy' ? 0.3 : 0), k === 'smithy' ? 1.7 : 1.3, z, 0.35, 1, 0xb8b2a8, 0xe0dcd4);
+          else fx.emit('smoke', x, 0.6, z, 0.5, 1, 0x6a645c, 0x9a948c);
+        }
+      }
+    }
+  }
+
+  function weaponAnim(r, tm, t, dtR, now) {
+    const c = tm.crew;
+    if (!c || !c.userData || !c.userData.sg) return;
+    const U = c.userData.sg, P = U.parts, st = tm.cst;
+    const ap = st ? +st.attackProg || 0 : 0, atk = st && st.state === 'attacking';
+    const fx = r.fx;
+    if (U.type === 'gatling' && P.drum) {
+      const sp = +t.sp || 0;
+      P.drum.rotation.z += dtR * (atk ? 3 + 16 * sp : 0.4);
+    } else if (U.type === 'harpoon' && P.bolt) {
+      P.bolt.visible = !atk || ap > 0.05 || (U.lastAp || 0) < 0.5;
+      P.arm.rotation.x = -0.12 * ap;
+      if (atk && (U.lastAp || 0) > 0.5 && ap < 0.05) P.bolt.visible = false;
+    } else if (U.type === 'lava' && P.pot) {
+      P.pot.rotation.x = -0.9 * ap;
+      if (P.fire) { P.fire.material.opacity = 0.45 + 0.25 * Math.sin(now * 0.02) + 0.3 * ap; const k = 1 + 0.15 * Math.sin(now * 0.017); P.fire.scale.set(k, k, k); }
+    } else if (U.type === 'rockfall' && P.arm) {
+      P.arm.rotation.x = 0.9 * ap - (atk && ap < 0.05 && (U.lastAp || 0) > 0.5 ? 1.2 : 0);
+    } else if (P.eyes) {
+      const k = atk ? 0.35 + 0.65 * ap : 0.25 + 0.1 * Math.sin(now * 0.003);
+      P.eyes.material.color.setRGB(1, 0.45 + 0.4 * k, 0.1 + 0.2 * k);
+      P.eyes.scale.setScalar(0.8 + 0.4 * k);
+      if (P.head) P.head.rotation.x = -0.15 * ap;
+      // idle: smoke puffs from the nostrils
+      if (fx && now - U.smokeMs > 2600 && !r._lq) {
+        U.smokeMs = now;
+        const yaw = c.rotation.y, wx = tm.e.x - Math.sin(yaw) * 0.6, wz = tm.e.z - Math.cos(yaw) * 0.6;
+        fx.emit('smoke', wx, tm.crewY + 0.6, wz, 0.22, 2, 0x8a847c, 0xc8c2b8);
+      }
+    }
+    U.lastAp = ap;
+  }
+
+  // ------------------------------------------------------------------ events
+  function onSg(r, ev) {
+    const fx = r.fx;
+    if (!fx) return;
+    const x = (+ev.x || 0) - r.hw, z = r.hh - (+ev.y || 0);
+    switch (ev.k) {
+      case 'lava': fx.emit('fireFlash', x, 0.1, z, 1.0); fx.emit('embers', x, 0.2, z, 0.9, 10); fx.emit('scorch', x, 0.02, z, 1.0); break;
+      case 'rockfall': fx.burst('slam', x, 0.05, z, 0.9); fx.emit('stoneChunk', x, 0.3, z, 0.9, 8); fx.emit('dust', x, 0.1, z, 1.0, 8); break;
+      case 'pull': fx.emit('sparks', x, 0.6, z, 0.7, 6); break;
+      case 'plunder': fx.burst('poof', x, 0.8, z, 1.0); fx.emit('confetti', x, 1.0, z, 0.8, 14); break;
+      case 'militia': fx.burst('spawn', x, 0.1, z, 0.9); break;
+      case 'elixir': fx.emit('sparkle', x, 0.8, z, 0.6, 6, 0xd04cff, 0xffd0ff); break;
+      case 'hop': fx.emit('dust', x, 0.05, z, 0.5, 4); break;
+      default: break;
+    }
+  }
+
+  // ------------------------------------------------------------------ town ground (field texture)
+  function paintTown(g, PX, K, X, Y, rnd) {
+    const A = CR.Arena, S = A && A.SIEGE;
+    if (!S) return;
+    for (let s = 0; s < 2; s++) {
+      const w = S.walls[s];
+      const y0 = s === 0 ? 0 : w.y1, y1 = s === 0 ? w.y0 : 32;
+      // cobblestones (warm grey), the hall plaza keeps its own paving
+      g.fillStyle = '#a79c86';
+      g.fillRect(X(0), Y(y1), 18 * PX, (y1 - y0) * PX);
+      const n = Math.round((y1 - y0) * 2.4);
+      for (let j = 0; j < n; j++) {
+        const yy = y0 + (j + 0.5) / n * (y1 - y0);
+        for (let x = (j % 2) * 0.22; x < 18; x += 0.44) {
+          const sh = 150 + ((rnd() * 40) | 0);
+          g.fillStyle = 'rgb(' + sh + ',' + (sh - 8) + ',' + (sh - 24) + ')';
+          g.fillRect(X(x) + 1.2 * K, Y(yy) - 0.18 * PX + 1.2 * K, 0.42 * PX - 2.4 * K, 0.38 * PX - 2.4 * K);
+        }
+      }
+      // a sandy path from each gate to the hall
+      g.fillStyle = 'rgba(214,190,140,0.55)';
+      for (let i = 0; i < w.gates.length; i++) {
+        const gt = w.gates[i];
+        const ya = s === 0 ? w.y0 : w.y1, yb = s === 0 ? 3 : 29;
+        g.fillRect(X(gt.x0 + 0.6), Y(Math.max(ya, yb)), (gt.x1 - gt.x0 - 1.2) * PX, Math.abs(ya - yb) * PX);
+      }
+      // shadow of the wall on the field side
+      const fy = w.outer, gr = g.createLinearGradient(0, Y(fy), 0, Y(fy + (s === 0 ? 0.8 : -0.8)));
+      gr.addColorStop(0, 'rgba(0,0,0,0.22)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr;
+      g.fillRect(X(0), Math.min(Y(fy), Y(fy + (s === 0 ? 0.8 : -0.8))), 18 * PX, 0.8 * PX);
+    }
+  }
+
+  // ------------------------------------------------------------------ projectile styles
+  if (CR.VFX && typeof CR.VFX.projStyle === 'function' && !CR.VFX._sgWrapped) {
+    CR.VFX._sgWrapped = true;
+    const ps0 = CR.VFX.projStyle;
+    const SGP = {
+      'siege-gatling': { cat: 'arrow', color: 0x4a3a2a, size: 0.75, arc: 0.04, h0: -1 },
+      'siege-harpoon': { cat: 'spear', color: 0x8a8f96, size: 1.35, arc: 0.12, h0: -1 },
+      'siege-lava': { cat: 'lava', color: 0xff7a1a, size: 0.95, arc: 0.6, h0: -1 },
+      'siege-rockfall': { cat: 'cannonball', color: 0x8b8f96, size: 1.15, arc: 1.4, h0: -1 },
+      'siege-dragon': { cat: 'fireball', color: 0xff7a1a, size: 0.85, arc: 0.35, h0: -1 },
+      'siege-lava-shot': { cat: 'lava', color: 0xff9a3a, size: 0.45, arc: 0.2, h0: -1 },
+      'siege-rockfall-shot': { cat: 'cannonball', color: 0x9a988f, size: 0.5, arc: 0.6, h0: -1 },
+    };
+    CR.VFX.projStyle = function (kind) { return SGP[kind] || ps0.apply(this, arguments); };
+  }
+
+  // ------------------------------------------------------------------ Render3D wraps
+  const R3 = CR.Render3D;
+  if (R3 && R3.prototype && !R3._sgWrapped) {
+    R3._sgWrapped = true;
+    const P3 = R3.prototype;
+    const ba0 = P3._buildArena;
+    P3._buildArena = function () {
+      const out = ba0.apply(this, arguments);
+      if (siegeMap(this.map) && !this.td && CR.Arena && CR.Arena.SIEGE) { try { build(this); } catch (e) { try { dispose(this); } catch (e2) { this._sg = null; } try { G.console.error('[siege] build', e); } catch (e3) { /* ignore */ } } }
+      return out;
+    };
+    const da0 = P3._disposeArena;
+    P3._disposeArena = function () {
+      try { dispose(this); } catch (e) { this._sg = null; }
+      return da0.apply(this, arguments);
+    };
+    const sa0 = P3._syncAreas;
+    P3._syncAreas = function (cur, dt) {
+      const out = sa0.apply(this, arguments);
+      if (this._sg) { try { update(this, cur, dt); } catch (e) { if (!this._sgErr) { this._sgErr = true; try { G.console.error('[siege] update', e); } catch (e2) { /* ignore */ } } } }
+      return out;
+    };
+    const st0 = P3._syncTowers;
+    P3._syncTowers = function (prev, cur, a, dtG, dtR, now) {
+      const tw = cur && cur.towers;
+      if (tw && this._towers) {
+        for (let i = 0; i < tw.length; i++) {
+          const t = tw[i];
+          if (t.sg !== 1) continue;
+          const tm = this._towers.get(t.id);
+          if (!tm || !tm.sg || tm.king) continue;
+          const want = typeof t.gw === 'string' ? t.gw : 'gatling';
+          if (tm.sgType !== want) { try { setWeapon(this, tm, want); } catch (e) { /* ignore */ } }
+          // the gate breaks: the portcullis drops, splinters + dust burst out of the gap
+          if (tm.alive && !t.alive && this.fx) {
+            const fx = this.fx;
+            fx.emit('debris', tm.e.x, 1.0, tm.e.z, 1.2, 14); fx.emit('dust', tm.e.x, 0.2, tm.e.z, 1.4, 14); fx.emit('stoneChunk', tm.e.x, 1.2, tm.e.z, 1.0, 10);
+            fx.emit('planks', tm.e.x, 0.8, tm.e.z, 1.0, 8);
+          }
+        }
+      }
+      const out = st0.apply(this, arguments);
+      if (tw && this._towers) {
+        for (let i = 0; i < tw.length; i++) {
+          const t = tw[i];
+          if (t.sg !== 1) continue;
+          const tm = this._towers.get(t.id);
+          if (tm && tm.alive && tm.crew) { try { weaponAnim(this, tm, t, dtR, now); } catch (e) { /* ignore */ } }
+        }
+      }
+      return out;
+    };
+    // the king stands on the town hall's balcony (front of the hall), not in its middle
+    const dt0 = P3._dressTower;
+    P3._dressTower = function (tm) {
+      const out = dt0.apply(this, arguments);
+      if (tm && tm.sg && tm.king) {
+        const o = tm.crewInst ? tm.crewInst.object3d : tm.crew;
+        if (o) { const yaw = tm.yaw || 0, f = 1.05; o.position.x = -Math.sin(yaw) * f; o.position.z = -Math.cos(yaw) * f; }
+      }
+      return out;
+    };
+    const oe0 = P3._onEvent;
+    if (typeof oe0 === 'function') {
+      P3._onEvent = function (ev) {
+        if (ev && ev.t === 'sg') { if (this._sg || siegeMap(this.map)) { try { onSg(this, ev); } catch (e) { /* ignore */ } } return; }
+        return oe0.apply(this, arguments);
+      };
+    }
+    const pe0 = P3._paintExtras;
+    if (typeof pe0 === 'function') {
+      P3._paintExtras = function () {
+        const base = pe0.apply(this, arguments);
+        if (!siegeMap(this.map) || this.td) return base;
+        return function (g, PX, K, X, Y, rnd) {
+          if (base) base(g, PX, K, X, Y, rnd);
+          try { paintTown(g, PX, K, X, Y, rnd); } catch (e) { /* ignore */ }
+        };
+      };
+    }
+  }
+
+  // ------------------------------------------------------------------ 2D fallback
+  function paint2d(r, g) {
+    const A = CR.Arena, S = A && A.SIEGE;
+    if (!S || !r.simToScreen) return;
+    const ts = r.ts || 20;
+    const rect = function (x0, y0, x1, y1) { const a = r.simToScreen(x0, y0), b = r.simToScreen(x1, y1); return { x: Math.min(a.px, b.px), y: Math.min(a.py, b.py), w: Math.abs(b.px - a.px), h: Math.abs(b.py - a.py) }; };
+    for (let s = 0; s < 2; s++) {
+      const w = S.walls[s];
+      const tw = rect(0, s === 0 ? 0 : w.y1, 18, s === 0 ? w.y0 : 32);
+      g.fillStyle = '#a79c86'; g.fillRect(tw.x, tw.y, tw.w, tw.h);
+      for (let i = 0; i < w.segs.length; i++) {
+        const q = rect(w.segs[i].x0, w.segs[i].y0, w.segs[i].x1, w.segs[i].y1);
+        g.fillStyle = '#b9b2a4'; g.fillRect(q.x, q.y, q.w, q.h);
+        g.fillStyle = '#8e877a';
+        const my = s === 0 ? q.y : q.y + q.h - ts * 0.25;
+        for (let x = q.x + ts * 0.15; x < q.x + q.w - ts * 0.2; x += ts * 0.6) g.fillRect(x, my, ts * 0.32, ts * 0.25);
+        g.strokeStyle = '#5c564c'; g.lineWidth = Math.max(1, ts * 0.06); g.strokeRect(q.x, q.y, q.w, q.h);
+      }
+      for (let i = 0; i < w.blocks.length; i++) {
+        const b = w.blocks[i], q = rect(b.x0, b.y0, b.x1, b.y1);
+        g.fillStyle = '#d6c39c'; g.fillRect(q.x, q.y, q.w, q.h);
+        g.fillStyle = '#b4483a';
+        for (let k = 0; k < 3; k++) g.fillRect(q.x + q.w * 0.1, q.y + q.h * (0.08 + k * 0.32), q.w * 0.8, q.h * 0.2);
+      }
+      const ks = { well: '#d04cff', smithy: '#ff8a2a', tavern: '#ffd27a' };
+      for (const k in ks) {
+        const b = w.town[k];
+        if (!b) continue;
+        const p = r.simToScreen(b.x, b.y);
+        g.fillStyle = ks[k]; g.beginPath(); g.arc(p.px, p.py, ts * 0.38, 0, TAU); g.fill();
+        g.strokeStyle = '#3a2a1a'; g.lineWidth = Math.max(1, ts * 0.08); g.stroke();
+      }
+    }
+  }
+  function draw2d(r, cur) {
+    const g = r.ctx, A = CR.Arena, S = A && A.SIEGE;
+    if (!g || !S || !r.simToScreen || !cur) return;
+    const d = r.dpr || 1, ts = r.ts || 20;
+    g.save();
+    g.setTransform(d, 0, 0, d, 0, 0);
+    // gates: an arch with a portcullis while standing, an open gap when down
+    const tw = cur.towers || [];
+    for (let i = 0; i < tw.length; i++) {
+      const t = tw[i];
+      if (t.sg !== 1) continue;
+      const p = r.simToScreen(t.x, t.y);
+      if (t.alive) {
+        g.fillStyle = 'rgba(40,36,30,0.85)'; g.fillRect(p.px - ts * 0.6, p.py - ts * 0.55, ts * 1.2, ts * 1.1);
+        g.strokeStyle = '#8a8f98'; g.lineWidth = Math.max(1, ts * 0.07);
+        for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(p.px + k * ts * 0.22, p.py - ts * 0.5); g.lineTo(p.px + k * ts * 0.22, p.py + ts * 0.5); g.stroke(); }
+      }
+    }
+    // plundered town buildings: a dark cross
+    const v = cur.sg;
+    if (v && v.st) {
+      const ks = ['well', 'smithy', 'tavern'];
+      for (let s = 0; s < 2; s++) for (let k = 0; k < 3; k++) {
+        if (v.st[s * 3 + k]) continue;
+        const b = S.walls[s].town[ks[k]];
+        if (!b) continue;
+        const p = r.simToScreen(b.x, b.y);
+        g.strokeStyle = '#2a1a10'; g.lineWidth = Math.max(1.5, ts * 0.12);
+        g.beginPath(); g.moveTo(p.px - ts * 0.3, p.py - ts * 0.3); g.lineTo(p.px + ts * 0.3, p.py + ts * 0.3); g.moveTo(p.px + ts * 0.3, p.py - ts * 0.3); g.lineTo(p.px - ts * 0.3, p.py + ts * 0.3); g.stroke();
+      }
+    }
+    g.restore();
+  }
+  const R2 = CR.Render;
+  if (R2 && R2.prototype && !R2._sgWrapped) {
+    R2._sgWrapped = true;
+    const P2 = R2.prototype;
+    const pp0 = P2._paintPlatforms;
+    if (typeof pp0 === 'function') {
+      P2._paintPlatforms = function (g) {
+        const out = pp0.apply(this, arguments);
+        const A = CR.Arena;
+        if (A && A.SIEGE && !A.touchdown) { try { paint2d(this, g); } catch (e) { /* ignore */ } }
+        return out;
+      };
+    }
+    const d0 = P2.draw;
+    P2.draw = function (prev, cur) {
+      const out = d0.apply(this, arguments);
+      try { if (CR.Arena && CR.Arena.SIEGE && cur) draw2d(this, cur); } catch (e) { /* ignore */ }
+      return out;
+    };
+  }
+
+  S3.build = build; S3.dispose = dispose; S3.update = update; S3.paint2d = paint2d; S3.draw2d = draw2d; S3.weapon = weapon;
+  S3.gateGeo = gateGeo; S3.hallGeo = hallGeo; S3.townGeo = townGeo; S3.paintTown = paintTown; S3.C = C;
 })(globalThis.CR || (globalThis.CR = {}));
 
 </script>
