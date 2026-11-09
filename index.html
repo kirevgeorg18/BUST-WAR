@@ -7339,7 +7339,8 @@ body { font-weight: 700; letter-spacing: 0; }
         // v12 'tunnel' (user request, docs/V12-TUNNEL.md): completely flat (no river, no bridges,
         // no ridge), crown towers as usual, the middle band y 15..17 stays nobody's deploy half.
         // Two holes on the centre line, each about three quarters of the way from one back line to
-        // the other (y 8 and y 24), joined by a straight underground tunnel. Small and medium
+        // the other (v12: y 8 and y 24; v30: y 11 and y 21 - as far forward as the portals, 4 tiles
+        // before the middle band), joined by a straight underground tunnel. Small and medium
         // ground troops (mass <= maxMass AND radius <= maxRadius: everything up to Witch / Prince /
         // Knight; Giant, P.E.K.K.A, Golem, Mega Knight, Sparky, Bowler, Ice Golem, Battle Ram,
         // Royal Giant ... are too big) walk in and out; underground they only fight each other
@@ -7347,7 +7348,8 @@ body { font-weight: 700; letter-spacing: 0; }
         tunnel: {
           id: 'tunnel', name: 'Tunnel', river: false,
           tunnel: {
-            holes: [ { x: 9, y: 8, r: 0.9 }, { x: 9, y: 24, r: 0.9 } ],
+            // v30 (user): the holes sit as far forward as the portals (y 11 / 21 = 4 tiles before the middle band)
+            holes: [ { x: 9, y: 11, r: 0.9 }, { x: 9, y: 21, r: 0.9 } ],
             halfWidth: 1.0,       // corridor half width underground (tiles)
             maxMass: 8,           // size class "small / medium": mass <= 8 ...
             maxRadius: 0.65,      // ... and collision radius <= 0.65
@@ -7356,6 +7358,12 @@ body { font-weight: 700; letter-spacing: 0; }
             catchRadius: 2.5,
             // ...and forgets the plan when pulled farther than this away from the hole (fights).
             dropRadius: 6,
+            // v30: the corridor is two small troops wide - a troop walking up behind a FIGHTING friend
+            // files past it (CR.Units.collide) instead of queueing in place for the whole fight
+            queuePass: true,
+            // v30: a Bau-Modus building keeps this lane to every hole square (tiles; Sparky, the widest
+            // ground troop, is 2.0 wide): a building on each side of a hole sealed big troops in
+            buildGap: 2.1,
           },
         },
         // v14 'rails' / "Schienen" (user request, docs/V14-RAILS.md): the classic river map (river,
@@ -8924,8 +8932,11 @@ body { font-weight: 700; letter-spacing: 0; }
  * `hitDepth` (extent along y; princess = size). New map 'tunnel' (also in touchdown):
  *   flat, no river / bridges / ridge, middle band y 15..17 nobody's half (reason 'zone').
  *   CR.Arena.TUNNEL = null | { holes: [{x, y, r, index}], path: [{x, y}, {x, y}], halfWidth,
- *     x0, y0, x1, y1 (corridor box), maxMass, maxRadius, catchRadius, dropRadius }
- *   Holes (9, 8) and (9, 24), r 0.9, are square obstacles in OBSTACLES ({hole: i}): not deployable,
+ *     x0, y0, x1, y1 (corridor box), maxMass, maxRadius, catchRadius, dropRadius, queuePass, buildGap }
+ *     (v30, only the tunnel map's RULES set them: queuePass = underground walkers file past fighting
+ *     friends (CR.Units.collide), buildGap = Bau-Modus lane to a hole (CR.BuildMode.spotOk); citadel: off)
+ *   Holes (9, 8) and (9, 24) (v30: (9, 11) / (9, 21), as far forward as the portals), r 0.9, are square
+ *   obstacles in OBSTACLES ({hole: i}): not deployable,
  *   walked round by everything that does not go in.
  *   CR.Arena.tunnelEligible(stats) -> bool (ground troop, mass <= 8, radius <= 0.65)
  *   CR.Arena.holeAt(x, y, pad) -> index | -1   CR.Arena.ownHole(side) -> index | -1
@@ -9027,7 +9038,8 @@ body { font-weight: 700; letter-spacing: 0; }
  *   own wall (sgOwnWall); pocket up to the hall front; SIEGE_RULES; gate weapons RULES.towers.siegeWeapons.
  * v29 (docs/V28-SIEGE.md "v29"): the siege layout on EVERY map (RULES.arena.siege.maps = all eleven; each
  *   keeps its middle - river / hill / tunnel / pyramid wall / hazards; the tunnel holes move to y 9.5 /
- *   22.5, RULES.arena.siege.holeY), the fortification ONE TILE further back (wall y 5.5..7, gates in it,
+ *   22.5, RULES.arena.siege.holeY - v30: the tunnel map's holes sit at 11 / 21 and stay there, the citadel's still
+ *   move), the fortification ONE TILE further back (wall y 5.5..7, gates in it,
  *   town hall 3 x 3 at (9, 2.5) = SIEGE.walls[s].hall, the back row y 0..1 a house row = a `row` block),
  *   LADDERS on the town face (walls[s].ladders, SIEGE.ladder rules), decoration plots (walls[s].decor).
  *   Tower layout switch: RULES.arena.towerLayout 'siege' (default) | 'classic'; setTowerLayout(l) (default
@@ -9726,6 +9738,8 @@ body { font-weight: 700; letter-spacing: 0; }
         maxRadius: typeof TN.maxRadius === 'number' ? TN.maxRadius : 0.65,
         catchRadius: typeof TN.catchRadius === 'number' ? TN.catchRadius : 2.5,
         dropRadius: typeof TN.dropRadius === 'number' ? TN.dropRadius : 6,
+        queuePass: !!TN.queuePass,   // v30 (tunnel map only): underground walkers file past fighting friends
+        buildGap: TN.buildGap > 0 ? TN.buildGap : 0,   // v30 (tunnel map only): Bau-Modus lane to a hole (CR.BuildMode.spotOk)
       };
       for (const h of holes) obs.push({ x0: h.x - h.r, y0: h.y - h.r, x1: h.x + h.r, y1: h.y + h.r, obstacle: true, hole: h.index });
     } else Arena.TUNNEL = null;
@@ -9900,7 +9914,7 @@ body { font-weight: 700; letter-spacing: 0; }
     ],
     tunnel: [
       'Tunnel: Die Arena ist ganz flach – kein Fluss, keine Brücken, kein Hügel. Jede Seite hat ihre Türme.',
-      'Auf jeder Seite liegt ein Loch in der Mitte, etwa drei Viertel des Weges vor der gegnerischen Grundlinie. Ein Tunnel unter der Arena verbindet beide Löcher.',
+      'Auf jeder Seite liegt ein Loch in der Mitte, mit etwas Abstand vor der Mittellinie – so weit vorne wie die Portale. Ein Tunnel unter der Arena verbindet beide Löcher.',
       'Setzt du eine kleine oder mittlere Bodentruppe nah an dein Loch, läuft sie hinein, durch den Tunnel und kommt am anderen Loch wieder heraus.',
       'Große Truppen (zum Beispiel Riese, P.E.K.K.A, Golem, Mega-Ritter, Sparky) passen nicht hinein und laufen um die Löcher herum. Lufteinheiten fliegen einfach darüber.',
       'Gebäude brauchen etwas Abstand zu einem Loch, damit daneben immer ein Weg frei bleibt.',
@@ -13610,6 +13624,10 @@ body { font-weight: 700; letter-spacing: 0; }
  *   (u.sgTop, z = wall height, rects sim.sgTopRects) jump down when they walk off their piece (topCheck,
  *   landOk); siegePush never across the wall line; freeSpot (teleports) same siege zone; rectSlot (free
  *   spot round a crowded siege tower); gateBusy (view `go`); 2v2 gate / hall HP x hp2.
+ * v30 tunnel map (holes at y 11 / 21): collide / pairPush - with CR.Arena.TUNNEL.queuePass (tunnel map only,
+ *   not the citadel) an underground walker and a FIGHTING friend do not push each other: the walker files
+ *   past instead of queueing in the two-troop-wide corridor (v17 AI battles: a Skeleton Army behind its own
+ *   front fighting Royal Hogs pressed 6.8 s; tunnel stuck share 2.3 -> 0.6 %). Enemies still block.
  */
 (function (CR) {
   'use strict';
@@ -17165,6 +17183,11 @@ body { font-weight: 700; letter-spacing: 0; }
 
   /** One overlapping troop pair of the collision pass (see Units.collide): accumulates both pushes. */
   function pairPush(q, w, a, b, dx, dy, d2, rr, k, hold, slide) {
+    // v30 tunnel map (CR.Arena.TUNNEL.queuePass): the corridor is only two small troops wide and has
+    // no room to slide round anybody, so a walker behind a FIGHTING friend files past it instead of
+    // pressing in place (a Skeleton Army queued 6.8 s behind its own front fighting Royal Hogs coming
+    // the other way). Underground friends only - enemies still block each other (the tunnel fight).
+    if (TPASS && a.underground && a.side === b.side && C_ATK[q] !== C_ATK[w]) return;
     let d = sqrt(d2);
     const ov = (rr - d) * k;
     if (d < 1e-6) { const v = DIRS[(a.id * 7 + b.id * 13) % 16]; dx = v[0]; dy = v[1]; d = 1; }
@@ -17309,8 +17332,10 @@ body { font-weight: 700; letter-spacing: 0; }
    * resolved fully afterwards, then water and the arena bounds.
    */
   let PASS = false;   // v27: map flag friendPass (jungle) - friends walking head-on slide past each other
+  let TPASS = false;  // v30: tunnel flag queuePass (tunnel map) - in the tunnel a walker files past a fighting friend
   Units.collide = function (sim) {
     PASS = !!(CR.Arena.MAP && CR.Arena.MAP.friendPass);
+    TPASS = !!(CR.Arena.TUNNEL && CR.Arena.TUNNEL.queuePass);
     const us = sim.units;
     const n = us.length;
     const C = CR.RULES.collision;
@@ -21654,6 +21679,9 @@ body { font-weight: 700; letter-spacing: 0; }
  * .tunnel) are never spell targets and count as threats at the own hole where they will come up;
  * tryPush sends a tunnel-capable troop (CR.Arena.tunnelEligible) behind the own hole now and then
  * (35 % of the pushes, fastest first; this.tunnelPlays counts them).
+ * v30 (holes at y 11 / 21): tryDefend puts a building level with the own hole in the threatened lane
+ * (hole.x -/+ 4.5, hole.y + 0.5; the old centre spot (9, 12) lies on the hole now - every building
+ * defence failed); tryTunnel still deploys 1.6 tiles behind the own hole's rim (inside catchRadius).
  *
  * v16 rails (docs/V14-RAILS.md section 6): the carts are air trams beside the field with red / green
  * gates; riders are never spell targets (they sit outside the field), enemy riders whose tram flies
@@ -21897,8 +21925,15 @@ body { font-weight: 700; letter-spacing: 0; }
       });
       const pick = options[0];
       const u = unitOf(pick.c);
-      // (v12 tunnel map: buildings keep their distance to the hole at (9, 8))
-      if (pick.c.type === 'building') return this.play(sim, pick.i, 9, sim.map === 'tunnel' ? 12 : (sim.map === 'citadel' || sim.map === 'jungle' ? 11 : (CR.Arena.SIEGE ? 10.5 : 9)));   // (v27: + jungle; v28 siege: 2 rows off the wall - v29: the wall one row further back)
+      // (v12 tunnel map: buildings keep their distance to the hole. v30: the hole sits at y 11 now -
+      // no building fits in front of or right behind it any more (none at all on the siege layout), so
+      // the building stands level with it in the threatened lane, 2 tiles clear of the princess tower: a
+      // 1-tile slit to the tower trapped Skeletons for 21 s)
+      if (pick.c.type === 'building') {
+        const hole = sim.map === 'tunnel' ? this.ownHoleMine() : null;
+        if (hole) return this.play(sim, pick.i, hole.x + (lane === 0 ? -4.5 : 4.5), hole.y + 0.5);
+        return this.play(sim, pick.i, 9, sim.map === 'citadel' || sim.map === 'jungle' ? 11 : (CR.Arena.SIEGE ? 10.5 : 9));   // (v27: + jungle; v28 siege: 2 rows off the wall - v29: the wall one row further back)
+      }
       if (u && u.buildingsOnly) return false; // never defend with a building-only unit
       const x = lane === 0 ? Math.max(2, Math.min(8, th.x + 1)) : Math.min(16, Math.max(10, th.x - 1));
       let y = Math.max(5, Math.min(11, th.y - 4));
@@ -22326,7 +22361,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const vb = cardHp(b.c) / Math.max(1, b.c.elixir) / 300 + speedOf(b.c) * 1.5;
       return vb - va;
     });
-    // v12 tunnel map: sometimes straight through the tunnel (comes up 4 rows before the end zone).
+    // v12 tunnel map: sometimes straight through the tunnel (v30: comes up ~5 rows before the end zone).
     if (view.map === 'tunnel' && this.rng() < 0.25 && this.tryTunnel(sim, troops)) return true;
     // v14 rails map: sometimes by cart (gets off 7 rows before the end zone).
     if (view.map === 'rails' && this.rng() < 0.3 && this.tryRails(sim, view, troops, lane, TD_QUARTER)) return true;
@@ -35675,9 +35710,15 @@ body { font-weight: 700; letter-spacing: 0; }
   }
 
   /** v12: the tunnel of the 'tunnel' map in sim tiles: {holes: [{x, y, r}], path: [{x, y}]}
-   *  from CR.Arena.TUNNEL, else the documented layout (holes at x 9, y 8 and y 24). */
+   *  from CR.Arena.TUNNEL, else the documented layout (v30: holes at x 9, y 11 and y 21).
+   *  v30: the holes sit at y 11 / 21 (as far forward as the portals). In the menu the arena is
+   *  usually on another map (TUNNEL null) or on the citadel (its own tunnel): then the tunnel map's
+   *  RULES (CR.RULES.arena.maps.tunnel.tunnel), the default only as the last resort. */
   UI.tunnelLayout = function () {
-    const T = CR.Arena && CR.Arena.TUNNEL;
+    const A = CR.Arena;
+    const other = A && A.MAP && A.MAP.id !== 'tunnel' && A.MAP.tunnel;   // another map's own tunnel (citadel)
+    const RM = CR.RULES && CR.RULES.arena && CR.RULES.arena.maps && CR.RULES.arena.maps.tunnel;
+    const T = A && A.TUNNEL && !other ? A.TUNNEL : (RM && RM.tunnel) || null;
     const pt = function (p) {
       if (Array.isArray(p) && p.length >= 2) return { x: +p[0], y: +p[1], r: +p[2] };
       return p && typeof p === 'object' ? { x: +p.x, y: +p.y, r: +p.r } : null;
@@ -35687,7 +35728,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const path = [];
     if (T && Array.isArray(T.holes)) for (let i = 0; i < T.holes.length && holes.length < 4; i++) { const p = pt(T.holes[i]); if (ok(p)) holes.push({ x: p.x, y: p.y, r: Number.isFinite(p.r) && p.r > 0 ? Math.min(2.5, p.r) : 1 }); }
     if (T && Array.isArray(T.path)) for (let i = 0; i < T.path.length && path.length < 32; i++) { const p = pt(T.path[i]); if (ok(p)) path.push({ x: p.x, y: p.y }); }
-    if (holes.length < 2) { holes.length = 0; holes.push({ x: 9, y: 8, r: 1 }, { x: 9, y: 24, r: 1 }); }
+    if (holes.length < 2) { holes.length = 0; holes.push({ x: 9, y: 11, r: 1 }, { x: 9, y: 21, r: 1 }); }
     if (path.length < 2) { path.length = 0; path.push({ x: holes[0].x, y: holes[0].y }, { x: holes[holes.length - 1].x, y: holes[holes.length - 1].y }); }
     return { holes: holes, path: path };
   };
@@ -38514,7 +38555,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (inf && inf.name) big.push(escapeHtml(inf.name));
     }
     return [
-      '<b>Tunnel</b>: ein flaches Feld ohne Fluss und ohne Hügel, mit den Türmen auf beiden Seiten. Auf jeder Hälfte liegt ein <b>Loch</b> – etwa drei Viertel des Weges zur anderen Seite. Unter dem Feld verbindet ein <b>Tunnel</b> die beiden Löcher.',
+      '<b>Tunnel</b>: ein flaches Feld ohne Fluss und ohne Hügel, mit den Türmen auf beiden Seiten. Auf jeder Hälfte liegt ein <b>Loch</b> – weit vorne, mit etwas Abstand zur Mitte (so weit vorne wie die Portale). Unter dem Feld verbindet ein <b>Tunnel</b> die beiden Löcher.',
       'Kleine und mittlere <b>Bodentruppen</b> können in ein Loch hinein- und am anderen wieder herauslaufen – so kommen sie schnell und geschützt auf die andere Seite. <b>Große, schwere Truppen</b>' + (big.length ? ' (z. B. ' + big.join(', ') + ')' : '') + ' passen nicht hinein, <b>Lufteinheiten</b> fliegen einfach darüber.',
       'Im Tunnel kämpfen Truppen <b>nur gegeneinander</b>: Von oben kann sie niemand treffen – auch kein Turm und kein Zauber –, und sie greifen selbst nichts an der Oberfläche an, bis sie wieder herauskommen.',
     ];
@@ -49115,6 +49156,9 @@ body { font-weight: 700; letter-spacing: 0; }
  *   first, so every AI driven player does too). When everyone is done the phase ends early.
  *   Then phase 'battle': the buildings appear (deploy 0.6 s) and the normal battle starts.
  *   Plays / champion abilities are refused meanwhile (reason 'build_phase').
+ * v30 tunnel map (holes at y 11 / 21): every kind keeps CR.Arena.TUNNEL.buildGap (2.1 tiles, wider than a
+ *   Sparky) to each hole square (spotOk) and the default spots stand beside the hole in a lane (SPOTS.tunnel:
+ *   x 5 / 13, y 10.5); the citadel's tunnel has no buildGap (unchanged).
  *
  * The buildings (units 'bm-lighthouse' | 'bm-volcano' | 'bm-web' | 'bm-tower' | 'bm-cannon'):
  * permanent (no lifetime decay), no crowns, targeted like any building. 2v2: HP x hp2Mult.
@@ -49291,6 +49335,18 @@ body { font-weight: 700; letter-spacing: 0; }
         }
       }
     }
+    // v30 tunnel map (CR.Arena.TUNNEL.buildGap): every kind keeps a lane the widest troop fits through
+    // to each hole square - with the holes at y 11 / 21 a Volcano and a Small Tower on both sides of a
+    // hole (2v2 mate spots) left 1.6-tile slits that, with the princess towers, walled a Sparky in (11.6 s)
+    const TN = A.TUNNEL;
+    if (TN && TN.buildGap > 0) {
+      const G2 = TN.buildGap - EPS;
+      for (let i = 0; i < TN.holes.length; i++) {
+        const h = TN.holes[i];
+        const dx = Math.max(h.x - h.r - (x + sh.hx), x - sh.hx - (h.x + h.r), 0), dy = Math.max(h.y - h.r - (y + sh.hy), y - sh.hy - (h.y + h.r), 0);
+        if (dx * dx + dy * dy < G2 * G2) return false;
+      }
+    }
     // v26 stress: a building keeps a lane of >= passGap to every tower / obstacle (also no flush
     // fit) and never leaves a slit to the side line that troops fit into but cannot pass (a Web
     // flush on / 0.5 tiles above a princess tower at the side line sealed the corridor beside the
@@ -49373,8 +49429,12 @@ body { font-weight: 700; letter-spacing: 0; }
       { x: 3.5, y: 13.5, mate: [3.5, 14.5], lane: [3.5, 14.5] }, { x: 9, y: 9.5, mate: [6.5, 11.5] }, { x: 9, y: 9.5, mate: [6.5, 11.5] },
     ],
   };
+  // v30 tunnel map: the hole at (9, 11) fills the middle (CR.Arena.TUNNEL.buildGap) - the building stands
+  // beside it in a lane, clear of the princess tower. (The nearest valid spot to (9, 9.5) was right in
+  // front of the King Tower with a 1-tile slit to it: a Musketeer was pressed in there for 24 s.)
+  SPOTS.tunnel = [0, 1, 2, 3, 4, 5].map(function (k) { return k === 3 ? SPOTS.map[3] : { x: 13, y: 10.5, mate: [5, 13], lane: [5, 13] }; });
   function spotRow(sim, k) {
-    const T = longTower(sim.map) ? SPOTS.fortress : SPOTS.map;
+    const T = longTower(sim.map) ? SPOTS.fortress : (sim.map === 'tunnel' ? SPOTS.tunnel : SPOTS.map);
     return T[k >= 0 && k < NK ? k : 0];
   }
 
@@ -76165,7 +76225,7 @@ body { font-weight: 700; letter-spacing: 0; }
  * v12 (SHARED CONTRACT v12):
  *  - Map 'tunnel' (setMap('tunnel'), view.map): flat field like Touchdown's (no river / bridges /
  *    ridge, continuous side walls, mid-wall pillars), crown towers; CR.Arena.TUNNEL (else the
- *    RULES map, else holes at (9, 8) / (9, 24)) is drawn as: a darker earth strip with timber ribs
+ *    RULES map, else holes at (9, 11) / (9, 21) - v30, v12: 8 / 24) is drawn as: a darker earth strip with timber ribs
  *    along the path painted into the field + one translucent strip mesh over it (amber edges),
  *    per hole a painted pit (ramp darkening towards the tunnel, plank steps), a horseshoe of rim
  *    stones open at the ramp entrance and a timber portal with a black mouth at its far end
@@ -76889,7 +76949,7 @@ body { font-weight: 700; letter-spacing: 0; }
     }
   }
 
-  const TUNNEL_DEF = { holes: [{ x: 9, y: 8, r: 1.1 }, { x: 9, y: 24, r: 1.1 }], path: null, width: 1.5 };
+  const TUNNEL_DEF = { holes: [{ x: 9, y: 11, r: 1.1 }, { x: 9, y: 21, r: 1.1 }], path: null, width: 1.5 };
   function ptOf(p) {
     if (!p) return null;
     const x = Array.isArray(p) ? +p[0] : +p.x, y = Array.isArray(p) ? +p[1] : +p.y;
@@ -76897,7 +76957,7 @@ body { font-weight: 700; letter-spacing: 0; }
   }
   /** v12 map 'tunnel': normalised { holes: [{x, y, r}], path: [{x, y}] (hole to hole), width }
    *  from CR.Arena.TUNNEL (SHARED CONTRACT v12), else CR.RULES.arena.maps.tunnel, else the
-   *  default (holes at x 9, y 8 / 24). null for every other map. */
+   *  default (holes at x 9, y 11 / 21 since v30). null for every other map. */
   function tunnelFor(mapId) {
     if (mapId !== 'tunnel' && mapId !== 'citadel') return null;   // (v25: + the Chaos-Zitadelle's tunnel)
     const A = CR.Arena;
