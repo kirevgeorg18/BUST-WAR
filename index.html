@@ -7447,6 +7447,106 @@ body { font-weight: 700; letter-spacing: 0; }
 .ai-persona-note, .ai-diff-note { margin-top: 6px; }
 .vs-botname { font-family: var(--font-display); font-size: clamp(20px, 6vw, 28px); color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55); letter-spacing: 0.02em; white-space: nowrap; }
 /* ===================================================================== end v31 ai */
+/* ===================================================================== v32 hand (agent hand): card feel + pre-placement */
+/* the dragged card is glued to the finger: never a transition on the float (the v19 .hcard
+   transition used to leak onto it and trailed the finger by ~0.26 s) */
+.screen-battle .hcard.hcard-float { transition: none !important; will-change: transform; contain: layout paint; }
+/* press: the card lifts under the finger at once (scale + deeper shadow, composes with the state transform) */
+.hand-cards .hcard.is-press { z-index: 3; scale: 1.07; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 10px 14px rgba(0, 0, 0, 0.45); transition: scale 0.07s ease-out, transform 0.12s ease-out, opacity 0.1s; }
+.hand-cards .hcard.is-press.is-dragging { scale: 0.94; }
+/* pre-placement marker: faint card disc + small filling ring at the queued spot */
+.pre-mark {
+  --pd: 40px; --p: 0%;
+  position: absolute; left: 0; top: 0; z-index: 4;
+  width: var(--pd); height: var(--pd);
+  pointer-events: none;
+  will-change: transform;
+}
+.pre-mark > .card-art {
+  position: absolute; inset: 12%;
+  border-radius: 50%;
+  background-size: cover; background-position: 50% 30%;
+  opacity: 0.55;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+.pre-mark > .card-art .art-ini { display: none; }
+.pre-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(#fff var(--p), rgba(255, 255, 255, 0.16) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  opacity: 0.9;
+}
+.pre-mark.pop { animation: v32-pre-pop 0.2s cubic-bezier(.3, 1.6, .5, 1); }
+.pre-mark.is-fire { opacity: 0; scale: 1.3; transition: opacity 0.18s ease-out, scale 0.18s ease-out; }
+@keyframes v32-pre-pop { from { scale: 0.5; opacity: 0; } to { scale: 1; opacity: 1; } }
+/* reduced motion: 10-ui.js adds neither .pop nor the fade (UI.reducedMotion); CSS guard too */
+@media screen and (prefers-reduced-motion: reduce) { .pre-mark.pop { animation: none; } .pre-mark.is-fire { transition: none; } }
+/* ===================================================================== end v32 hand */
+
+/* ===================================================================== v32 crystal (Elixier -> Kristalle)
+   The resource is "Kristalle" now (own look, legal independence): every cost badge / bar / icon that
+   used the pink elixir drop shows a faceted TURQUOISE crystal shard; the bar is turquoise glass with
+   slanted crystal facets. Only colours / shapes - layout sizes unchanged. */
+:root {
+  --elixir-1: #b8fff6; --elixir-2: #1fc9d2; --elixir-3: #0a6c8a; --elixir-edge: #042c3c;
+  --crystal-ink: #052c3a;
+  --elixir-drop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%235ff2e8'/%3E%3Cstop offset='1' stop-color='%2314a6c0'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%231aa3bf'/%3E%3Cstop offset='1' stop-color='%230a5878'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M20 8.5L34.5 19.5V36L20 46.5L5.5 36V19.5Z' transform='translate(0 1.6)' fill='%23020614' opacity='.5'/%3E%3Cpath d='M5.5 19.5L20 24.5V46.5L5.5 36Z' fill='url(%23l)'/%3E%3Cpath d='M34.5 19.5L20 24.5V46.5L34.5 36Z' fill='url(%23r)'/%3E%3Cpath d='M5.5 19.5L20 8.5L20 24.5Z' fill='%23e4fffb'/%3E%3Cpath d='M20 8.5L34.5 19.5L20 24.5Z' fill='%2393f2ec'/%3E%3Cpath d='M20 24.5V46.5' stroke='%23fff' stroke-opacity='.22' stroke-width='.9'/%3E%3Cpath d='M20 8.5L34.5 19.5V36L20 46.5L5.5 36V19.5Z' fill='none' stroke='%2305283a' stroke-width='2.3' stroke-linejoin='round'/%3E%3Cpath d='M9.6 24.6V32.4' stroke='%23fff' stroke-width='2' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E");
+}
+/* every badge that drew a rotated CSS drop now shows the crystal image */
+.bm-drop i, .dr-cost i, .champ-cost i, .mate-drop {
+  border: 0; border-radius: 0; transform: none; box-shadow: none;
+  background: var(--elixir-drop) 50% 50% / contain no-repeat;
+}
+.mate-drop { width: 11px; height: 13px; }
+.cost b, .dr-cost b, .champ-cost b, .abb-cost b {
+  text-shadow: 0 2px 0 var(--crystal-ink), 1px 0 0 var(--crystal-ink), -1px 0 0 var(--crystal-ink), 0 -1px 0 var(--crystal-ink), 1px 1px 0 var(--crystal-ink), -1px 1px 0 var(--crystal-ink);
+}
+/* the big crystal at the left end of the bar */
+.ex-drop i {
+  inset: auto; left: 7%; right: 7%; top: -9%; height: 118%;
+  border: 0; border-radius: 0; transform: none; box-shadow: none;
+  background: var(--elixir-drop) 50% 50% / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 5px rgba(90, 240, 228, 0.45));
+}
+.ex-num { text-shadow: 0 2px 0 var(--crystal-ink), 1px 0 0 var(--crystal-ink), -1px 0 0 var(--crystal-ink), 0 -1px 0 var(--crystal-ink), 1px 1px 0 var(--crystal-ink), -1px 1px 0 var(--crystal-ink); }
+/* the bar: turquoise crystal glass in a dark teal channel, slightly chamfered corners */
+.ex-bar {
+  border-radius: 5px;
+  background: linear-gradient(180deg, #05202b, #0b3444);
+  box-shadow: 0 0 0 2px #071028, inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 3.5px rgba(120, 240, 230, 0.28);
+}
+.ex-fill {
+  background:
+    linear-gradient(180deg, rgba(235, 255, 253, 0.62) 0%, rgba(255, 255, 255, 0.14) 46%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(90deg, #0b7c9e, #1fc6cf 60%, #7cf4ea);
+}
+.elixir.is-x2 .ex-fill {
+  background:
+    linear-gradient(180deg, rgba(240, 255, 254, 0.66) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(90deg, #12a0c2, #3fe8e0 60%, #c2fffa);
+}
+/* our own segment shape: slanted separators (crystal facets) + a soft sheen on every segment */
+.ex-segs {
+  left: -6px; right: -6px;
+  transform: skewX(-20deg);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 2px), rgba(3, 26, 36, 0.85) calc(10% - 2px), rgba(3, 26, 36, 0.85) 10%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0, rgba(255, 255, 255, 0) 4%, rgba(255, 255, 255, 0) 10%);
+}
+.ex-pip {
+  transform: skewX(-20deg);
+  background: radial-gradient(60% 70% at 50% 50%, rgba(236, 255, 253, 0.95), rgba(110, 245, 235, 0.55) 55%, rgba(110, 245, 235, 0) 100%);
+}
+.ex-bar::after { background: linear-gradient(180deg, rgba(220, 255, 252, 0.55), rgba(90, 240, 228, 0.15)); }
+/* other places with the old violet tint */
+.battle-msg.is-elixir { border-color: var(--elixir-2); box-shadow: inset 0 0 0 1.5px rgba(110, 240, 230, 0.8), 0 0 0 2px #071028, 0 10px 22px rgba(0, 0, 0, 0.45); }
+.dr-avg { color: #8ff3ec; }
+.dkh-avg { color: #a6fbf4; background: rgba(16, 150, 170, 0.32); }
+.mm26 .mm-deck-avg { color: #d8fffb; }
+.mm-tile-badge.is-boost { background: linear-gradient(180deg, #6ff0e6, #138fa8); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 1.5px #052c3a, 0 2px 0 1px #052c3a; }
+/* ===================================================================== end v32 crystal */
 
 </style>
 </head>
@@ -8019,7 +8119,7 @@ body { font-weight: 700; letter-spacing: 0; }
     knight: {
       name: 'Ritter', mirrors: 'Knight', emoji: '🤺',
       color: '#5d708c', accent: '#f2c14e', role: 'Mini-Tank', kind: 'troop',
-      desc: 'Zäher Nahkämpfer mit vielen Lebenspunkten für wenig Elixier. Greift nur Bodenziele an.',
+      desc: 'Zäher Nahkämpfer mit vielen Lebenspunkten für wenige Kristalle. Greift nur Bodenziele an.',
     },
     archers: {
       name: 'Bogenschützen', mirrors: 'Archers', emoji: '🥷',
@@ -8064,7 +8164,7 @@ body { font-weight: 700; letter-spacing: 0; }
     skeletons: {
       name: 'Skelette', mirrors: 'Skeletons', emoji: '💀',
       color: '#57516a', accent: '#e9e2d0', role: 'Zyklus', kind: 'troop',
-      desc: 'Drei Skelette gegen Bodenziele für nur 1 Elixier – ideal zum Ablenken und für einen schnellen Kartenzyklus.',
+      desc: 'Drei Skelette gegen Bodenziele für nur 1 Kristall – ideal zum Ablenken und für einen schnellen Kartenzyklus.',
     },
     goblins: {
       name: 'Kobolde', mirrors: 'Goblins', emoji: '👺',
@@ -8229,7 +8329,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'black-blade-master': {
       name: 'Schwarzklingen-Meister', short: 'Schwarzklinge', mirrors: 'Black Blade Master', emoji: '🎩',
       color: '#1f2430', accent: '#e8b83a', role: 'Champion · Klinge', kind: 'troop',
-      desc: 'Champion mit riesigem schwarzem Kreuzschwert, der alle 5 s einen Nahkampftreffer pariert und sofort kontert. Fähigkeit Schwarzer Halbmond (2 Elixier): Eine Klingenwelle schneidet in gerader Linie durch die Arena und trifft alles auf ihrem Weg.',
+      desc: 'Champion mit riesigem schwarzem Kreuzschwert, der alle 5 s einen Nahkampftreffer pariert und sofort kontert. Fähigkeit Schwarzer Halbmond (2 Kristalle): Eine Klingenwelle schneidet in gerader Linie durch die Arena und trifft alles auf ihrem Weg.',
     },
     'spiral-ninja': {
       name: 'Wirbel-Ninja', mirrors: 'Spiral Ninja', emoji: '💫',
@@ -8334,9 +8434,9 @@ body { font-weight: 700; letter-spacing: 0; }
       desc: 'Spuckt regelmäßig Feuergeister aus, die sich auf Gegner stürzen und explodieren.',
     },
     'elixir-collector': {
-      name: 'Elixiersammler', mirrors: 'Elixir Collector', emoji: '⛽',
-      color: '#a8318f', accent: '#ff9ff0', role: 'Elixier', kind: 'building',
-      desc: 'Sammelt während seiner Lebensdauer zusätzliches Elixier für dich. Greift selbst nicht an.',
+      name: 'Kristallsammler', mirrors: 'Elixir Collector', emoji: '⛽',
+      color: '#0e6a78', accent: '#7af3ea', role: 'Kristalle', kind: 'building',
+      desc: 'Sammelt während seiner Lebensdauer zusätzliche Kristalle für dich. Greift selbst nicht an.',
     },
     'goblin-cage': {
       name: 'Koboldkäfig', mirrors: 'Goblin Cage', emoji: '📦',
@@ -8433,7 +8533,7 @@ body { font-weight: 700; letter-spacing: 0; }
     mirror: {
       name: 'Spiegel', mirrors: 'Mirror', emoji: '🪞',
       color: '#4a6a8a', accent: '#e6f2ff', role: 'Zauber · Kopie', kind: 'spell',
-      desc: 'Spielt deine zuletzt gespielte Karte noch einmal aus – für 1 Elixier mehr.',
+      desc: 'Spielt deine zuletzt gespielte Karte noch einmal aus – für 1 Kristall mehr.',
     },
     clone: {
       name: 'Klonzauber', mirrors: 'Clone', emoji: '🧬',
@@ -8651,7 +8751,7 @@ body { font-weight: 700; letter-spacing: 0; }
     },
     {
       id: 'fels-lawine', name: 'Golem-Beatdown', archetype: 'Schwerer Beatdown',
-      desc: 'Hinten den Golem legen, Elixier sammeln und mit einer riesigen Welle über die Brücke rollen.',
+      desc: 'Hinten den Golem legen, Kristalle sammeln und mit einer riesigen Welle über die Brücke rollen.',
       cards: ['golem', 'elixir-collector', 'baby-dragon', 'mega-minion', 'witch', 'lightning', 'tornado', 'zap'],
     },
     {
@@ -10288,8 +10388,8 @@ body { font-weight: 700; letter-spacing: 0; }
   Arena.TOUCHDOWN_RULES = [
     'Touchdown: Es gibt keine Türme. Jedes Team verteidigt seine Endzone am hinteren Spielfeldrand.',
     'Bringe irgendeine Truppe in die gegnerische Endzone – auch Lufttruppen zählen, Gebäude nicht. Das ist ein Touchdown und bringt eine Krone.',
-    'Nach jedem Touchdown wird das Feld geräumt: Alle Truppen, Gebäude und Zauber verschwinden sofort. Dein Elixier bleibt erhalten. Nach einer kurzen Pause geht es weiter.',
-    'Wer zuerst 3 Touchdowns erzielt, gewinnt sofort. Nach 3 Minuten gewinnt, wer mehr Touchdowns hat (in der letzten Minute doppeltes Elixier).',
+    'Nach jedem Touchdown wird das Feld geräumt: Alle Truppen, Gebäude und Zauber verschwinden sofort. Deine Kristalle bleiben erhalten. Nach einer kurzen Pause geht es weiter.',
+    'Wer zuerst 3 Touchdowns erzielt, gewinnt sofort. Nach 3 Minuten gewinnt, wer mehr Touchdowns hat (in der letzten Minute doppelte Kristalle).',
     'Unentschieden nach 3 Minuten: 2 Minuten Verlängerung – der nächste Touchdown entscheidet. Fällt keiner, endet das Spiel unentschieden.',
     'Truppen und Gebäude setzt du nur bis zur zweiten weißen Linie (ein Viertel des Feldes). Miner, Holz-Stamm, Friedhof, Barbarenfass und Koboldfass gehen bis zur Mittellinie, alle anderen Zauber überall.',
     'Truppen, die nur Gebäude angreifen, laufen ohne Gebäude in Sicht direkt zur Endzone.',
@@ -10302,7 +10402,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'Hinter der Mauer liegt die Stadt mit dem RATHAUS (wie der Königsturm: wacht auf, wenn ein Tor fällt oder es getroffen wird; fällt es, gibt es 3 Kronen und den Sieg). Sonst gewinnt wie klassisch, wer mehr Kronen hat, dann der Turm mit weniger Schaden.',
     'Eigene Truppen setzt du vor deine Mauer, in deine Stadt oder OBEN AUF deine Mauer (keine Gebäude). Aus der Stadt gehen sie durch deine eigenen Tore (sie öffnen sich nur für deine Truppen) oder klettern über eine LEITER an der Innenseite der Mauer und springen vorn herunter. Fällt ein gegnerisches Tor, darfst du auf dieser Seite bis vor das Rathaus setzen (Tasche).',
     'Den TORTURM wählst du im Menü unter „Torturm“: Gatling-Armbrust, Harpune, Lava-Gießer, Steinlawine oder Drachenkopf.',
-    'In der Stadt stehen drei besondere Häuser: der ELIXIER-BRUNNEN (+1 Elixier alle 10 s), die SCHMIEDE (+10 % Truppenschaden) und die TAVERNE (schickt bei jedem Torbruch 2 Milizen). Steht eine gegnerische Bodentruppe 1,5 s daneben, wird das Haus GEPLÜNDERT: Brunnen versiegt (+3 Elixier für die Plünderer), die Schmiede arbeitet für die Plünderer, die Taverne schickt niemanden mehr.',
+    'In der Stadt stehen drei besondere Häuser: der KRISTALL-BRUNNEN (+1 Kristall alle 10 s), die SCHMIEDE (+10 % Truppenschaden) und die TAVERNE (schickt bei jedem Torbruch 2 Milizen). Steht eine gegnerische Bodentruppe 1,5 s daneben, wird das Haus GEPLÜNDERT: Brunnen versiegt (+3 Kristalle für die Plünderer), die Schmiede arbeitet für die Plünderer, die Taverne schickt niemanden mehr.',
     'Mineur, Goblinfass, Goblin-Bohrer und Friedhof landen überall – auch hinter der Mauer, wie am Königsturm. Gebäude stehen nie auf der Mauer und nicht direkt vor oder hinter einem Tor.',
   ];
   Arena.mapRules = function (id, mode) {
@@ -12399,6 +12499,10 @@ body { font-weight: 700; letter-spacing: 0; }
   const EPS = 1e-6;
   // v21: placement refusals that _canPlaySnap turns into a play on the nearest valid tile
   const PLACE_REASONS = { out_of_bounds: 1, invalid_zone: 1, invalid_river: 1, invalid_hill: 1, blocked_place: 1 };
+  // v32 pre-placement (Clash Royale): a play may be dropped this much elixir before the full cost
+  // (CR.RULES.elixir.preplace, default 0.5; see canPlay / command 'play' {pre: true} / _firePre).
+  if (CR.RULES && CR.RULES.elixir && typeof CR.RULES.elixir.preplace !== 'number') { try { CR.RULES.elixir.preplace = 0.5; } catch (e) { /* frozen rules */ } }
+  function preplaceOf() { const v = CR.RULES && CR.RULES.elixir && CR.RULES.elixir.preplace; return typeof v === 'number' && v >= 0 && v <= 2 ? v : 0.5; }
 
   // ---------------------------------------------------------------------------
   // Card lookup
@@ -12421,7 +12525,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
   const REASONS = {
     game_over: 'Das Spiel ist vorbei',
-    not_enough_elixir: 'Nicht genug Elixier!',
+    not_enough_elixir: 'Nicht genug Kristalle!',
     invalid_zone: 'Hier kannst du das nicht platzieren',
     invalid_river: 'Nicht auf den Fluss',
     invalid_hill: 'Nicht auf den Hügel',
@@ -12487,6 +12591,7 @@ body { font-weight: 700; letter-spacing: 0; }
       this.tickEvents = [];
       this.lastTickEvents = [];
       this.cmdQueue = [];
+      this._preArg = false;   // v32 (canPlayPre)
       this.over = false;
       this.winner = null;
       this.endReason = null;
@@ -12582,6 +12687,7 @@ body { font-weight: 700; letter-spacing: 0; }
           champion: null,   // v7: newest entry of `champions` (compat) | null
           champions: [],    // v21: every living champion { unit, unitId, card, cooldownLeft }, oldest first
           bot: !!pc.bot,
+          prePlay: null,    // v32 pre-placed play waiting for elixir { card, x, y, cost, t } | null
           // v31 post-match stats (sim.matchStats(); never in view(), docs/V31-POSTMATCH.md)
           stats: { elixirSpent: 0, played: 0, elixirLeaked: 0, leakTime: 0, towerDmg: 0, troopDmg: 0, defDmg: 0, cards: Object.create(null), lastSpell: null },
         };
@@ -12959,7 +13065,8 @@ body { font-weight: 700; letter-spacing: 0; }
     // Commands
     // -------------------------------------------------------------------------
     /** Placement validation without side effects: {ok, reason, x, y, card, cost}. */
-    canPlay(player, handIndex, x, y, reserved) {
+    canPlay(player, handIndex, x, y, reserved, pre) {
+      if (this._preArg) pre = true;   // v32: set by canPlayPre / _canPlaySnap (wrappers may drop the 6th argument)
       if (this.over) return { ok: false, reason: 'game_over' };
       if (!this.isPlayer(player)) return { ok: false, reason: 'bad_side' };
       this._assertArena();
@@ -12974,7 +13081,8 @@ body { font-weight: 700; letter-spacing: 0; }
       if (card.disabled) return { ok: false, reason: 'card_disabled' };
       if (!Sim.cardAllowed(id, this.mode)) return { ok: false, reason: 'card_banned', card: id };
       const cost = typeof card.elixir === 'number' ? card.elixir : 0;
-      const avail = this.options.infiniteElixir ? Infinity : p.elixir - (reserved || 0);
+      // v32: a pre-placed play (p.prePlay) keeps its cost bound until it fires
+      const avail = this.options.infiniteElixir ? Infinity : p.elixir - (reserved || 0) - (p.prePlay ? p.prePlay.cost : 0);
       const nx = Number(x), ny = Number(y);
       if (!isFinite(nx) || !isFinite(ny)) return { ok: false, reason: 'out_of_bounds' };
       const d = CR.Arena.checkDeploy(side, nx, ny, card, this);
@@ -12982,7 +13090,15 @@ body { font-weight: 700; letter-spacing: 0; }
         const map = { bounds: 'out_of_bounds', zone: 'invalid_zone', river: 'invalid_river', hill: 'invalid_hill', blocked: 'blocked_place' };
         return { ok: false, reason: map[d.reason] || 'invalid_zone', x: d.x, y: d.y, card: id, cost: cost };
       }
-      if (avail + EPS < cost) return { ok: false, reason: 'not_enough_elixir', x: d.x, y: d.y, card: id, cost: cost };
+      if (avail + EPS < cost) {
+        // v32 pre-placement: with `pre` a drop up to RULES.elixir.preplace below the cost is accepted
+        // (ok + pre: true) - one per player at a time (a second one: 'pre_pending')
+        if (pre && avail + EPS >= cost - preplaceOf()) {
+          if (p.prePlay) return { ok: false, reason: 'pre_pending', x: d.x, y: d.y, card: id, cost: cost };
+          return { ok: true, reason: null, x: d.x, y: d.y, card: id, cost: cost, pre: true };
+        }
+        return { ok: false, reason: 'not_enough_elixir', x: d.x, y: d.y, card: id, cost: cost };
+      }
       return { ok: true, reason: null, x: d.x, y: d.y, card: id, cost: cost };
     }
 
@@ -12992,13 +13108,24 @@ body { font-weight: 700; letter-spacing: 0; }
      * valid tile (CR.Arena.snapDeploy). The result then carries snapped: true and the final x, y.
      * canPlay itself stays the strict check (AI, tests, deploy-zone queries).
      */
-    _canPlaySnap(player, handIndex, x, y, reserved) {
-      const r = this.canPlay(player, handIndex, x, y, reserved);
+    /** v32: canPlay that also accepts a pre-placement (result pre: true), see _queuePre. */
+    canPlayPre(player, handIndex, x, y, reserved) {
+      const was = this._preArg;
+      this._preArg = true;
+      try { return this.canPlay(player, handIndex, x, y, reserved, true); } finally { this._preArg = was; }
+    }
+
+    _canPlaySnap(player, handIndex, x, y, reserved, pre) {
+      if (pre && !this._preArg) {
+        this._preArg = true;
+        try { return this._canPlaySnap(player, handIndex, x, y, reserved, true); } finally { this._preArg = false; }
+      }
+      const r = this.canPlay(player, handIndex, x, y, reserved, pre);
       if (r.ok || !PLACE_REASONS[r.reason] || !CR.Arena || typeof CR.Arena.snapDeploy !== 'function') return r;
       const p = this.players[player];
       const s = CR.Arena.snapDeploy(p.side, Number(x), Number(y), Sim.cardById(p.hand[Number(handIndex)]), this);
       if (!s || !s.ok) return r;
-      const r2 = this.canPlay(player, handIndex, s.x, s.y, reserved);
+      const r2 = this.canPlay(player, handIndex, s.x, s.y, reserved, pre);
       if (r2.ok || !PLACE_REASONS[r2.reason]) r2.snapped = true;
       return PLACE_REASONS[r2.reason] ? r : r2;
     }
@@ -13012,22 +13139,27 @@ body { font-weight: 700; letter-spacing: 0; }
       switch (cmd.type) {
         case 'play': {
           if (this.isPaused()) return { ok: false, reason: 'chaos_pause' };
-          let reserved = 0;
+          let reserved = 0, preQ = false;
           for (const q of this.cmdQueue) {
             if (q.side !== side) continue;
             if (q.cmd.type === 'play' && q.cmd.hand === cmd.hand) return { ok: false, reason: 'hand_slot_pending' };
             reserved += q.cost || 0;   // queued plays and champion abilities
+            if (q.pre) preQ = true;    // v32: a pre-placement of this player waits in this tick's queue
           }
+          const pre = cmd.pre === true || cmd.pre === 1;
           // A stale hand (the guest saw an older snapshot) is reported before anything else.
           const hand = this.players[side].hand;
           const hi = Number(cmd.hand);
           if (cmd.card && hi >= 0 && hi < hand.length && hand[hi] !== cmd.card) return { ok: false, reason: 'card_changed' };
-          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, reserved);
+          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, reserved, pre);
           if (!r.ok) return r;
+          if (r.pre && preQ) return { ok: false, reason: 'pre_pending', card: r.card, cost: r.cost };
           // v21: a drop on an invalid tile was moved to the nearest valid one (r.snapped)
           const qx = r.snapped ? r.x : Number(cmd.x), qy = r.snapped ? r.y : Number(cmd.y);
-          this.cmdQueue.push({ side: side, cmd: { type: 'play', hand: Number(cmd.hand), x: qx, y: qy, card: r.card }, cost: r.cost });
-          return { ok: true, reason: null, x: r.x, y: r.y, card: r.card, snapped: !!r.snapped };
+          const qc = { type: 'play', hand: Number(cmd.hand), x: qx, y: qy, card: r.card };
+          if (pre) qc.pre = true;
+          this.cmdQueue.push({ side: side, cmd: qc, cost: r.cost, pre: !!r.pre });
+          return { ok: true, reason: null, x: r.x, y: r.y, card: r.card, snapped: !!r.snapped, pre: !!r.pre };
         }
         case 'chaos_pick':
         case 'chaos_use': {
@@ -13082,10 +13214,11 @@ body { font-weight: 700; letter-spacing: 0; }
         // During a C.H.A.O.S pick pause plays queued before the pause wait for the battle to resume.
         if (paused && cmd.type === 'play') { this.cmdQueue.push(item); continue; }
         if (cmd.type === 'play') {
-          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, 0);
+          const r = this._canPlaySnap(side, cmd.hand, cmd.x, cmd.y, 0, !!cmd.pre);
           if (!r.ok) { this.emit('reject', { side: this.players[side].side, player: side, reason: r.reason, hand: cmd.hand }); continue; }
           if (cmd.card && cmd.card !== r.card) { this.emit('reject', { side: this.players[side].side, player: side, reason: 'card_changed', hand: cmd.hand }); continue; }
-          this._play(side, cmd.hand, r.x, r.y);
+          if (r.pre) this._queuePre(side, cmd.hand, r.x, r.y);   // v32: waits for the elixir
+          else this._play(side, cmd.hand, r.x, r.y);
         } else if (cmd.type === 'champion_ability') {
           if (paused) { this.cmdQueue.push(item); continue; }
           const r = this.canUseChampion(side, 0, cmd.unitId);
@@ -13113,10 +13246,10 @@ body { font-weight: 700; letter-spacing: 0; }
     }
 
     /** Execute a validated play of player `player`: pay, cycle, deploy/cast. */
-    _play(player, slot, x, y) {
+    _play(player, slot, x, y, preCard) {
       const p = this.players[player];
       const side = p.side;
-      const id = p.hand[slot];
+      const id = preCard || p.hand[slot];   // v32: a firing pre-placement brings its card (already cycled)
       const card = Sim.cardById(id);
       const cost = typeof card.elixir === 'number' ? card.elixir : 0;
       if (!this.options.infiniteElixir) p.elixir = Math.max(0, p.elixir - cost);
@@ -13131,7 +13264,7 @@ body { font-weight: 700; letter-spacing: 0; }
       // Card cycle: next card fills the slot, the played card goes to the back of the queue.
       // v21: champion cards cycle normally too (no hold while the champion lives).
       const champ = card.rarity === 'champion';
-      if (p.queue.length) {
+      if (!preCard && p.queue.length) {
         p.hand[slot] = p.queue.shift();
         p.queue.push(id);
       }
@@ -13151,7 +13284,65 @@ body { font-weight: 700; letter-spacing: 0; }
         if (champ) this._registerChampion(player, card, us);
       }
       this._owner = prevOwner;
-      this.emit('deploy', { side: side, player: player, card: id, x: x, y: y, units: ids, cost: cost });
+      const dev = { side: side, player: player, card: id, x: x, y: y, units: ids, cost: cost };
+      if (preCard) dev.pre = true;
+      this.emit('deploy', dev);
+    }
+
+    // -------------------------------------------------------------------------
+    // v32 pre-placement (Clash Royale): a drop up to RULES.elixir.preplace below the cost is
+    // accepted and waits in the sim (p.prePlay, deterministic: online + replays stay in sync).
+    // The card leaves the hand at once (the next card cycles in); the troop / spell goes out on
+    // the exact tick the elixir reaches the cost (_firePre, right after the elixir step), and the
+    // elixir is spent then. One per player; its cost stays bound (canPlay). A spot that turned
+    // invalid meanwhile (a building now stands there) snaps to the nearest valid tile at fire time.
+    // Touchdown field reset / game end: dropped (nothing was paid). Events: {t:'pre', phase:
+    // 'queue'|'fire'|'drop', player, side, card, x, y, cost}; the fire also emits 'deploy' (pre: true).
+    // -------------------------------------------------------------------------
+    _queuePre(player, slot, x, y) {
+      const p = this.players[player];
+      const id = p.hand[slot];
+      const card = Sim.cardById(id);
+      const cost = typeof card.elixir === 'number' ? card.elixir : 0;
+      if (p.queue.length) {
+        p.hand[slot] = p.queue.shift();
+        p.queue.push(id);
+      }
+      p.prePlay = { card: id, x: x, y: y, cost: cost, t: this.tickNo };
+      this.emit('pre', { phase: 'queue', side: p.side, player: player, card: id, x: x, y: y, cost: cost });
+    }
+
+    _firePre() {
+      for (let i = 0; i < this.players.length; i++) {
+        const p = this.players[i], q = p.prePlay;
+        if (!q || this.over) continue;
+        if (!this.options.infiniteElixir && p.elixir + EPS < q.cost) continue;
+        p.prePlay = null;
+        const card = Sim.cardById(q.card);
+        let x = q.x, y = q.y;
+        let d = card && CR.Arena.checkDeploy(p.side, x, y, card, this);
+        if (d && !d.ok && typeof CR.Arena.snapDeploy === 'function') {
+          const s = CR.Arena.snapDeploy(p.side, x, y, card, this);
+          d = s && s.ok ? CR.Arena.checkDeploy(p.side, s.x, s.y, card, this) : null;
+        }
+        if (!card || !d || !d.ok) {
+          this.emit('pre', { phase: 'drop', side: p.side, player: i, card: q.card, x: x, y: y, cost: q.cost, reason: 'invalid' });
+          continue;
+        }
+        x = d.x; y = d.y;
+        this.emit('pre', { phase: 'fire', side: p.side, player: i, card: q.card, x: x, y: y, cost: q.cost });
+        this._play(i, -1, x, y, q.card);
+      }
+    }
+
+    /** v32: drops every waiting pre-placement (touchdown field reset); nothing was paid. */
+    _dropPre(reason) {
+      for (let i = 0; i < this.players.length; i++) {
+        const p = this.players[i], q = p.prePlay;
+        if (!q) continue;
+        p.prePlay = null;
+        this.emit('pre', { phase: 'drop', side: p.side, player: i, card: q.card, x: q.x, y: q.y, cost: q.cost, reason: reason || 'reset' });
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -13385,6 +13576,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (this.over) { this._finishTick(); return; }
       // 2. elixir (multiplier of the phase at the start of the tick)
       this._elixir();
+      this._firePre();   // v32: pre-placed plays go out on the tick their cost is reached
       // 3. clock
       this.time = (this.tickNo - this.pausedTicks) * this.dt;
       this.tickStart = this.time - this.dt;
@@ -13739,6 +13931,7 @@ body { font-weight: 700; letter-spacing: 0; }
         else keep.push(q);
       }
       this.cmdQueue = keep;
+      this._dropPre('td_reset');   // v32
       T.resetLeft = T.resetPause;
       this.emit('td_reset', { resetIn: T.resetPause, removed: removed, score: [T.score[0], T.score[1]], round: T.rounds });
       if (!(T.resetPause > EPS)) { T.rounds++; this.emit('td_resume', { round: T.rounds, score: [T.score[0], T.score[1]] }); }
@@ -13802,6 +13995,11 @@ body { font-weight: 700; letter-spacing: 0; }
         champions: p.champions.map((ch) => this._championView(i, ch)).filter(Boolean),   // v21: all living champions
         abilities: [],   // v13 ability bar (legacy field): v20 has champion abilities only (view.players[i].champion)
       }));
+      // v32: a waiting pre-placement (only while one exists: keeps snapshots small)
+      for (let i = 0; i < this.players.length; i++) {
+        const q = this.players[i].prePlay;
+        if (q) players[i].pre = { card: q.card, x: r3(q.x), y: r3(q.y), cost: q.cost };
+      }
       const towers = this.towers.map(function (t) {
         let fx = 0;
         if (t.stunUntil > now + EPS) fx |= 1;
@@ -20174,7 +20372,7 @@ body { font-weight: 700; letter-spacing: 0; }
     rarityColor: function (r) { return RARITY_COLORS[typeof r === 'number' ? RARITIES[r - 1] : r] || RARITY_COLORS.common; },
     // German rules for the in-game rules screen (plain strings).
     rules: [
-      'C.H.A.O.S ist ein eigener Modus (ohne C.H.A.O.S gelten die normalen Regeln): Kronentürme haben doppelte Trefferpunkte und Elixier lädt 50 % schneller.',
+      'C.H.A.O.S ist ein eigener Modus (ohne C.H.A.O.S gelten die normalen Regeln): Kronentürme haben doppelte Trefferpunkte und Kristalle laden 50 % schneller.',
       'Bei 2:56, 2:11, 1:26 und 0:26 (und in der Verlängerung bei 1:26) pausiert der Kampf: Jeder bekommt drei verschiedene Fähigkeiten für Karten aus seinem Deck zur Auswahl.',
       'Jede Karte hat drei unterschiedliche Fähigkeiten – eine gewöhnliche, eine seltene und eine epische.',
       'Tippe eine an – du hast 7 Sekunden. Läuft die Zeit ab, wird zufällig gewählt. Der Kampf geht weiter, sobald alle gewählt haben (im 2 gegen 2 wählt jeder Spieler für sein eigenes Deck).',
@@ -20315,7 +20513,7 @@ body { font-weight: 700; letter-spacing: 0; }
       } });
 
     // --------------------------------------------------------------- Golem
-    mod('golem', 'common', { name: 'Paint It Pink!', title: 'Alles in Pink', text: 'Zerfällt er, bekommst du 4 Elixier zurück.', power: 3,
+    mod('golem', 'common', { name: 'Paint It Pink!', title: 'Alles in Pink', text: 'Zerfällt er, bekommst du 4 Kristalle zurück.', power: 3,
       units: { golem: function (A, d, u) { A.hook(u, d, { death: function (g) { if (g.clone) return; A.sim.addElixir(g.side, 4, g); A.ability(d, g.side, g, 'elixir', g.x, g.y, 1.5, { amount: 4 }); } }); } } });
     mod('golem', 'rare', { name: 'Twin Tanks', title: 'Doppel-Golem', text: 'Zerfällt in zwei Golems statt in Golemiten.', power: 5,
       units: { golem: function (A, d, u) {
@@ -21225,11 +21423,11 @@ body { font-weight: 700; letter-spacing: 0; }
 
     mod('elixir-collector', 'common', { name: 'Quality Engineering', title: 'Qualitätsarbeit', text: '50 % mehr Trefferpunkte und Laufzeit.', power: 2,
       units: { 'elixir-collector': function (A, d, u) { A.scaleHp(u, 1.5); u.s.lifetime *= 1.5; u.lifeLeft = u.s.lifetime; } } });
-    mod('elixir-collector', 'rare', { name: 'The Pressure Is On', title: 'Unter Druck', text: 'Explodiert bei Zerstörung und gibt dir sofort 2 Elixier.', power: 3, approx: true,
+    mod('elixir-collector', 'rare', { name: 'The Pressure Is On', title: 'Unter Druck', text: 'Explodiert bei Zerstörung und gibt dir sofort 2 Kristalle.', power: 3, approx: true,
       units: { 'elixir-collector': function (A, d, u) {
         A.hook(u, d, { death: function (c) { A.effect(c.side, c.x, c.y, { damage: 300, ct: 90, radius: 3, kind: 'death' }, null); A.sim.addElixir(c.side, 2, c); A.ability(d, c.side, c, 'explosion', c.x, c.y, 3, { amount: 2 }); } });
       } } });
-    replaced('elixir-collector', 'epic', 'The Golem Inside Me', 'braucht den Elixiergolem (nicht im Spiel)');
+    replaced('elixir-collector', 'epic', 'The Golem Inside Me', 'braucht den Kristallgolem (nicht im Spiel)');
 
     mod('mortar', 'common', { name: 'On the Up & Up', title: 'Immer höher', text: 'Schießt dreimal so schnell.', power: 3,
       units: { mortar: function (A, d, u) { A.hitSpeed(u, u.s.hitSpeed / 3); } } });
@@ -21789,7 +21987,7 @@ body { font-weight: 700; letter-spacing: 0; }
       } } });
 
     // --------------------------------------------------------------- Goblins
-    own('goblins', 'common', { name: 'Loot Run', title: 'Beutezug', text: 'Besiegt ein Kobold einen Gegner, bekommst du 1 Elixier (einmal pro Kobold).', power: 3,
+    own('goblins', 'common', { name: 'Loot Run', title: 'Beutezug', text: 'Besiegt ein Kobold einen Gegner, bekommst du 1 Kristall (einmal pro Kobold).', power: 3,
       units: { goblin: function (A, d, u) {
         A.hook(u, d, { kill: function (g, v) { if (g.chx.loot || g.clone || v.clone || v.shadowClone) return; g.chx.loot = true; A.sim.addElixir(g.side, 1, g); A.ability(d, g.side, g, 'elixir', g.x, g.y, 0.8, { amount: 1 }); } });
       } } });
@@ -22036,7 +22234,7 @@ body { font-weight: 700; letter-spacing: 0; }
       units: { 'goblin-hut': function (A, d, u) { if (u.s.spawn) { u.s.spawn.unit = 'goblin'; u.s.spawn.count = 2; } } } });
     own('goblin-hut', 'epic', { name: 'Bomber Hut', title: 'Bomberhütte', text: 'Spuckt Bomber statt Speerkobolden aus.', power: 4, needs: ['bomber'],
       units: { 'goblin-hut': function (A, d, u) { if (u.s.spawn) { u.s.spawn.unit = 'bomber'; u.s.spawn.count = 1; } } } });
-    own('elixir-collector', 'epic', { name: 'Elixir Fountain', title: 'Elixierbrunnen', text: 'Pumpt doppelt so schnell Elixier.', power: 4,
+    own('elixir-collector', 'epic', { name: 'Elixir Fountain', title: 'Kristallbrunnen', text: 'Pumpt doppelt so schnell Kristalle.', power: 4,
       units: { 'elixir-collector': function (A, d, u) {
         const ex = u.s.special && u.s.special.elixir;
         if (!ex) return;
@@ -24418,6 +24616,7 @@ body { font-weight: 700; letter-spacing: 0; }
           if (typeof c.card !== 'string' || !ID_RE.test(c.card)) return null;
           out.card = c.card;
         }
+        if (c.pre === true || c.pre === 1) out.pre = true;   // v32 pre-placement (the host's sim queues it)
         return out;
       }
       case 'chaos_pick': {
@@ -27774,7 +27973,7 @@ body { font-weight: 700; letter-spacing: 0; }
   // v27: + 'jungle' (Chaos-Dschungel: ruin + swamp frog, two portal pairs, jump mushroom, tunnel; classic towers).
   const MAPS = ['classic', 'hill', 'tunnel', 'flat', 'fortress', 'pyramid', 'kraken', 'skyislands', 'portals', 'citadel', 'jungle'];
   MAPS.push('ice', 'whirlwind');   // v31 feat-b: Eissee (brüchiges Eis), Sturmtal (Wirbelsturm) - src/41-feat-b.js
-  MAPS.push('carousel', 'treasure', 'catapult', 'wonderland');   // v31 feat-a: Karussell, Schatzinsel, Katapult-Hügel, Wunderland - src/40-feat-a.js
+  MAPS.push('treasure', 'catapult', 'wonderland');   // v31 feat-a: Schatzinsel, Katapult-Hügel, Wunderland - src/40-feat-a.js (v32: Karussell removed)
   // Retired map ids a received lobby blob / start info may still name (decode tolerance: the
   // engine can still build them, CR.Arena.setMap('rails')); a host never picks one itself.
   const LEGACY_MAPS = ['rails'];
@@ -30603,7 +30802,7 @@ body { font-weight: 700; letter-spacing: 0; }
   ];
   const GRASS_A = '#82c44a', GRASS_B = '#77b943';
   const OUTLINE_DARK = 'rgba(8,12,26,0.82)';
-  const ELIXIR = '#d64ee8';
+  const ELIXIR = '#2fd6d0';   // v32: turquoise crystals
   const RARITY_FALLBACK = { common: '#a3b8cc', rare: '#ff9a2e', epic: '#b35ce8', legendary: '#41d9c7', champion: '#ffd23f' };
 
   // Glyph sprite variants
@@ -32409,9 +32608,9 @@ body { font-weight: 700; letter-spacing: 0; }
       let text = '', sub = '', color = '#ffffff';
       // v4 QA: wordless banners (no words in battle) - only numbers / symbols.
       if (typeof ev.banner === 'string' && ev.banner && !/[A-Za-z\u00c0-\u024f]/.test(ev.banner)) { text = ev.banner; color = '#ffe14d'; }
-      else if (ph === 'double') { text = '\u00d72'; color = '#f07bff'; }
+      else if (ph === 'double') { text = '\u00d72'; color = '#45e6e0'; }
       else if (ph === 'overtime') { text = '0:00 +'; color = '#ffb13b'; }
-      else if (ph === 'triple') { text = '\u00d73'; color = '#ff5fd2'; }
+      else if (ph === 'triple') { text = '\u00d73'; color = '#ff9a3c'; }
       else if (ph === 'last10' || ph === 'final10' || ph === 'last_10' || ph === 'final' || ph === 'countdown' ||
         ev.last10 === true || ev.final10 === true || ev.lastSeconds === 10) { text = '10'; color = '#ff6b5e'; }
       if (!text) return;
@@ -34180,11 +34379,13 @@ body { font-weight: 700; letter-spacing: 0; }
             const cx = px, cy = py - rise, s = 0.32 * ts;
             ctx.globalAlpha = al;
             ctx.fillStyle = ELIXIR;
-            ctx.beginPath();
+            ctx.beginPath();   // v32: a crystal shard (was a drop)
             ctx.moveTo(cx, cy - s * 1.3);
-            ctx.quadraticCurveTo(cx + s, cy - s * 0.1, cx + s * 0.75, cy + s * 0.45);
-            ctx.arc(cx, cy + s * 0.25, s * 0.78, 0.3, Math.PI - 0.3);
-            ctx.quadraticCurveTo(cx - s, cy - s * 0.1, cx, cy - s * 1.3);
+            ctx.lineTo(cx + s * 0.75, cy - s * 0.6);
+            ctx.lineTo(cx + s * 0.75, cy + s * 0.5);
+            ctx.lineTo(cx, cy + s * 1.1);
+            ctx.lineTo(cx - s * 0.75, cy + s * 0.5);
+            ctx.lineTo(cx - s * 0.75, cy - s * 0.6);
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -34906,9 +35107,11 @@ body { font-weight: 700; letter-spacing: 0; }
       '<rect x="4" y="7" width="16" height="13" rx="4" fill="currentColor" stroke="' + INK + '" stroke-width="1.5"/>' +
       '<circle cx="9" cy="13" r="2.2" fill="' + INK + '"/><circle cx="15" cy="13" r="2.2" fill="' + INK + '"/><circle cx="9.6" cy="12.4" r=".7" fill="#fff"/><circle cx="15.6" cy="12.4" r=".7" fill="#fff"/>' +
       '<rect x="9" y="16.6" width="6" height="1.6" rx=".8" fill="' + INK + '"/>'),
-    // v13 "Schnelles Elixier": an elixir drop
-    drop: svg('0 0 24 24', '<path d="M12 2.6C9.2 6.9 5.4 10.5 5.4 14.6a6.6 6.6 0 0 0 13.2 0C18.6 10.5 14.8 6.9 12 2.6z" fill="#e45cff" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>' +
-      '<path d="M9 13.6a3.2 3.2 0 0 0 2 3.6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".75"/>'),
+    // v13 "Schnelles Elixier" -> v32 "Schnelle Kristalle": a faceted turquoise crystal (id 'drop' kept)
+    drop: svg('0 0 24 24', '<path d="M5.4 8.2L12 10.6V21.6L5.4 16.4z" fill="#2fd6d0"/><path d="M18.6 8.2L12 10.6V21.6L18.6 16.4z" fill="#118fa8"/>' +
+      '<path d="M5.4 8.2L12 2.4L18.6 8.2L12 10.6z" fill="#c8fff8"/>' +
+      '<path d="M12 2.4L18.6 8.2V16.4L12 21.6L5.4 16.4V8.2z" fill="none" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M7.9 11.6v3.6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".75"/>'),
     bolt: svg('0 0 24 24', '<path d="M13.6 2L4.6 13.6H11L9.6 22l9-12H12z" fill="currentColor" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round"/>'),
     cube: svg('0 0 24 24', '<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z" fill="currentColor" stroke="' + INK + '" stroke-width="1.5" stroke-linejoin="round"/>' +
       '<path d="M12 12l8.5-4.7M12 12L3.5 7.3" stroke="' + INK + '" stroke-width="1.4" fill="none"/><path d="M12 12v9.5" stroke="' + INK + '" stroke-width="1.4"/><path d="M12 12L3.5 7.3 12 2.5l8.5 4.8z" fill="#fff" opacity=".35"/>'),
@@ -35448,7 +35651,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const td = mode === 'touchdown';
     return [
       { id: 'play', text: 'Ziehe eine Karte auf deine Spielfeldhälfte – oder tippe erst die Karte, dann das Feld.', arrow: 'down', showMs: 0 },
-      { id: 'elixir', text: 'Jede Karte kostet Elixier (lila Leiste unten). Es füllt sich von selbst wieder auf.', arrow: 'down', showMs: 5500 },
+      { id: 'elixir', text: 'Jede Karte kostet Kristalle (türkise Leiste unten). Sie füllen sich von selbst wieder auf.', arrow: 'down', showMs: 5500 },
       td
         ? { id: 'goal', text: 'Bring deine Truppen in die Endzone des Gegners – jeder Touchdown zählt.', arrow: 'up', showMs: 6500 }
         : { id: 'towers', text: 'Zerstöre die Türme des Gegners: Jeder Turm bringt eine Krone. Mehr Kronen gewinnen.', arrow: 'up', showMs: 6500 },
@@ -35888,7 +36091,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const S = CR.Sim;
     if (reason && S && S.REASONS && typeof S.REASONS[reason] === 'string') return S.REASONS[reason];
     const r = String(reason || '').toLowerCase();
-    if (r.indexOf('elixir') >= 0) return 'Nicht genug Elixier!';
+    if (r.indexOf('elixir') >= 0) return 'Nicht genug Kristalle!';
     if (/zone|deploy|area|side|bound|river|water|block|tower|pos|place|range|invalid_xy|outside|occupied/.test(r)) return 'Hier kannst du das nicht platzieren';
     if (/pending|wait|busy/.test(r)) return 'Einen Moment …';
     if (/over|ended|finish/.test(r)) return 'Das Spiel ist vorbei';
@@ -35903,7 +36106,7 @@ body { font-weight: 700; letter-spacing: 0; }
   };
   /** v21: transient refusals the HUD swallows silently (the card simply stays in the hand). */
   UI.isSilentReason = function (reason) {
-    return /^(pending|hand_slot_pending|card_changed|chaos_pause|td_reset|net_wait|wait|hand|over|game_over|bad_hand_slot|intro|error|)$/.test(String(reason || ''));
+    return /^(pending|hand_slot_pending|pre_pending|card_changed|chaos_pause|td_reset|net_wait|wait|hand|over|game_over|bad_hand_slot|intro|error|)$/.test(String(reason || ''));
   };
 
   // C.H.A.O.S view helpers. The chaos module defines the exact data; these accept the common
@@ -36067,7 +36270,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const cost = typeof a.cost === 'number' && a.cost > 0 ? a.cost : 0;
     const parts = ['Antippen'];
     if (cd) parts.push(UI.formatDecimal(cd, cd % 1 ? 1 : 0) + ' s Abklingzeit');
-    parts.push(cost ? cost + ' Elixier' : 'kostenlos');
+    parts.push(cost ? cost + (cost === 1 ? ' Kristall' : ' Kristalle') : 'kostenlos');
     return {
       kind: String(a.kind || ''),
       name: String(a.name),
@@ -36126,7 +36329,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const ts = UI.normTeamSize(teamSize) === 2 ? '2 gegen 2' : '1 gegen 1';
     const mp = mapPref === 'any' ? 'Karte egal' : 'Karte ' + UI.mapLabel(mapPref);
     const parts = [UI.modeLabel(UI.normGameMode(mode), options), ts, mp];
-    if (UI.elixirBoostOn(options)) parts.push('Elixier 1,5×');
+    if (UI.elixirBoostOn(options)) parts.push('Kristalle 1,5×');
     return parts.join(' · ');
   };
   /** Status of a matchmaking search -> { title, text, cls } (German; s = findMatch onStatus). */
@@ -37313,8 +37516,9 @@ body { font-weight: 700; letter-spacing: 0; }
   // Data-driven: every map of UI.MAPS (incl. the ones appended from CR.Arena.MAPS) gets a card;
   // unknown maps take their group / tags / text from their CR.RULES.arena.maps definition.
   const MAP_GROUPS = [
-    { id: 'classic', label: 'Klassisch', short: 'Klassisch', sub: 'Drei Türme pro Seite' },
-    { id: 'one', label: 'Belagerungs-Karten', short: 'Belagerung', sub: 'Mauer, zwei Tore, eine Stadt' },   // (v28: the siege layout; was the long tower)
+    // (v32: the group "Belagerungs-Karten" is gone - every map uses the siege layout; its maps moved
+    // to "Klassisch" (Festung) and "Spezial" (Kraken-See, Himmelsinseln, Portale))
+    { id: 'classic', label: 'Klassisch', short: 'Klassisch', sub: 'Die Grundkarten' },
     { id: 'special', label: 'Spezial', short: 'Spezial', sub: 'Besondere Wege über das Feld' },
   ];
   // tag kinds: tw = towers, ft = feature, hz = danger, nw = new
@@ -37324,11 +37528,12 @@ body { font-weight: 700; letter-spacing: 0; }
     flat: { group: 'classic', desc: 'Offenes Feld ohne Fluss – überall angreifen.', tags: [['3 Türme', 'tw'], ['Offen', 'ft']] },
     tunnel: { group: 'special', desc: 'Truppen kriechen durch einen Tunnel unter dem Feld.', tags: [['3 Türme', 'tw'], ['Tunnel', 'ft']] },
     pyramid: { group: 'special', desc: 'Mauer statt Fluss: zwei Tore und eine Leiter.', tags: [['Pyramiden', 'tw'], ['Mauer', 'ft']] },
-    // v28 (docs/V28-SIEGE.md): the four former long-tower maps use the siege layout "Belagerung"
-    fortress: { group: 'one', desc: 'Belagerung: Stadt hinter einer Mauer – brich durch eines der zwei Tore.', tags: [['Mauer + Tore', 'tw'], ['Stadt', 'ft'], ['Neu', 'nw']] },
-    kraken: { group: 'one', desc: 'Belagerung am See: ein Krake packt Truppen an den Brücken.', tags: [['Mauer + Tore', 'tw'], ['Gefahr', 'hz'], ['See', 'ft']] },
-    skyislands: { group: 'one', desc: 'Belagerung auf schwebenden Inseln – die Brücken versinken.', tags: [['Mauer + Tore', 'tw'], ['Gefahr', 'hz'], ['Inseln', 'ft']] },
-    portals: { group: 'one', desc: 'Belagerung mit zwei wandernden Portalen.', tags: [['Mauer + Tore', 'tw'], ['Portale', 'ft']] },
+    // v28 (docs/V28-SIEGE.md): the four former long-tower maps (v32: in "Klassisch" / "Spezial"; no
+    // tower tag - every map has walls + gates)
+    fortress: { group: 'classic', desc: 'Die reine Belagerung: Stadt hinter einer Mauer – brich durch eines der zwei Tore.', tags: [['Stadt', 'ft']] },
+    kraken: { group: 'special', desc: 'Ein See in der Mitte: Ein Krake packt Truppen an den Brücken.', tags: [['Gefahr', 'hz'], ['See', 'ft']] },
+    skyislands: { group: 'special', desc: 'Schwebende Inseln – die Brücken dazwischen versinken.', tags: [['Gefahr', 'hz'], ['Inseln', 'ft']] },
+    portals: { group: 'special', desc: 'Zwei wandernde Portale bringen Truppen quer über das Feld.', tags: [['Portale', 'ft']] },
     // v27 Chaos-Dschungel (docs/V27-JUNGLE.md)
     jungle: { group: 'special', desc: 'Grüne Ruine im Sumpf: Sprungpilze, Portale über Kreuz, Leiter – und ein Riesenfrosch.', tags: [['3 Türme', 'tw'], ['Gefahr', 'hz'], ['Sprungpilz', 'ft'], ['Neu', 'nw']] },
   };
@@ -37358,16 +37563,17 @@ body { font-weight: 700; letter-spacing: 0; }
     const k = MAP_META[id];
     const tags = [];
     if (k) {
-      // (v29 siege-sim: with "Türme: Belagerung" every map has walls + gates - the tower tag says so)
+      // (v32: with "Türme: Belagerung" every map has walls + gates - a tower tag would be the same on
+      // every card, so it is left out; with "Türme: Klassisch" the cards keep "3 Türme" / "Pyramiden")
       const sgOn = !!(mapDef(id) || NONE).siege;
-      for (let i = 0; i < k.tags.length; i++) tags.push({ label: sgOn && k.tags[i][1] === 'tw' ? 'Mauer + Tore' : k.tags[i][0], kind: k.tags[i][1] });
+      for (let i = 0; i < k.tags.length; i++) if (!(sgOn && k.tags[i][1] === 'tw')) tags.push({ label: k.tags[i][0], kind: k.tags[i][1] });
       return { id: id, label: m.label, desc: k.desc, group: k.group, tags: tags, isNew: false };
     }
     const d = mapDef(id) || NONE;
     let lay = null;
     try { lay = CR.Arena && typeof CR.Arena.towerLayout === 'function' ? CR.Arena.towerLayout(id) : null; } catch (e) { lay = null; }
     const one = !!d.fortress || (Array.isArray(lay) && lay.length === 2);
-    tags.push({ label: one ? '1 Turm' : (d.pyramid ? 'Pyramiden' : '3 Türme'), kind: 'tw' });
+    if (!d.siege) tags.push({ label: one ? '1 Turm' : (d.pyramid ? 'Pyramiden' : '3 Türme'), kind: 'tw' });
     const feats = [];
     if (d.kraken) feats.push('Krake');
     if (d.sky) feats.push('Inseln');
@@ -37380,7 +37586,7 @@ body { font-weight: 700; letter-spacing: 0; }
     tags.push({ label: 'Neu', kind: 'nw' });
     const txt = typeof d.desc === 'string' && d.desc ? d.desc
       : (feats.length ? 'Neue Karte mit ' + (feats.length > 1 ? feats.slice(0, -1).join(', ') + ' und ' + feats[feats.length - 1] : feats[0]) + '.' : 'Neue Karte.');
-    return { id: id, label: m.label, desc: txt, group: one ? 'one' : 'special', tags: tags, isNew: true };
+    return { id: id, label: m.label, desc: txt, group: 'special', tags: tags, isNew: true };
   };
   /** v25: does the map have its own Touchdown field? (classic, or a CR.RULES.arena.tdMaps entry with
    *  more than the plain field - hill ridge, tunnel). The others are the plain field in Touchdown. */
@@ -37436,7 +37642,7 @@ body { font-weight: 700; letter-spacing: 0; }
     ]);
 
     // ---- v27 (mapui2): the map sheet - a compact bottom sheet like the other v26 menu sheets:
-    // grip · title + close · filter (Alle / Klassisch / Ein Turm / Spezial) · ONE grid of small cards
+    // grip · title + close · filter (Alle / Klassisch / Features / Spezial) · ONE grid of small cards
     // (preview + name, tiny "Neu" badge, gold border + check when chosen, dimmed + lock when off) ·
     // ONE detail strip (name, line, tags, lock reason) for the chosen / hovered / tapped map.
     const cards = [];
@@ -37968,7 +38174,7 @@ body { font-weight: 700; letter-spacing: 0; }
     paint();
     const el = h('div', { class: 'mm-opt-row mm-opt-gate' }, [
       h('p', { class: 'mm-opt-note gate-intro' }, 'Steht auf deinen Toren (2 gegen 2: auf dem Tor deiner Seite) – ' +
-        (UI.siegeEverywhere() ? 'in jedem Kampf mit „Türme: Belagerung“.' : 'nur auf Belagerungs-Karten (' + UI.siegeMapNames().join(', ') + ').')),
+        'in jedem Kampf mit „Türme: Belagerung“.'),
       list,
     ]);
     return { el: el, list: list, set: function (id) { if (ids.indexOf(id) >= 0) { now0 = id; paint(); } } };
@@ -37984,7 +38190,7 @@ body { font-weight: 700; letter-spacing: 0; }
     let cur = !!on;
     const knob = h('span', { class: 'tg-knob', 'aria-hidden': 'true' });
     const el = h('button', { class: 'toggle tg-boost', type: 'button', role: 'switch', 'aria-checked': cur ? 'true' : 'false', disabled: !!o.disabled },
-      [h('span', { class: 'tg-track', 'aria-hidden': 'true' }, knob), icon('drop', 'tg-ico'), h('span', { class: 'tg-label' }, 'Schnelles Elixier (1,5×)')]);
+      [h('span', { class: 'tg-track', 'aria-hidden': 'true' }, knob), icon('drop', 'tg-ico'), h('span', { class: 'tg-label' }, 'Schnelle Kristalle (1,5×)')]);
     function paint() { el.classList.toggle('on', cur); el.setAttribute('aria-checked', cur ? 'true' : 'false'); }
     el.addEventListener('click', function () {
       if (el.disabled) return;
@@ -38021,7 +38227,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const bs = UI.buildingSwap(app.getDeck(), 'touchdown');
     return bs ? 'Touchdown: Jedes Deck braucht ein Gebäude – für den Kampf ersetzt „' + UI.cardInfo(bs.in).name + '“ deine letzte Karte „' + UI.cardInfo(bs.out).name + '“.' : '';
   }
-  function boostChip() { return h('span', { class: 'info-chip is-boost' }, [icon('drop'), 'Elixier 1,5×']); }
+  function boostChip() { return h('span', { class: 'info-chip is-boost' }, [icon('drop'), 'Kristalle 1,5×']); }
   UI.mapPicker = mapPicker;
 
   /** Volume slider 0..100 %. onInput(v 0..1) while dragging, onChange(v) at the end. */
@@ -38059,7 +38265,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const el = h('button', {
       type: 'button',
       class: 'card rar-' + inf.rarity + ' t-' + inf.type + (extraCls ? ' ' + extraCls : ''),
-      'aria-label': inf.name + ', ' + (inf.elixir == null ? '?' : inf.elixir) + ' Elixier',
+      'aria-label': inf.name + ', ' + (inf.elixir == null ? '?' : inf.elixir) + (inf.elixir === 1 ? ' Kristall' : ' Kristalle'),
     });
     el.appendChild(artBox(id, el));
     el.appendChild(h('span', { class: 'card-shine', 'aria-hidden': 'true' }));
@@ -38902,7 +39108,7 @@ body { font-weight: 700; letter-spacing: 0; }
     // ---- v26 sheets
     const chaosHint = f.chaos ? null : hint(notes.chaos || 'C.H.A.O.S ist gerade nicht verfügbar – es gelten die Grundregeln.');
     const modeSheet = menuSheet('mm-sheet-mode', 'Spielmodus', 'bolt', [modePick.el, modeDesc, tdDeckHints[0], chaosHint,
-      h('div', { class: 'mm-opt-row mm-opt-boost' }, [boosts[0].el, h('p', { class: 'mm-opt-note' }, 'Elixier lädt 1,5-mal so schnell – schnellere, wildere Kämpfe. Gilt in jedem Modus.')])]);
+      h('div', { class: 'mm-opt-row mm-opt-boost' }, [boosts[0].el, h('p', { class: 'mm-opt-note' }, 'Kristalle laden 1,5-mal so schnell – schnellere, wildere Kämpfe. Gilt in jedem Modus.')])]);
     const oppSheet = menuSheet('mm-sheet-opp', 'Gegner', 'bot', [
       h('div', { class: 'menu-label' }, 'KI-Stufe'),
       diffSeg.el,
@@ -38967,8 +39173,8 @@ body { font-weight: 700; letter-spacing: 0; }
       const warn = !tdDeckHints[0].hidden;
       // v29: the elixir switch lives in the Spielmodus sheet - its tile shows a small "1,5×" badge
       const bdg = st.elixirBoost ? '1,5×' : '';
-      tModeS.badge(bdg, 'is-boost', 'Schnelles Elixier 1,5×');
-      tModeD.badge(bdg, 'is-boost', 'Schnelles Elixier 1,5×');
+      tModeS.badge(bdg, 'is-boost', 'Schnelle Kristalle 1,5×');
+      tModeD.badge(bdg, 'is-boost', 'Schnelle Kristalle 1,5×');
       tModeS.set(gmi.icon, mLabel, mSub, warn);
       tModeD.set(gmi.icon, mLabel, mSub, warn);
       modeDesc.textContent = MODE_DESC[gm] || '';
@@ -39070,7 +39276,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const n = cur ? cur.cards.length : 8;
       deckBtn.appendChild(h('span', { class: 'deck-btn-text' }, [
         h('span', { class: 'deck-btn-title' }, [icon('cards'), h('span', { class: 'deck-btn-name' }, cur ? cur.name : 'Dein Deck')]),
-        h('span', { class: 'deck-btn-avg', 'aria-label': 'Durchschnittlich ' + UI.formatDecimal(UI.avgElixir(deck)) + ' Elixier' }, 'Ø ' + UI.formatDecimal(UI.avgElixir(deck)) + (n < 8 ? ' · ' + n + '/8' : '')),
+        h('span', { class: 'deck-btn-avg', 'aria-label': 'Durchschnittlich ' + UI.formatDecimal(UI.avgElixir(deck)) + ' Kristalle' }, 'Ø ' + UI.formatDecimal(UI.avgElixir(deck)) + (n < 8 ? ' · ' + n + '/8' : '')),
         h('span', { class: 'deck-btn-edit' }, 'Bearbeiten'),
       ]));
       deckBtn.appendChild(deckMini(deck));
@@ -39282,7 +39488,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'Ziehe eine Karte in die Arena – oder tippe erst die Karte und dann das Feld.',
     'Im C.H.A.O.S-Modus wählst du mitten im Kampf Upgrades für deine Karten.',
     'Mit Freunden: 1 gegen 1 oder 2 gegen 2 wählen, Spiel erstellen, Link verschicken – deine Freunde öffnen ihn und los geht’s.',
-    'In der letzten Minute fließt das Elixier doppelt so schnell.',
+    'In der letzten Minute laden die Kristalle doppelt so schnell.',
     'Der König-Turm wacht auf, sobald er getroffen wird oder ein Prinzessinnen-Turm fällt.',
     'Upgrades erkennst du an der farbigen Aura um die Einheit.',
   ];
@@ -39376,7 +39582,7 @@ body { font-weight: 700; letter-spacing: 0; }
       : null;
 
     const avgNum = h('b', null, '');
-    const avgEl = h('span', { class: 'deck-avg', 'aria-label': 'Durchschnittliche Elixierkosten' }, [h('span', { class: 'cost' }, [h('i'), h('b')]), h('span', null, 'Ø'), avgNum]);
+    const avgEl = h('span', { class: 'deck-avg', 'aria-label': 'Durchschnittliche Kristallkosten' }, [h('span', { class: 'cost' }, [h('i'), h('b')]), h('span', null, 'Ø'), avgNum]);
     const countEl = h('span', { class: 'deck-count' }, '');
     // v16: the title names the deck slot being edited (full name; the tabs may shorten it)
     const titleEl = h('div', { class: 'hdr-title' }, 'Deck bearbeiten');
@@ -39434,7 +39640,7 @@ body { font-weight: 700; letter-spacing: 0; }
       rarRow.appendChild(c);
     });
     const sortBtn = h('button', { class: 'rar-chip rc-sort', type: 'button', 'aria-label': 'Sortierung wechseln' }, '');
-    function paintSort() { sortBtn.textContent = sortBy === 'elixir' ? 'Elixier' : 'Seltenheit'; sortBtn.setAttribute('data-sort', sortBy); }
+    function paintSort() { sortBtn.textContent = sortBy === 'elixir' ? 'Kristalle' : 'Seltenheit'; sortBtn.setAttribute('data-sort', sortBy); }
     paintSort();
     sortBtn.addEventListener('click', function () { sortBy = sortBy === 'elixir' ? 'rarity' : 'elixir'; paintSort(); applySort(); });
     const rarBar = h('div', { class: 'rar-bar' }, [rarRow, sortBtn]);
@@ -39621,7 +39827,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const tags = [
         h('span', { class: 'tag rar-' + inf.rarity }, RARITY[inf.rarity].label),
         h('span', { class: 'tag tag-type t-' + inf.type }, TYPE_LABEL[inf.type] || 'Karte'),
-        h('span', { class: 'tag tag-ex' }, (inf.elixir == null ? '?' : inf.elixir) + ' Elixier'),
+        h('span', { class: 'tag tag-ex' }, (inf.elixir == null ? '?' : inf.elixir) + (inf.elixir === 1 ? ' Kristall' : ' Kristalle')),
       ];
       const actions = h('div', { class: 'sheet-actions' });
       if (inDeck) {
@@ -39758,16 +39964,16 @@ body { font-weight: 700; letter-spacing: 0; }
     const otX3 = firstSegFrom(C.overtimeSegments, 3);
     const out = [];
     out.push('Ein Kampf dauert <b>' + UI.durationText(reg) + '</b>.' +
-      (x2 != null && x2 < reg ? ' ' + UI.lastText(reg - x2) + ' fließt das Elixier doppelt so schnell (<b>x2</b>).' : ''));
+      (x2 != null && x2 < reg ? ' ' + UI.lastText(reg - x2) + ' laden die Kristalle doppelt so schnell (<b>x2</b>).' : ''));
     if (ot > 0) {
       let t = 'Steht es danach unentschieden, folgt die <b>Verlängerung</b> (' + UI.durationText(ot) + ')' +
         (C.suddenDeath === false ? '.' : ': Die nächste Krone entscheidet.');
       if (otX3 != null && otX3 < ot) {
         const last = UI.lastText(ot - otX3);
-        t += (otX2 === 0 ? ' Erst gibt es <b>x2</b> Elixier, ' + last.charAt(0).toLowerCase() + last.slice(1) + ' sogar <b>x3</b>.'
-          : ' ' + last + ' gibt es sogar <b>x3</b> Elixier.');
+        t += (otX2 === 0 ? ' Erst gibt es <b>x2</b> Kristalle, ' + last.charAt(0).toLowerCase() + last.slice(1) + ' sogar <b>x3</b>.'
+          : ' ' + last + ' gibt es sogar <b>x3</b> Kristalle.');
       } else if (otX2 === 0) {
-        t += ' Das Elixier fließt dabei doppelt so schnell (<b>x2</b>).';
+        t += ' Die Kristalle laden dabei doppelt so schnell (<b>x2</b>).';
       }
       out.push(t);
     }
@@ -39786,10 +39992,10 @@ body { font-weight: 700; letter-spacing: 0; }
     const deck = rnum(K.deckSize, 8);
     const hand = rnum(K.handSize, 4);
     return [
-      'Du startest mit <b>' + UI.formatDecimal(start, start % 1 ? 1 : 0) + ' Elixier</b>, maximal sind <b>' + UI.formatDecimal(max, max % 1 ? 1 : 0) +
-        '</b> möglich. Normal lädt alle ' + UI.formatDecimal(regen, regen % 1 ? 1 : 0) + ' Sekunden ein Elixier nach. Jede Karte kostet so viel Elixier, wie der Tropfen zeigt.',
+      'Du startest mit <b>' + UI.formatDecimal(start, start % 1 ? 1 : 0) + ' Kristallen</b>, maximal sind <b>' + UI.formatDecimal(max, max % 1 ? 1 : 0) +
+        '</b> möglich. Normal lädt alle ' + UI.formatDecimal(regen, regen % 1 ? 1 : 0) + ' Sekunden ein Kristall nach. Jede Karte kostet so viele Kristalle, wie der Kristall auf der Karte zeigt.',
       'Dein Deck hat <b>' + deck + ' Karten</b>, ' + hand + ' davon hast du auf der Hand. Eine gespielte Karte wandert ans Ende der Reihe – „Nächste“ zeigt, was nachkommt.',
-      'Mit dem Schalter <b>„Schnelles Elixier (1,5×)“</b> im Menü (und in der Lobby des Gastgebers) lädt das Elixier in allen Phasen <b>1,5-mal so schnell</b> – auch zusammen mit doppeltem Elixier und C.H.A.O.S.',
+      'Mit dem Schalter <b>„Schnelle Kristalle (1,5×)“</b> im Menü (und in der Lobby des Gastgebers) laden die Kristalle in allen Phasen <b>1,5-mal so schnell</b> – auch zusammen mit doppelten Kristallen und C.H.A.O.S.',
     ];
   };
 
@@ -39822,7 +40028,6 @@ body { font-weight: 700; letter-spacing: 0; }
       '<b>Kraken-See</b>: ein breiter See in der Mitte mit zwei Brücken. Etwa alle 24 Sekunden blubbert es am Ufer, ein Tentakel steigt auf – dann packt der <b>Krake</b> eine Bodentruppe in der Nähe (egal von welcher Seite) und zieht sie ins Wasser. Schwere Truppen bekommen nur Schaden und werden weggeschleudert.',
       '<b>Himmelsinseln</b>: drei schwebende Inseln über den Wolken. Die Brücken zwischen den Inseln <b>tauchen abwechselnd auf und versinken</b> (12 s oben, 8 s weg; vorher leuchten die Runen). Wer auf einer versinkenden Brücke steht, stürzt ab – Truppen warten am Rand, wenn es knapp wird. Du setzt nur auf deiner Insel.',
       '<b>Portale</b>: ein blaues und ein oranges Portal. Bodentruppen, die hineinlaufen, kommen sofort aus dem anderen heraus – sie nehmen ein Portal, wenn es ihren Weg deutlich kürzer macht. Alle 30 Sekunden wandern die Portale an einen neuen, gespiegelten Platz.',
-      'Auf allen drei Karten gilt das <b>Belagerungs-Layout</b> wie auf „Festung“: eine Stadt hinter einer Mauer mit zwei Toren.',
     ];
   };
   /** v28: the siege layout ("Belagerung") for the rules screen (docs/V28-SIEGE.md). */
@@ -39830,7 +40035,7 @@ body { font-weight: 700; letter-spacing: 0; }
     return [
       '<b>Belagerung</b> (' + (UI.siegeEverywhere() ? 'auf jeder Karte; in den Einstellungen unter „Türme“ auf „Klassisch“ umstellbar' : UI.siegeMapNames().join(', ')) + '): Jede Seite hat eine <b>Stadt hinter einer Mauer</b> mit zwei <b>Toren</b>. Auf jedem Tor steht ein <b>Torturm</b> (im Menü unter „Torturm“ wählbar: Gatling-Armbrust, Harpune, Lava-Gießer, Steinlawine, Drachenkopf). Gegner kommen nur durch ein <b>zerstörtes Tor</b> in die Stadt.',
       'Ein Tor = 1 Krone, das <b>Rathaus</b> = 3 Kronen (wie der Königsturm). Deine Truppen setzt du auch in die eigene Stadt oder <b>oben auf die eigene Mauer</b> – aus der Stadt gehen sie durch die eigenen Tore oder über <b>Leitern</b> auf die Mauer und springen nach vorn. Fällt ein gegnerisches Tor, darfst du dahinter bis vor das Rathaus setzen.',
-      'In jeder Stadt: <b>Elixier-Brunnen</b> (+1 Elixier alle 10 s), <b>Schmiede</b> (+10 % Truppenschaden), <b>Taverne</b> (2 Milizen bei jedem Torbruch). Eine gegnerische Bodentruppe, die 1,5 s daneben steht, <b>plündert</b> das Haus.',
+      'In jeder Stadt: <b>Kristall-Brunnen</b> (+1 Kristall alle 10 s), <b>Schmiede</b> (+10 % Truppenschaden), <b>Taverne</b> (2 Milizen bei jedem Torbruch). Eine gegnerische Bodentruppe, die 1,5 s daneben steht, <b>plündert</b> das Haus.',
     ];
   };
   /** v22: the pyramid map (Pyramide) for the rules screen. */
@@ -39874,17 +40079,17 @@ body { font-weight: 700; letter-spacing: 0; }
   /** v12: Klassisch (ohne C.H.A.O.S) for the rules screen. */
   UI.classicRuleTexts = function () {
     return [
-      'Im Spielmodus <b>Klassisch</b> spielst du nach den normalen Regeln von Clash Royale – <b>ohne C.H.A.O.S</b>: keine Upgrade-Angebote, keine Upgrade-Abzeichen, nur deine Karten und dein Elixier.',
-      'Türme, Kronen, Zeit und Elixier sind genau wie im C.H.A.O.S-Modus. Die besonderen Fähigkeiten der Karten selbst gibt es weiterhin.',
+      'Im Spielmodus <b>Klassisch</b> spielst du nach den normalen Regeln von Clash Royale – <b>ohne C.H.A.O.S</b>: keine Upgrade-Angebote, keine Upgrade-Abzeichen, nur deine Karten und deine Kristalle.',
+      'Türme, Kronen, Zeit und Kristalle sind genau wie im C.H.A.O.S-Modus. Die besonderen Fähigkeiten der Karten selbst gibt es weiterhin.',
       'Wähle im Menü unter <b>Spielmodus</b> „Klassisch“ – im Single-Modus oder mit Freunden, im 1 gegen 1 oder 2 gegen 2 und auf jeder Karte (<b>Klassisch</b>, <b>Hügel</b>, <b>Tunnel</b> oder <b>Flach</b>).',
     ];
   };
   /** v5: 2 gegen 2 for the rules screen. */
   UI.teamRuleTexts = function () {
     return [
-      'Im <b>2 gegen 2</b> kämpft ihr zu zweit gegen zwei. Jeder hat sein <b>eigenes Deck</b>, eigene Handkarten, eigenes <b>Elixier</b> und eigene C.H.A.O.S-Upgrades.',
+      'Im <b>2 gegen 2</b> kämpft ihr zu zweit gegen zwei. Jeder hat sein <b>eigenes Deck</b>, eigene Handkarten, eigene <b>Kristalle</b> und eigene C.H.A.O.S-Upgrades.',
       'Die Türme und eure Hälfte der Arena teilt ihr euch mit dem Teampartner – die Kronen zählen für das ganze Team.',
-      'Das Elixier deines Partners siehst du klein über deiner Elixierleiste. Eure Einheiten tragen beide eure Teamfarbe.',
+      'Die Kristalle deines Partners siehst du klein über deiner Kristall-Leiste. Eure Einheiten tragen beide eure Teamfarbe.',
       '<b>Single-Modus</b>: du und ein Bot gegen zwei Bots. <b>Mit Freunden</b>: bis zu vier Spieler mit einem Code – jeder wählt sein Team (<b>Blau</b> oder <b>Rot</b>), freie Plätze füllt der Gastgeber mit Bots.',
     ];
   };
@@ -39916,16 +40121,16 @@ body { font-weight: 700; letter-spacing: 0; }
     const out = [
       'Im <b>Touchdown</b> gibt es <b>keine Türme</b>, keinen Fluss und keine Brücken. Jedes Team verteidigt eine <b>Endzone</b> am hinteren Spielfeldrand – deine unten, die des Gegners oben.',
       'Erreicht eine deiner Truppen die <b>gegnerische Endzone</b> (auch Lufttruppen, aber nie Gebäude), ist das ein <b>Touchdown</b> – eine Krone. Wer zuerst <b>' + target + ' Touchdowns</b> erzielt, gewinnt sofort.',
-      'Nach jedem Touchdown wird das Feld sofort <b>geräumt</b>: Alle Truppen, Gebäude und Zauber verschwinden, dein <b>Elixier bleibt</b>. Nach ' + UI.durationText(pause) + ' Anstoß-Pause geht es weiter.',
+      'Nach jedem Touchdown wird das Feld sofort <b>geräumt</b>: Alle Truppen, Gebäude und Zauber verschwinden, deine <b>Kristalle bleiben</b>. Nach ' + UI.durationText(pause) + ' Anstoß-Pause geht es weiter.',
       'Truppen und Gebäude setzt du nur bis zur <b>zweiten weißen Linie</b> ein (ein Viertel des Feldes)' +
         (half.length ? ', ' + join(half) + ' bis zur <b>Mittellinie</b>' : '') + ', alle anderen Zauber <b>überall</b>.',
-      'Ein Kampf dauert <b>' + UI.durationText(reg) + '</b>' + (x2 != null && x2 < reg ? '; ' + UI.lastText(reg - x2).charAt(0).toLowerCase() + UI.lastText(reg - x2).slice(1) + ' fließt das Elixier doppelt (<b>x2</b>)' : '') +
+      'Ein Kampf dauert <b>' + UI.durationText(reg) + '</b>' + (x2 != null && x2 < reg ? '; ' + UI.lastText(reg - x2).charAt(0).toLowerCase() + UI.lastText(reg - x2).slice(1) + ' laden die Kristalle doppelt so schnell (<b>x2</b>)' : '') +
         '. Danach gewinnt, wer mehr Touchdowns hat' + (ot > 0 ? ' – bei Gleichstand folgt die <b>Verlängerung</b> (' + UI.durationText(ot) + '), in der der nächste Touchdown entscheidet. Fällt keiner, endet der Kampf unentschieden.' : '.'),
       'Truppen, die nur Gebäude angreifen, laufen ohne Gebäude in Sicht <b>direkt zur Endzone</b>. Verteidige deine eigene Endzone!',
       (banned.length ? 'Im Touchdown <b>nicht erlaubt</b>: ' + join(banned) + '. ' : 'Manche Karten sind im Touchdown nicht erlaubt. ') +
         'Im Deck-Editor sind sie ausgegraut, wenn Touchdown gewählt ist – für den Kampf kommen dann andere Karten ins Deck.',
       'Jedes Deck braucht im Touchdown <b>mindestens ein Gebäude</b>. Der Draft sorgt dafür (eine Gebäude-Runde, in der beide ein Gebäude bekommen); fehlt deinem eigenen Deck eins, ersetzt für den Kampf ein Gebäude deine <b>letzte Karte</b>.',
-      'Wähle im Menü unter <b>Spielmodus</b> „Touchdown“ – im Single-Modus oder mit Freunden, im 1 gegen 1 oder 2 gegen 2 (gleiche Regeln, gleiches Elixier), auf der Karte <b>Klassisch</b>, <b>Hügel</b>, <b>Tunnel</b> oder <b>Flach</b>. Mit dem Schalter <b>„Touchdown mit C.H.A.O.S-Upgrades“</b> gibt es zusätzlich Upgrade-Angebote.',
+      'Wähle im Menü unter <b>Spielmodus</b> „Touchdown“ – im Single-Modus oder mit Freunden, im 1 gegen 1 oder 2 gegen 2 (gleiche Regeln, gleiche Kristalle), auf der Karte <b>Klassisch</b>, <b>Hügel</b>, <b>Tunnel</b> oder <b>Flach</b>. Mit dem Schalter <b>„Touchdown mit C.H.A.O.S-Upgrades“</b> gibt es zusätzlich Upgrade-Angebote.',
     ];
     return out;
   };
@@ -39945,7 +40150,7 @@ body { font-weight: 700; letter-spacing: 0; }
         items: UI.timeRuleTexts(),
       },
       {
-        title: 'Elixier & Karten',
+        title: 'Kristalle & Karten',
         items: UI.elixirRuleTexts(),
       },
       {
@@ -40008,7 +40213,7 @@ body { font-weight: 700; letter-spacing: 0; }
     secs.push({
       title: 'Tempo',
       items: [
-        'Standard ist <b>Original (1×)</b> – so schnell wie im echten Spiel. Im Tempo <b>Schnell (1,5×)</b> läuft der ganze Kampf 1,5-mal so schnell – auch die Uhr und das Elixier.',
+        'Standard ist <b>Original (1×)</b> – so schnell wie im echten Spiel. Im Tempo <b>Schnell (1,5×)</b> läuft der ganze Kampf 1,5-mal so schnell – auch die Uhr und die Kristalle.',
         'Mit Freunden gilt das Tempo des Gastgebers. Umstellen kannst du es in den Einstellungen.',
       ],
     });
@@ -40896,7 +41101,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const b = h('button', {
         type: 'button',
         class: 'dr-card rar-' + inf.rarity + ' t-' + inf.type + (mine ? ' is-mine' : ' is-theirs'),
-        'aria-label': inf.name + ', ' + (inf.elixir == null ? '?' : inf.elixir) + ' Elixier, ' + rar.label + (mine ? ' – wählen' : ''),
+        'aria-label': inf.name + ', ' + (inf.elixir == null ? '?' : inf.elixir) + (inf.elixir === 1 ? ' Kristall, ' : ' Kristalle, ') + rar.label + (mine ? ' – wählen' : ''),
         disabled: !mine,
       }, [
         h('span', { class: 'dr-card-glow', 'aria-hidden': 'true' }),
@@ -40954,7 +41159,7 @@ body { font-weight: 700; letter-spacing: 0; }
           h('div', { class: 'sheet-tags' }, [
             h('span', { class: 'tag rar-' + inf.rarity }, rar.label),
             h('span', { class: 'tag tag-type t-' + inf.type }, TYPE_LABEL[inf.type] || 'Karte'),
-            h('span', { class: 'tag tag-ex' }, (inf.elixir == null ? '?' : inf.elixir) + ' Elixier'),
+            h('span', { class: 'tag tag-ex' }, (inf.elixir == null ? '?' : inf.elixir) + (inf.elixir === 1 ? ' Kristall' : ' Kristalle')),
           ]),
         ]),
         pvBox.el,
@@ -41268,8 +41473,8 @@ body { font-weight: 700; letter-spacing: 0; }
     const rows = [
       { label: 'Turmschaden', key: 'towerDmg', f: fmt, hi: true },
       { label: 'Truppenschaden', key: 'troopDmg', f: fmt, hi: true },
-      { label: 'Elixier genutzt', key: 'elixirSpent', f: function (v) { return dec(v); } },
-      { label: 'Elixier verpufft', key: 'elixirLeaked', f: function (v, p) { return dec(v) + (p.leakTime >= 1 ? ' (' + Math.round(p.leakTime) + ' s voll)' : ''); }, lo: true },
+      { label: 'Kristalle genutzt', key: 'elixirSpent', f: function (v) { return dec(v); } },
+      { label: 'Kristalle verpufft', key: 'elixirLeaked', f: function (v, p) { return dec(v) + (p.leakTime >= 1 ? ' (' + Math.round(p.leakTime) + ' s voll)' : ''); }, lo: true },
       { label: 'Karten gespielt', key: 'played', f: fmt },
       { label: 'Lieblingskarte', key: 'fav', f: function (v) { return cardName(v); }, text: true },
     ];
@@ -41516,7 +41721,7 @@ body { font-weight: 700; letter-spacing: 0; }
     // v5 2v2: the teammate's elixir, small (icon + number + thin bar) at the lower left of the arena
     const mateNum = h('b', null, '0');
     const mateFill = h('i', { class: 'mate-fill' });
-    const mateEx = h('div', { class: 'mate-ex', hidden: true, 'aria-label': 'Elixier deines Partners' }, [
+    const mateEx = h('div', { class: 'mate-ex', hidden: true, 'aria-label': 'Kristalle deines Partners' }, [
       icon('people', 'mate-ico'), h('span', { class: 'mate-drop' }), mateNum, h('span', { class: 'mate-bar' }, mateFill),
     ]);
     let mateK = -1;
@@ -41623,7 +41828,7 @@ body { font-weight: 700; letter-spacing: 0; }
         s.nm.textContent = inf.name;
         s.nm.style.setProperty('--nk', String(UI.handNameScale(inf.name)));
       }
-      s.el.setAttribute('aria-label', (s.small ? 'Nächste Karte: ' : '') + inf.name + ', ' + s.costB.textContent + ' Elixier');
+      s.el.setAttribute('aria-label', (s.small ? 'Nächste Karte: ' : '') + inf.name + ', ' + s.costB.textContent + (s.costB.textContent === '1' ? ' Kristall' : ' Kristalle'));
       if (s.up) { s.upRar = ''; s.up.hidden = true; }
     }
     const slots = [makeSlot(false, 0), makeSlot(false, 1), makeSlot(false, 2), makeSlot(false, 3)];
@@ -41635,7 +41840,7 @@ body { font-weight: 700; letter-spacing: 0; }
     const exPip = h('div', { class: 'ex-pip', 'aria-hidden': 'true' });   // v19: glow of the pip that just filled
     // v20 (CR): big elixir drop with the number at the left end, "Max: 10" small next to it
     const exMaxN = CR.RULES && CR.RULES.elixir && CR.RULES.elixir.max > 0 ? CR.RULES.elixir.max : 10;
-    const elixirEl = h('div', { class: 'elixir', 'aria-label': 'Elixier' }, [
+    const elixirEl = h('div', { class: 'elixir', 'aria-label': 'Kristalle' }, [
       h('div', { class: 'ex-drop' }, [h('i'), exNum]),
       h('div', { class: 'ex-bar' }, [exFill, exPip, h('div', { class: 'ex-segs' }), exMult]),
       h('span', { class: 'ex-max', 'aria-hidden': 'true' }, 'Max: ' + exMaxN),
@@ -42053,6 +42258,7 @@ body { font-weight: 700; letter-spacing: 0; }
 
     // ---- floating card
     function showFloat(cardId) {
+      stopGlide();
       const inf = UI.cardInfo(cardId);
       floatEl.className = 'hcard hcard-float rar-' + inf.rarity;
       floatEl.style.setProperty('--cc', inf.color);
@@ -42062,14 +42268,55 @@ body { font-weight: 700; letter-spacing: 0; }
       floatCost.textContent = inf.elixir == null ? '?' : String(inf.elixir);
       floatEl.hidden = false;
     }
-    /** Pointer-move path: only a transform write (size from the layout, root rect cached). */
+    /** Pointer-move path: only stores the point; the one transform write per frame happens in a
+     *  requestAnimationFrame callback (v32: pointer events are dispatched before rAF in the same
+     *  frame, so the card is drawn at the newest finger point with zero extra frames of lag, and
+     *  120 Hz touch / coalesced moves never write twice per frame). No CSS transition on the float. */
+    let floatCX = 0, floatCY = 0, floatRaf = 0, floatTf = '';
+    const RAF = typeof G.requestAnimationFrame === 'function' ? G.requestAnimationFrame.bind(G) : null;
     function moveFloat(cx, cy) {
+      floatCX = cx; floatCY = cy;
+      if (!RAF) { writeFloat(); return; }
+      if (!floatRaf) floatRaf = RAF(writeFloat);
+    }
+    function writeFloat() {
+      floatRaf = 0;
+      if (floatEl.hidden) return;
       if (!rootBox) rootBox = root.getBoundingClientRect();
       const w = geo ? geo.cardW : 86;
       const hh = geo ? geo.cardH : 110;
-      floatEl.style.transform = 'translate3d(' + Math.round(cx - rootBox.left - w / 2) + 'px,' + Math.round(cy - rootBox.top - hh * 0.75) + 'px,0) rotate(-4deg) scale(1.08)';
+      const tf = 'translate3d(' + Math.round(floatCX - rootBox.left - w / 2) + 'px,' + Math.round(floatCY - rootBox.top - hh * 0.75) + 'px,0) rotate(-4deg) scale(1.08)';
+      if (tf !== floatTf) { floatEl.style.transform = tf; floatTf = tf; }
     }
-    function hideFloat() { floatEl.hidden = true; }
+    function hideFloat() { stopGlide(); floatEl.hidden = true; }
+    // v32: a card dragged back onto the hand glides home into its slot (WAAPI, ~150 ms)
+    let glideAnim = null;
+    function stopGlide() {
+      if (!glideAnim) return;
+      const a = glideAnim; glideAnim = null;
+      try { a.onfinish = null; a.cancel(); } catch (e) { /* ignore */ }
+    }
+    function glideBack(slot) {
+      const s = slots[slot];
+      if (floatEl.hidden || !s || !motionOk()) { hideFloat(); return; }
+      if (floatRaf) writeFloat();
+      const o = offsetIn(s.el);
+      const from = floatTf || floatEl.style.transform;
+      const to = 'translate3d(' + Math.round(o.x) + 'px,' + Math.round(o.y) + 'px,0) rotate(0deg) scale(1)';
+      stopGlide();
+      try {
+        const a = floatEl.animate([{ transform: from, opacity: 1 }, { transform: to, opacity: 0.9 }], { duration: 150, easing: 'cubic-bezier(.2,.8,.3,1)' });
+        glideAnim = a;
+        a.onfinish = function () { if (glideAnim === a) { glideAnim = null; floatEl.hidden = true; } };
+      } catch (e) { hideFloat(); }
+    }
+    let pressEl = null;
+    function setPress(el) {
+      if (pressEl === el) return;
+      if (pressEl) pressEl.classList.remove('is-press');
+      pressEl = el;
+      if (el) el.classList.add('is-press');
+    }
 
     // ---- pointer input
     /**
@@ -42117,6 +42364,8 @@ body { font-weight: 700; letter-spacing: 0; }
       e.preventDefault();
       invalidateRects();
       if (driver.isPending && driver.isPending(slot)) { shakeSlot(slot); return; }
+      if (glideAnim) hideFloat();   // v32: a new grab ends a running glide-back
+      setPress(t);   // v32: the card lifts under the finger at once
       drag = { pid: e.pointerId, slot: slot, cardId: id, fromCard: true, sx: e.clientX, sy: e.clientY, cx: e.clientX, cy: e.clientY, moved: false, over: false, x: 0, y: 0, valid: false, ptype: e.pointerType || 'mouse' };
       try { root.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     }
@@ -42166,7 +42415,10 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!d || (e && e.pointerId !== d.pid)) return;
       if (e && !cancelled) updateDrag(e.clientX, e.clientY);
       drag = null;
-      hideFloat();
+      setPress(null);
+      // v32: released over the hand -> the floating card glides back into its slot
+      if (!cancelled && d.fromCard && d.moved && !d.over) glideBack(d.slot);
+      else hideFloat();
       try { if (e) root.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       if (cancelled) return;
       if (d.fromCard && !d.moved) {
@@ -42195,6 +42447,7 @@ body { font-weight: 700; letter-spacing: 0; }
       drag = null;
       hover = null;
       sel = -1;
+      setPress(null);
       hideFloat();
     }
 
@@ -42825,11 +43078,71 @@ body { font-weight: 700; letter-spacing: 0; }
       crownCol.style.top = y + 'px';
     }
 
+    // v32: the deploy ghost glides between snapped tiles (~25 ms exponential ease, frame-rate
+    // independent) instead of jumping; a new drag / card / far jump places it at once.
+    const ghostEase = { on: false, id: null, x: 0, y: 0, t: 0 };
+    function easeGhost(id, x, y) {
+      const g = ghostEase, t = now();
+      const dx = x - g.x, dy = y - g.y;
+      if (!g.on || g.id !== id || dx * dx + dy * dy > 9 || UI.reducedMotion()) { g.on = true; g.id = id; g.x = x; g.y = y; g.t = t; return g; }
+      const dt = Math.max(0, Math.min(0.1, (t - g.t) / 1000));
+      g.t = t;
+      const k = 1 - Math.exp(-dt / 0.025);
+      g.x += dx * k; g.y += dy * k;
+      if (Math.abs(x - g.x) < 0.01) g.x = x;
+      if (Math.abs(y - g.y) < 0.01) g.y = y;
+      return g;
+    }
+    // v32 pre-placement marker: a faint card disc with a small filling ring on the spot of the own
+    // waiting pre-placement (view.players[me].pre), until the sim deploys it. DOM in the arena,
+    // positioned via renderer.simToScreen only when the spot / layout changes.
+    const preArt = h('span', { class: 'card-art' }, h('span', { class: 'art-ini' }));
+    const preEl = h('div', { class: 'pre-mark', hidden: true, 'aria-hidden': 'true' }, [preArt, h('i', { class: 'pre-ring' })]);
+    let preKey = '', prePct = -1, preTile = -1, preOutT = 0;
+    function updatePre(cur) {
+      const q = cur.players[me] && cur.players[me].pre;
+      if (!q || !q.card) {
+        if (preKey) {
+          preKey = '';
+          if (UI.reducedMotion()) { preEl.hidden = true; return; }
+          preEl.classList.add('is-fire');
+          if (preOutT) G.clearTimeout(preOutT);
+          preOutT = G.setTimeout(function () { preOutT = 0; if (!preKey) preEl.hidden = true; preEl.classList.remove('is-fire'); }, 200);
+        }
+        return;
+      }
+      const key = q.card + '@' + q.x + ',' + q.y;
+      const tp = tilePx();
+      if (key !== preKey || tp !== preTile) {
+        const isNew = key !== preKey;
+        preKey = key; preTile = tp;
+        if (!preEl.parentNode) arenaWrap.appendChild(preEl);
+        if (preOutT) { G.clearTimeout(preOutT); preOutT = 0; }
+        preEl.classList.remove('is-fire');
+        if (isNew) {
+          preArt.firstChild.textContent = '';
+          Art.apply(preArt, q.card, preEl);
+          prePct = -1;
+        }
+        let px = -999, py = -999;
+        if (renderer && typeof renderer.simToScreen === 'function') {
+          try { const sp = renderer.simToScreen(+q.x, +q.y, side); if (sp && Number.isFinite(sp.px)) { px = sp.px; py = sp.py; } } catch (e) { /* off-screen */ }
+        }
+        const d = Math.max(30, Math.round(tp * 2));
+        preEl.style.setProperty('--pd', d + 'px');
+        preEl.style.transform = 'translate3d(' + Math.round(px - d / 2) + 'px,' + Math.round(py - d / 2) + 'px,0)';
+        if (isNew) { preEl.hidden = false; if (!UI.reducedMotion()) replay(preEl, 'pop'); }
+      }
+      const cost = +q.cost || 0;
+      const pct = cost > 0 ? Math.max(0, Math.min(100, Math.round(elixirNow / cost * 100))) : 100;
+      if (pct !== prePct) { prePct = pct; preEl.style.setProperty('--p', pct + '%'); }
+    }
+
     function dragState() {
       let src = null;
       if (drag && drag.moved && drag.over) src = drag;
       else if (!drag && sel >= 0 && hover) src = hover;
-      if (!src) return null;
+      if (!src) { ghostEase.on = false; return null; }
       const slot = src === hover ? sel : drag.slot;
       const id = handCard(slot);
       if (!id) return null;
@@ -42843,8 +43156,9 @@ body { font-weight: 700; letter-spacing: 0; }
       dragOut.card = id;
       dragOut.hand = slot;
       dragOut.slot = slot;
-      dragOut.x = p.x;
-      dragOut.y = p.y;
+      const ge = easeGhost(id, p.x, p.y);
+      dragOut.x = ge.x;
+      dragOut.y = ge.y;
       dragOut.valid = placeOk;
       dragOut.reason = chk.ok ? '' : String(chk.reason || '');
       dragOut.rawX = src.x; dragOut.rawY = src.y;   // v31 feel: finger point (the renderer shows the snap)
@@ -42939,6 +43253,7 @@ body { font-weight: 700; letter-spacing: 0; }
         }
         if (chaosUi) { updateChaosUI(cur); if (!chaosUi) updateChaos(cur); else hideFallbackChaos(); }
         else updateChaos(cur);
+        updatePre(cur);   // v32 pre-placement marker
         return dragState();
       },
       handleEvents: function (events, nowMs) {
@@ -43023,6 +43338,8 @@ body { font-weight: 700; letter-spacing: 0; }
         flyTimers.length = 0;
         unmountChaosUI();
         drag = null;
+        if (preOutT) { G.clearTimeout(preOutT); preOutT = 0; }   // v32
+        stopGlide();
       },
     };
     return api;
@@ -43522,7 +43839,7 @@ body { font-weight: 700; letter-spacing: 0; }
    *  retired v14 'rails': 'classic'). Used for the host's own choices. */
   const PICK_MAPS = ['hill', 'tunnel', 'flat', 'fortress', 'pyramid', 'kraken', 'skyislands', 'portals', 'citadel', 'jungle'];   // (v25: + Chaos-Zitadelle, v27: + Chaos-Dschungel)   // v21: + 'fortress' (Festung), v22: + 'pyramid' (Pyramide), v24: + Kraken-See, Himmelsinseln, Portale
   PICK_MAPS.push('ice', 'whirlwind');   // v31 feat-b: Eissee, Sturmtal (src/41-feat-b.js)
-  PICK_MAPS.push('carousel', 'treasure', 'catapult', 'wonderland');   // v31 feat-a: Karussell, Schatzinsel, Katapult-Hügel, Wunderland (src/40-feat-a.js)
+  PICK_MAPS.push('treasure', 'catapult', 'wonderland');   // v31 feat-a: Schatzinsel, Katapult-Hügel, Wunderland (src/40-feat-a.js; v32: Karussell removed)
   // v24 hazard maps (docs/V24-MAPS.md): feature key = map id, German name for the notes
   const MAPS24 = { kraken: 'Kraken-See', skyislands: 'Himmelsinseln', portals: 'Portale' };
   App.MAPS24 = MAPS24;
@@ -43890,17 +44207,18 @@ body { font-weight: 700; letter-spacing: 0; }
     if (this.sim.over) return { ok: false, reason: 'over' };
     if (this.netPaused()) return { ok: false, reason: 'net_wait' };   // v17: online pause
     if (this.pending.has(slot)) return { ok: false, reason: 'pending' };
-    const r = this.sim.canPlay(this.localPlayer, slot, x, y);
+    const r = typeof this.sim.canPlayPre === 'function' ? this.sim.canPlayPre(this.localPlayer, slot, x, y) : this.sim.canPlay(this.localPlayer, slot, x, y);   // v32: pre-placement allowed
     return r || { ok: false, reason: '' };
   };
   LocalDriver.prototype.play = function (slot, x, y, cardId) {
     const chk = this.canPlay(slot, x, y);
     if (!chk.ok) return chk;
-    const r = this.sim.command(this.localPlayer, { type: 'play', hand: slot, x: x, y: y, card: cardId });
+    const r = this.sim.command(this.localPlayer, { type: 'play', hand: slot, x: x, y: y, card: cardId, pre: true });
     if (r && r.ok === false) return r;
     const info = CR.UI.cardInfo(cardId);
-    this.pending.add(slot, cardId, info.elixir || 0, nowMs());
-    return { ok: true };
+    // v32: a pre-placement binds no elixir in the display (the sim spends it when it fires)
+    this.pending.add(slot, cardId, r && r.pre ? 0 : (info.elixir || 0), nowMs());
+    return { ok: true, pre: !!(r && r.pre) };
   };
   LocalDriver.prototype.chaosPick = function (option) {
     if (this.netPaused()) return { ok: false, reason: 'net_wait' };
@@ -43951,6 +44269,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (!this.cur) return null;
     const p = this.cur.players[this.localPlayer];
     this.pending.sync(p && p.hand, t);
+    // v32: the own pre-placement in flight is settled once the host shows it (or after 1.5 s)
+    if (this.prePend && ((p && p.pre) || !this.pending.has(this.prePend.slot) || t - this.prePend.at > 1500)) this.prePend = null;
     const out = this.out;
     out.prev = this.prev;
     out.cur = this.cur;
@@ -44016,8 +44336,16 @@ body { font-weight: 700; letter-spacing: 0; }
     if (this.pending.has(slot)) return { ok: false, reason: 'pending' };
     if (v.mode === 'touchdown' && !CR.UI.cardAllowed(id, 'touchdown').ok) return { ok: false, reason: 'card_banned' };
     const cost = CR.UI.cardInfo(id).elixir || 0;
-    const est = (+p.elixir || 0) - this.pending.cost();
-    if (est + 1e-6 < cost) return { ok: false, reason: 'elixir' };
+    // v32: a waiting pre-placement (view players[i].pre) keeps its cost bound; up to
+    // RULES.elixir.preplace below the cost a drop is sent as a pre-placement (the host queues it)
+    const est = (+p.elixir || 0) - this.pending.cost() - (p.pre && p.pre.cost > 0 ? +p.pre.cost : 0);
+    let pre = false;
+    if (est + 1e-6 < cost) {
+      const pp = CR.RULES && CR.RULES.elixir && typeof CR.RULES.elixir.preplace === 'number' ? CR.RULES.elixir.preplace : 0.5;
+      if (est + 1e-6 < cost - pp) return { ok: false, reason: 'elixir' };
+      if (p.pre || this.prePend) return { ok: false, reason: 'pre_pending' };
+      pre = true;
+    }
     if (CR.Arena && typeof CR.Arena.checkDeploy === 'function') {
       try {
         const r = CR.Arena.checkDeploy(this.localSide, x, y, cardObj(id), this.pseudoSim(v));
@@ -44028,14 +44356,17 @@ body { font-weight: 700; letter-spacing: 0; }
         if (!CR.Arena.isDeployable(this.localSide, x, y, cardObj(id), this.pseudoSim(v))) return { ok: false, reason: 'zone' };
       } catch (e) { /* the host validates authoritatively */ }
     }
-    return { ok: true };
+    return { ok: true, pre: pre };
   };
   GuestDriver.prototype.play = function (slot, x, y, cardId) {
     const chk = this.canPlay(slot, x, y);
     if (!chk.ok) return chk;
-    this.gs.sendCommand({ type: 'play', hand: slot, x: x, y: y, card: cardId });
-    this.pending.add(slot, cardId, CR.UI.cardInfo(cardId).elixir || 0, nowMs(), x, y);
-    return { ok: true };
+    this.gs.sendCommand({ type: 'play', hand: slot, x: x, y: y, card: cardId, pre: true });
+    // v32: a pre-placement binds nothing in the display; prePend blocks a second one until the
+    // host's view shows it (players[i].pre) or the slot resolves
+    this.pending.add(slot, cardId, chk.pre ? 0 : (CR.UI.cardInfo(cardId).elixir || 0), nowMs(), x, y);
+    if (chk.pre) this.prePend = { slot: slot, card: cardId, x: x, y: y, at: nowMs() };
+    return { ok: true, pre: !!chk.pre };
   };
   GuestDriver.prototype.chaosPick = function (option) {
     if (this.netPaused()) return { ok: false, reason: 'net_wait' };
@@ -44051,7 +44382,7 @@ body { font-weight: 700; letter-spacing: 0; }
   };
   GuestDriver.prototype.isPending = function (slot) { return this.pending.has(slot); };
   /** The host rejected a queued play of this slot: release it at once. */
-  GuestDriver.prototype.onReject = function (slot) { this.pending.drop(slot); };
+  GuestDriver.prototype.onReject = function (slot) { this.pending.drop(slot); if (this.prePend && this.prePend.slot === slot) this.prePend = null; };
   GuestDriver.prototype.pendingCost = function () { return this.pending.cost(); };
 
   App.LocalDriver = LocalDriver;
@@ -47161,7 +47492,10 @@ body { font-weight: 700; letter-spacing: 0; }
 
   const SVG_BOLT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.6 1.5L4.2 13.4h6.1l-1.9 9.1 9.4-12h-6.1z" fill="#ffd23f" stroke="#5a2c00" stroke-width="1.6" stroke-linejoin="round"/></svg>';
   const SVG_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const SVG_DROP = '<svg viewBox="0 0 30 34" aria-hidden="true"><defs><radialGradient id="chxdrop" cx="38%" cy="58%" r="70%"><stop offset="0" stop-color="#f6dcff"/><stop offset=".25" stop-color="#c46cf5"/><stop offset=".62" stop-color="#6e1cb0"/><stop offset="1" stop-color="#230540"/></radialGradient><linearGradient id="chxrim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".5" stop-color="#c9963c"/><stop offset="1" stop-color="#5a3a0c"/></linearGradient></defs><path d="M15 1.5C10 10 4 15.5 4 22a11 11 0 0 0 22 0C26 15.5 20 10 15 1.5z" fill="url(#chxdrop)" stroke="url(#chxrim)" stroke-width="2"/><path d="M9.6 21.5c-.3-3.4 1.4-6.4 3.6-8.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/></svg>';
+  // v32: a faceted turquoise crystal (was the elixir drop); the number sits on it
+  const SVG_DROP = '<svg viewBox="0 0 30 34" aria-hidden="true"><path d="M15 3.4L25.6 11.6V23.4L15 31.6L4.4 23.4V11.6z" transform="translate(0 1.4)" fill="#020614" opacity=".5"/>' +
+    '<path d="M4.4 11.6L15 15.6V31.6L4.4 23.4z" fill="#33dcd4"/><path d="M25.6 11.6L15 15.6V31.6L25.6 23.4z" fill="#0f86a3"/><path d="M4.4 11.6L15 3.4L25.6 11.6L15 15.6z" fill="#c8fff8"/>' +
+    '<path d="M15 3.4L25.6 11.6V23.4L15 31.6L4.4 23.4V11.6z" fill="none" stroke="#04222e" stroke-width="2" stroke-linejoin="round"/><path d="M8 15.4v5.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".7"/></svg>';
 
   const INK = '#1b1030';
   function sv(body) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>'; }
@@ -47187,7 +47521,8 @@ body { font-weight: 700; letter-spacing: 0; }
     jump: sv('<path d="M3 20.5h18" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/><path d="M4 18C5.5 9 11 4.5 18 6.5" fill="none" stroke="' + INK + '" stroke-width="4.4" stroke-linecap="round"/><path d="M4 18C5.5 9 11 4.5 18 6.5" fill="none" stroke="#ffe14a" stroke-width="2.4" stroke-linecap="round"/>' +
       '<path d="M15.5 2.8l5.2 4-4.8 3.8z" fill="#ffe14a" stroke="' + INK + '" stroke-width="1.3" stroke-linejoin="round"/>'),
     swirl: sv('<g stroke-linecap="round"><path d="M3 5h18M5.5 9.5h13M8 14h8M10 18.5h4" stroke="' + INK + '" stroke-width="4.2"/><path d="M3 5h18M5.5 9.5h13M8 14h8M10 18.5h4" stroke="#bdf3ff" stroke-width="2.2"/></g>'),
-    elixir: sv('<path d="M12 2c-3.6 6-7 9.4-7 13.2a7 7 0 0 0 14 0C19 11.4 15.6 8 12 2z" fill="#e046e6" stroke="' + INK + '" stroke-width="1.6"/><ellipse cx="9.4" cy="14" rx="1.8" ry="3" fill="#fff" opacity=".5"/>'),
+    elixir: sv('<path d="M5.4 8.2L12 10.6V21.6L5.4 16.4z" fill="#2fd6d0"/><path d="M18.6 8.2L12 10.6V21.6L18.6 16.4z" fill="#118fa8"/><path d="M5.4 8.2L12 2.4L18.6 8.2L12 10.6z" fill="#c8fff8"/>' +
+      '<path d="M12 2.4L18.6 8.2V16.4L12 21.6L5.4 16.4V8.2z" fill="none" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>'),   // v32: crystal
     poison: sv('<circle cx="9" cy="13" r="6" fill="#8cff4a" stroke="' + INK + '" stroke-width="1.5"/><circle cx="16.5" cy="8" r="4" fill="#b8ff6a" stroke="' + INK + '" stroke-width="1.4"/><circle cx="17" cy="17.5" r="2.6" fill="#8cff4a" stroke="' + INK + '" stroke-width="1.2"/>'),
     hide: sv('<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="#fff" stroke="' + INK + '" stroke-width="1.5"/><circle cx="12" cy="12" r="3.2" fill="' + INK + '"/><path d="M4 20L20 4" stroke="#ff4c42" stroke-width="2.6" stroke-linecap="round"/>'),
     power: sv('<path d="M20.5 2.5l-.8 4.6-9.6 9.6-2.8-2.8 9.6-9.6z" fill="#e8eef9" stroke="' + INK + '" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.2 12.8l6 6" stroke="#c27a3a" stroke-width="2.6" stroke-linecap="round"/><path d="M7 16.9l-3.6 3.6" stroke="' + INK + '" stroke-width="3" stroke-linecap="round"/>'),
@@ -47195,7 +47530,7 @@ body { font-weight: 700; letter-spacing: 0; }
   };
   // keyword rules on the German title + text, first match wins (order matters)
   const FX_RULES = [
-    ['elixir', /elixier/],
+    ['elixir', /kristall/],
     ['heal', /heil/],
     ['tough', /trefferpunkt|\btp\b|leben|schild|zäh|panzer/],
     ['range', /reichweite|durchbohr/],
@@ -51753,7 +52088,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'skeletons': 'Drei Klappergestelle aus der Knochenebene, die dem Kommandanten aus Dankbarkeit folgen. Billig, flink, immer gut gelaunt.',
     'bats': 'Höhlenfledermäuse der Knochenebene. Fünf Flatterer, null Disziplin, große Wirkung.',
     'bomber': 'Ein Skelett mit Faible für Sprengstoff. Seit dem Bust hat er endlich genug Platz zum Werfen.',
-    'goblins': 'Ratz’ Vettern aus dem Königstal. Schnell, gierig und erstaunlich loyal, wenn es Elixier zu verdienen gibt.',
+    'goblins': 'Ratz’ Vettern aus dem Königstal. Schnell, gierig und erstaunlich loyal, wenn es Kristalle zu verdienen gibt.',
     'ice-golem': 'Ein wandelnder Eisberg aus dem Kraken-See. Langsam, geduldig – und wer ihn zerschlägt, friert fest.',
     'spear-goblins': 'Koboldspäher mit Speeren. Werfen gern von hinten und rufen dann laut „Ich war’s nicht!“.',
     'archers': 'Zwei Schwestern aus der Königstal-Garde. Sie treffen alles, was fliegt – und streiten über jeden Treffer.',
@@ -51765,7 +52100,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'knight': 'Ritter Aldo, Hüter des Königstals und erster Held des Kommandanten. Mit Schildwall hält er jede Brücke.',
     'mega-minion': 'Malgorns schwer gepanzerter Lakai. Nach dem Sieg in der Zitadelle wechselte er gern die Seite.',
     'miner': 'Ein Tunnelgräber, der seit dem Bust unter allen Reichen gräbt. Taucht auf, wo ihn keiner erwartet.',
-    'minions': 'Kleine Flügelwesen, die aus dem ersten Portal fielen. Sie folgen jedem, der ihnen Elixier gibt.',
+    'minions': 'Kleine Flügelwesen, die aus dem ersten Portal fielen. Sie folgen jedem, der ihnen Kristalle gibt.',
     'skeleton-army': 'Die schlafende Armee der Knochenebene. Morras Fluch weckte sie, der Kommandant gab ihr einen Sinn.',
     'baby-dragon': 'Ein Drachenküken vom Drachenhorst der Himmelsinseln. Niest Feuer, wenn es aufgeregt ist – also immer.',
     'battle-healer': 'Heilerin des Königstals. Flickt Ritter zusammen, während sie selbst noch zuschlägt.',
@@ -51774,7 +52109,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'electro-wizard': 'Ein Gelehrter der Neon-Ära, der Blitze in beiden Händen trägt. Hält Magie für schlecht programmierte Technik.',
     'hog-rider': 'Der wildeste Reiter der Pyramidenwüste. Ruft seinen Schlachtruf so laut, dass die Sphinx zusammenzuckt.',
     'kung-fu-legend': 'Meisterin Jun vom Wolkendojo. Drei Schläge, der dritte ist der Ein-Zoll-Schlag – und dann ist Ruhe.',
-    'lumberjack': 'Der Holzfäller der Nordhügel. Fällt Bäume, Feinde und Stimmung gleich schnell. Hinterlässt Wut-Elixier.',
+    'lumberjack': 'Der Holzfäller der Nordhügel. Fällt Bäume, Feinde und Stimmung gleich schnell. Hinterlässt einen Wut-Kristall.',
     'mini-pekka': 'Ein kleiner Rüstungsautomat aus den Werkstätten von Steinwall. Liebt Pfannkuchen und zerlegt Panzer.',
     'musketeer': 'Kapitänin Perla vom Kraken-See. Ihre Muskete hat mehr Kerben als ihr Schiff Planken.',
     'phoenix': 'Der Feuervogel des Drachenhorsts. Stirbt er, wird er zum Ei – und steht wieder auf, wie jeder gute Held.',
@@ -51810,7 +52145,7 @@ body { font-weight: 700; letter-spacing: 0; }
     'tesla': 'Ein Abwehrturm der Neon-Ära, der sich im Boden versteckt, bis jemand zu nah kommt.',
     'goblin-hut': 'Häuptling Knirps’ alte Hütte. Aus ihr marschieren ohne Pause Speerkobolde.',
     'inferno-tower': 'Ein Turm, dessen Strahl immer heißer wird. In Steinwall nennt man ihn „den Ofen für Panzer“.',
-    'elixir-collector': 'Ein Bohrturm über dem Elixierschacht von Steinwall. Zapft das Elixier, das aus den Splittern blutet.',
+    'elixir-collector': 'Ein Bohrturm über dem Kristallschacht von Steinwall. Bricht die Kristalle, die aus den Splittern wachsen.',
     'x-bow': 'Die große Armbrust auf Steinwalls Zinnen. Schießt so schnell, dass die Pfeile Schlange stehen.',
     'barbarian-hut': 'Das Langhaus des Schildclans. Wer anklopft, bekommt Barbaren.',
     'mirror': 'Ein Splitter, der alles noch einmal zeigt, was gerade geschah.',
@@ -51848,7 +52183,7 @@ body { font-weight: 700; letter-spacing: 0; }
             ['orrin', 'Wach auf, {name}! Die Weltenkrone … sie ist zersprungen. Mitten in der Krönung.'],
             ['du', 'Ich habe nur das Kissen gehalten! Was ist passiert?'],
             ['orrin', 'Der Bust. Die Splitter sind in alle Reiche gefallen und haben Portale aufgerissen. Ritter, Kobolde, Drachen – alles fällt jetzt hindurch.'],
-            ['orrin', 'Ein Splitter steckt in deinem Amulett. Damit kannst du Krieger mit Elixier rufen. Versuch es!'],
+            ['orrin', 'Ein Splitter steckt in deinem Amulett. Damit kannst du Krieger mit Kristallen rufen. Versuch es!'],
             ['ratz', 'Hihi! Glänzendes Zeug im Kronsaal! Alles meins!'],
           ],
           outro: [
@@ -51927,7 +52262,7 @@ body { font-weight: 700; letter-spacing: 0; }
           mods: { startElixir: 10 }, unlock: ['wizard', 'rage'],
           intro: [
             ['orrin', 'Der Splitter der Stärke ist nah. Ich spüre meine Kraft zurückkehren … ein bisschen.'],
-            ['orrin', 'Sein Elixier füllt alle Speicher. Wir beginnen beide mit vollem Elixier – sei schnell!'],
+            ['orrin', 'Seine Kristalle füllen alle Speicher. Wir beginnen beide mit vollen Kristallen – sei schnell!'],
           ],
           outro: [
             ['orrin', 'Ha! Feuerbälle! Ich hatte vergessen, wie gut sich das anfühlt.'],
@@ -51982,7 +52317,7 @@ body { font-weight: 700; letter-spacing: 0; }
           enemy: { name: 'Der Kegler', speaker: 'knirps', deck: ['bowler', 'miner', 'goblin-hut', 'dart-goblin', 'earthquake', 'skeleton-army', 'arrows', 'tombstone'] },
           mods: { elixirBoost: 1.5 }, unlock: ['bowler', 'earthquake'],
           intro: [
-            ['orrin', 'Hier unten sprudelt eine Elixierquelle. Elixier lädt für beide 1,5-mal so schnell.'],
+            ['orrin', 'Hier unten wächst eine Kristallader. Kristalle laden für beide 1,5-mal so schnell.'],
             ['knirps', 'Mein Kegler wirft euch alle um! Strike!'],
           ],
           outro: [
@@ -52088,7 +52423,7 @@ body { font-weight: 700; letter-spacing: 0; }
           mods: { elixirBoost: 1.5 }, unlock: ['tornado', 'dark-prince'],
           intro: [
             ['darius', 'Mein Bruder schickt Fremde? Typisch. Malgorn hat mir einen eigenen Thron versprochen.'],
-            ['orrin', 'Der Sandsturm treibt Elixier über die Dünen – es lädt für beide 1,5-mal so schnell.'],
+            ['orrin', 'Der Sandsturm treibt Kristallstaub über die Dünen – Kristalle laden für beide 1,5-mal so schnell.'],
           ],
           outro: [
             ['darius', 'Malgorn hat mich nur benutzt, oder? Wie alle anderen.'],
@@ -52124,11 +52459,11 @@ body { font-weight: 700; letter-spacing: 0; }
             ['du', 'Die äußeren Mauern sind frei. Die Besatzung schließt sich uns an – samt Minenwerfer.'],
           ],
         }),
-        B('6-2', 'Der Elixierschacht', {
+        B('6-2', 'Der Kristallschacht', {
           enemy: { name: 'Schachtwache', speaker: 'malgorn', deck: ['elixir-collector', 'mini-pekka', 'royal-giant', 'barbarians', 'fireball', 'zap', 'tesla', 'musketeer'] },
           mods: { startElixir: 10 }, unlock: ['elixir-collector', 'mini-pekka'],
           intro: [
-            ['orrin', 'Unter Steinwall liegt ein Elixierschacht. Beide Seiten starten mit vollem Elixier.'],
+            ['orrin', 'Unter Steinwall liegt ein Kristallschacht. Beide Seiten starten mit vollen Kristallen.'],
           ],
           outro: [
             ['du', 'Der Schacht gehört uns. Und ein kleiner Rüstungsautomat, der nur „Pfannkuchen“ sagt.'],
@@ -52361,7 +52696,7 @@ body { font-weight: 700; letter-spacing: 0; }
             ['du', 'Wir sind nicht gekommen, um sie abzugeben.'],
           ],
           outro: [
-            ['du', 'Seine Lakaien laufen über. Ohne Elixier hält sie nichts bei ihm.'],
+            ['du', 'Seine Lakaien laufen über. Ohne Kristalle hält sie nichts bei ihm.'],
           ],
         }),
         B('10-2', 'Die Eisengarde', {
@@ -52616,8 +52951,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (m.enemyTowerHp && m.enemyTowerHp < 1) out.push('Geschwächte Türme: gegnerische Türme haben nur ' + pct(m.enemyTowerHp) + ' Leben.');
     if (m.enemyTowerHp && m.enemyTowerHp > 1) out.push('Bollwerk: gegnerische Türme haben ' + pct(m.enemyTowerHp) + ' Leben.');
     if (m.playerTowerHp && m.playerTowerHp !== 1) out.push('Deine Türme haben ' + pct(m.playerTowerHp) + ' Leben.');
-    if (m.startElixir) out.push('Volle Speicher: beide starten mit ' + m.startElixir + ' Elixier.');
-    if (m.elixirBoost) out.push('Elixierquelle: Elixier lädt ' + String(m.elixirBoost).replace('.', ',') + '-mal so schnell.');
+    if (m.startElixir) out.push('Volle Speicher: beide starten mit ' + m.startElixir + ' Kristallen.');
+    if (m.elixirBoost) out.push('Kristallader: Kristalle laden ' + String(m.elixirBoost).replace('.', ',') + '-mal so schnell.');
     if (m.boss) {
       const nm = (CR.CAST && CR.CAST.get && CR.CAST.get(m.boss.card) && CR.CAST.get(m.boss.card).name) || m.boss.card;
       out.push('Boss: „' + nm + '“ des Gegners hat ' + pct(m.boss.hp || 1) + ' Leben' + (m.boss.dmg && m.boss.dmg !== 1 ? ' und ' + pct(m.boss.dmg) + ' Schaden' : '') + '.');
@@ -53272,7 +53607,7 @@ body { font-weight: 700; letter-spacing: 0; }
     ice: 0xbff0ff, iceDark: 0x6fc6ea, iceDeep: 0x3a8fc9, snow: 0xf4fbff,
     fire: 0xff7a1a, fireLight: 0xffd23f, fireDeep: 0xd8341c, ember: 0xff4a1a, lava: 0xff5a1f,
     lavaRock: 0x3d2b2b, electric: 0x6ff3ff, electricDeep: 0x2fb5ff, poison: 0x9be340,
-    magic: 0xb44cff, magicLight: 0xe2a8ff, elixir: 0xd64ee8, elixirLight: 0xf7a3ff, heal: 0xffe680,
+    magic: 0xb44cff, magicLight: 0xe2a8ff, elixir: 0x2fd6d0, elixirLight: 0xa6fbf4, heal: 0xffe680,
     // alien / misc
     alien: 0x6a4fc2, alienLight: 0x9c86e8, alienDark: 0x43308a, alienGlow: 0x62f08b,
     black: 0x1d1a24, white: 0xffffff, outline: 0x231c2b,
@@ -69395,7 +69730,7 @@ body { font-weight: 700; letter-spacing: 0; }
     lava: 0xff4a12, lavaHot: 0xffb43a, basalt: 0x1e1a1f, basaltLight: 0x353038,
     pumpkin: 0xc2561a, pumpkinDark: 0x7e3410, vine: 0x2f4a22, leaf: 0x3e5e2a,
     straw: 0x8a7444, strawDark: 0x5e4c2a, hide: 0x6e5038, hideDark: 0x4a3424,
-    elixir: 0xc4189e, elixirLight: 0xff6ad8, glass: 0x9fb8c8,
+    elixir: 0x14a9b8, elixirLight: 0x7af3ea, glass: 0x9fb8c8,
     ghost: 0xa8d8cc, ghostGlow: 0x6cffc4, grave: 0x4e5259, graveDark: 0x33363c, dirt: 0x3e2c1e, dirtDark: 0x2a1d13,
     // v15 royale: foliage between the v12 grim greens and the v14 lush greens (the arena
     // surround stays lively - Clash Royale vibe - while the buildings keep the pre-v14 colours)
@@ -72101,8 +72436,8 @@ body { font-weight: 700; letter-spacing: 0; }
     portrait: { yaw: -0.55, pitch: 0.18, zoom: 1.3 },
     build(kit) {
       const rig = kit.rig();
-      const light = castCol('elixir-collector', 'accent', '#ff9ff0');
-      const brass = 'oldGold', liquid = 0xa8189a;
+      const light = castCol('elixir-collector', 'accent', '#7af3ea');
+      const brass = 'oldGold', liquid = 0x14a9b8;   // v32: turquoise crystal magic (was magenta elixir)
       const GY = 1.22, GR = 0.6;
       rig.pivot('body', 'root', [0, 0, 0]);
       rig.pivot('coreLiquid', 'body', [0, GY, 0]);
@@ -72180,14 +72515,14 @@ body { font-weight: 700; letter-spacing: 0; }
       body.push(kit.cylinder(0.26, 0.2, 0.14, { seg: 10, open: true, color: 'blackSteel', double: 'gunmetal', mat: 'metal' }).at(0, 0.3, -0.92));
       body.push(kit.cylinder(0.24, 0.24, 0.02, { seg: 10, color: liquid, glow: 0.7 }).at(0, 0.34, -0.92));
       body.push(kit.ring(0.26, 0.025, { seg: [3, 12], color: brass, mat: 'gold' }).at(0, 0.37, -0.92));
-      // elixir drops on the plinth
-      body.push(kit.sphere(0.06, { seg: 6, hseg: 4, color: liquid, glow: 0.6, scale: [1, 1.3, 1] }).at(-0.72, 0.68, -0.4));
-      body.push(kit.sphere(0.05, { seg: 6, hseg: 4, color: liquid, glow: 0.6, scale: [1, 1.3, 1] }).at(0.7, 0.68, 0.48));
+      // v32: small crystal shards on the plinth (4-sided bipyramids; were elixir drops)
+      body.push(kit.sphere(0.06, { seg: 4, hseg: 2, color: liquid, glow: 0.6, scale: [1, 1.7, 1] }).at(-0.72, 0.7, -0.4));
+      body.push(kit.sphere(0.05, { seg: 4, hseg: 2, color: liquid, glow: 0.6, scale: [1, 1.7, 1] }).at(0.7, 0.7, 0.48));
       rig.add('body', body);
       // glowing liquid (lower 2/3 of the globe) + swirl highlight
       // v11 rv: deep magenta elixir glowing from inside with dark swirls and hot veins (the cage
       // and the smoked glass cover the rest), no candy ball
-      const liqC = kit.mix(liquid, 0x22041e, 0.22), liqD = kit.col(0x30062c), liqH = kit.col(0xff7ae8);
+      const liqC = kit.mix(liquid, 0x02222a, 0.22), liqD = kit.col(0x06303a), liqH = kit.col(0x7af3ea);
       const liq = kit.sphere(GR * 0.99, { seg: 18, hseg: 10, theta: [0.98, Math.PI - 0.98 - 0.62], color: liquid, glow: 0.34, mat: 'goo' }).paint((x, y, z) => {
         const an = Math.atan2(x, z), sw = Math.sin(an * 3 + y * 11) + 0.6 * Math.sin(an * 5 - y * 17 + 1.3);
         const depth = smooth01((-y) / (GR * 0.9));
@@ -72199,8 +72534,8 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('coreLiquid',
         liq.at(0, GY, 0),
         kit.cylinder(Math.sin(0.98) * GR * 0.99, Math.sin(0.98) * GR * 0.99, 0.012, { seg: 16, color: light, glow: 0.85 }).at(0, GY + Math.cos(0.98) * GR * 0.99, 0),
-        kit.sphere(0.12, { seg: 8, hseg: 6, color: 0xffd6fb, glow: 1, scale: [1, 0.8, 0.5] }).at(0.2, GY - 0.12, -GR * 0.86));
-      for (let i = 0; i < 3; i++) rig.add('bub' + i, kit.sphere(0.05 - i * 0.008, { seg: 6, hseg: 4, color: 0xffe6ff, glow: 1 }).at((i - 1) * 0.2, GY - 0.4, -GR * 0.86));
+        kit.sphere(0.12, { seg: 8, hseg: 6, color: 0xd6fffb, glow: 1, scale: [1, 0.8, 0.5] }).at(0.2, GY - 0.12, -GR * 0.86));
+      for (let i = 0; i < 3; i++) rig.add('bub' + i, kit.sphere(0.05 - i * 0.008, { seg: 6, hseg: 4, color: 0xe6fffd, glow: 1 }).at((i - 1) * 0.2, GY - 0.4, -GR * 0.86));
       // spiked flywheel (rotates around X)
       const wheel = [kit.torus(0.2, 0.03, { seg: [4, 14], color: 'blackSteel', mat: 'metal' }).rot(0, HP, 0), kit.cylinder(0.05, 0.05, 0.1, { seg: 8, color: brass, mat: 'gold' }).rot(0, 0, HP)];
       for (let i = 0; i < 3; i++) wheel.push(kit.box(0.025, 0.38, 0.03, { bevel: 0, color: 'gunmetal' }).rot(i / 3 * Math.PI, 0, 0));
@@ -72208,7 +72543,7 @@ body { font-weight: 700; letter-spacing: 0; }
       rig.add('gearWheel', kit.merge(wheel).at(0.62, 1.94, 0.1));
       rig.add('piston', kit.cylinder(0.05, 0.05, 0.5, { seg: 8, color: 'scarSteel', mat: 'metal' }).at(0, 2.08, 0), kit.cylinder(0.11, 0.11, 0.07, { seg: 8, color: brass, mat: 'gold' }).at(0, 2.34, 0), kit.sphere(0.06, { seg: 6, hseg: 4, color: light, glow: 0.8 }).at(0, 2.4, 0));
       rig.add('flagP', warFlag(kit, 0.46, 0.3).at(-0.42, 2.38, 0.3));
-      rig.add('drop', kit.sphere(0.045, { seg: 6, hseg: 4, color: liquid, glow: 0.8, scale: [1, 1.3, 1] }).at(0, 0.62, -0.92));
+      rig.add('drop', kit.sphere(0.045, { seg: 4, hseg: 2, color: liquid, glow: 0.8, scale: [1, 1.7, 1] }).at(0, 0.62, -0.92));
       for (let i = 0; i < 3; i++) rig.add('glint' + i, glint(kit, 1.5 - i * 0.25, i === 1 ? light : 0xffffff).at(GL[i][0], GL[i][1], GL[i][2]));
       rig.add('body', kit.gem(0.1, { color: 'teamGlow', glow: 0.6, outline: false }).at(0, GY + GR + 0.27, 0));
       return rig;
@@ -75126,7 +75461,7 @@ body { font-weight: 700; letter-spacing: 0; }
         case 'cast': E.emit('shock', x, 0.06, z, s, 1, c >= 0 ? c : 0xffffff); E.emit('rise', x, 0.1, z, s * 0.8, 10, c >= 0 ? c : 0xffffff); break;
         case 'heal': E.emit('heal', x, 0.2, z, s, 6); break;
         case 'elixir':
-          E.emit('sparkle', x, 1.2, z, 0.6, 10, 0xffffff, 0xd64ee8); E.emit('rise', x, 0.8, z, 0.5, 6, 0xe070ff); E.emit('hitFlash', x, 1.4, z, 0.9, 1, 0xe070ff); break;
+          E.emit('sparkle', x, 1.2, z, 0.6, 10, 0xffffff, 0x2fd6d0); E.emit('rise', x, 0.8, z, 0.5, 6, 0x6ff0e8); E.emit('hitFlash', x, 1.4, z, 0.9, 1, 0x6ff0e8); break;   // v32: turquoise crystals
         case 'spawn': E.emit('poof', x, 0.3, z, 0.55 * s, 6); break;   // (v14: no dust ring)
         case 'emerge':
           E.emit('dirt', x, 0.1, z, s, 12); E.emit('dust', x, 0.05, z, 0.6 * s, 10, 0xa88a64); break;
@@ -76683,7 +77018,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const e = ctx.ent(ev.id);
         const h = e ? e.h : 1.4;
         this.burst('elixir', e ? e.x : x, h, e ? e.z : z, 1);
-        this.label('+' + (typeof ev.elixir === 'number' ? ev.elixir : 1), e ? e.x : x, h + 0.6, e ? e.z : z, '#e46cff', 1.0, 1.1, 'elixir');
+        this.label('+' + (typeof ev.elixir === 'number' ? ev.elixir : 1), e ? e.x : x, h + 0.6, e ? e.z : z, '#7af3ea', 1.0, 1.1, 'elixir');
         return;
       }
       const tgt = ctx.ent(ev.id);
@@ -78894,13 +79229,25 @@ body { font-weight: 700; letter-spacing: 0; }
     c.lineTo(x + 0.5 * s, y + 0.26 * s);
     c.closePath();
   }
+  /** v32: the crystal shard (was the elixir drop): an upright hexagonal gem around (x, y), height ~1.2 s. */
   function dropPath(c, x, y, s) {
     c.beginPath();
-    c.moveTo(x, y - s * 0.62);
-    c.bezierCurveTo(x + s * 0.18, y - s * 0.3, x + s * 0.46, y - s * 0.02, x + s * 0.46, y + s * 0.2);
-    c.arc(x, y + s * 0.2, s * 0.46, 0, Math.PI, false);
-    c.bezierCurveTo(x - s * 0.46, y - s * 0.02, x - s * 0.18, y - s * 0.3, x, y - s * 0.62);
+    c.moveTo(x, y - s * 0.6);
+    c.lineTo(x + s * 0.4, y - s * 0.28);
+    c.lineTo(x + s * 0.4, y + s * 0.3);
+    c.lineTo(x, y + s * 0.62);
+    c.lineTo(x - s * 0.4, y + s * 0.3);
+    c.lineTo(x - s * 0.4, y - s * 0.28);
     c.closePath();
+  }
+  /** v32: light facets on a crystal drawn with dropPath (crown + left body side). */
+  function crystalFacets(c, x, y, s) {
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    c.beginPath(); c.moveTo(x - s * 0.4, y - s * 0.28); c.lineTo(x, y - s * 0.6); c.lineTo(x, y - s * 0.08); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.22)';
+    c.beginPath(); c.moveTo(x - s * 0.4, y - s * 0.28); c.lineTo(x, y - s * 0.08); c.lineTo(x, y + s * 0.62); c.lineTo(x - s * 0.4, y + s * 0.3); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(0,40,60,0.25)';
+    c.beginPath(); c.moveTo(x + s * 0.4, y - s * 0.28); c.lineTo(x, y - s * 0.08); c.lineTo(x, y + s * 0.62); c.lineTo(x + s * 0.4, y + s * 0.3); c.closePath(); c.fill();
   }
   let cardCacheSrc = null;
   const cardCache = new Map();
@@ -84877,7 +85224,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const mine = this.localPlayer >= 0 && typeof ev.player === 'number' ? ev.player === this.localPlayer : side === this.localSide;
       const cost = +ev.cost > 0 ? +ev.cost : (card && +card.elixir > 0 ? +card.elixir : 0);
       if (!mine || !(cost > 0) || this.options.costPop === false) return;
-      this._label('-' + Math.round(cost), wx, 1.2 + this._gh(wx, wz), wz, '#ffb8f6', 1.0, 1.05, 'cost');
+      this._label('-' + Math.round(cost), wx, 1.2 + this._gh(wx, wz), wz, '#b8fff6', 1.0, 1.05, 'cost');
     }
     /** The last king / town hall falls: render slow motion + camera push-in + shake + debris, then
      *  a wordless victory burst in the winner's colours (VICTORY_MS later, render time). */
@@ -84972,8 +85319,8 @@ body { font-weight: 700; letter-spacing: 0; }
      *  the last 10 s are shown by the big countdown numbers only. */
     _onPhase(ev, now) {
       const ph = String(ev.phase || '');
-      if (ph === 'double') this._banner('x2', 2, '#f07bff', now);
-      else if (ph === 'triple') this._banner('x3', 3, '#ff5fd2', now);
+      if (ph === 'double') this._banner('x2', 2, '#45e6e0', now);   // v32: turquoise crystals
+      else if (ph === 'triple') this._banner('x3', 3, '#ff9a3c', now);
       else if (ph === 'overtime') this._banner('overtime', 0, '#ffb13b', now);
       else if (typeof ev.banner === 'string' && ev.banner) this._banner('chaos', -1, '#ffe14d', now);
     }
@@ -85921,7 +86268,7 @@ body { font-weight: 700; letter-spacing: 0; }
           }
         }
       } else if (id === 'elixir-collector') {
-        if (Math.random() < dt * 1.5) fx.emit('bubbles', e.x, e.y + m.h * 0.7, e.z, 0.3, 1, 0xf0a0ff, 0xd64ee8);
+        if (Math.random() < dt * 1.5) fx.emit('bubbles', e.x, e.y + m.h * 0.7, e.z, 0.3, 1, 0xa6fbf4, 0x2fd6d0);
       } else if (id === 'furnace') {
         if (Math.random() < dt * 4) fx.emit('embers', e.x, e.y + m.h * 0.9, e.z, 0.25, 1);
         if (Math.random() < dt * 2) fx.emit('smoke', e.x, e.y + m.h, e.z, 0.35, 1);
@@ -87181,12 +87528,12 @@ body { font-weight: 700; letter-spacing: 0; }
         if (l.kind === 'elixir' || l.kind === 'cost') {   // (v31: + the deploy cost "-4" crystal)
           const ds = fs * 0.95;
           tx = P.x + ds * 0.35;
-          g.fillStyle = '#d64ee8';
+          g.fillStyle = '#2fd6d0';   // v32: a small turquoise crystal (was the elixir drop)
           dropPath(g, P.x - fs * 0.55, P.y, ds);
           g.fill();
-          g.lineWidth = 2; g.strokeStyle = 'rgba(40,0,50,0.9)'; g.stroke();
-          g.fillStyle = 'rgba(255,255,255,0.6)';
-          g.beginPath(); g.arc(P.x - fs * 0.7, P.y + ds * 0.05, ds * 0.1, 0, TAU); g.fill();
+          crystalFacets(g, P.x - fs * 0.55, P.y, ds);
+          dropPath(g, P.x - fs * 0.55, P.y, ds);
+          g.lineWidth = 2; g.strokeStyle = 'rgba(2,30,40,0.9)'; g.stroke();
         }
         g.lineWidth = Math.max(3, fs * 0.22);
         g.strokeStyle = 'rgba(16,10,32,0.95)';
@@ -87310,9 +87657,9 @@ body { font-weight: 700; letter-spacing: 0; }
             g.fillStyle = b.color;
             dropPath(g, 0, 0, s * 1.5);
             g.fill();
+            crystalFacets(g, 0, 0, s * 1.5);
+            dropPath(g, 0, 0, s * 1.5);
             g.lineWidth = Math.max(2, s * 0.09); g.strokeStyle = '#1a0f33'; g.stroke();
-            g.fillStyle = 'rgba(255,255,255,0.55)';
-            g.beginPath(); g.arc(-s * 0.2, s * 0.05, s * 0.14, 0, TAU); g.fill();
             g.restore();
           }
           g.globalAlpha = al;
@@ -104350,7 +104697,7 @@ body { font-weight: 700; letter-spacing: 0; }
     mapBtn.addEventListener('click', function () { StoryUI.openMap(app, ch.index); });
     const colBtn = h('button', { class: 'btn btn-blue', type: 'button' }, ['Sammlung', h('span', { class: 'btn-sub' }, p.unlocked.length + '/' + total + ' Karten')]);
     colBtn.addEventListener('click', function () { StoryUI.openCollection(app); });
-    const deckBtn = h('button', { class: 'btn btn-blue', type: 'button' }, ['Story-Deck', h('span', { class: 'btn-sub' }, 'Ø ' + avg(St.deck(p)) + ' Elixier')]);
+    const deckBtn = h('button', { class: 'btn btn-blue', type: 'button' }, ['Story-Deck', h('span', { class: 'btn-sub' }, 'Ø ' + avg(St.deck(p)) + ' Kristalle')]);
     deckBtn.addEventListener('click', function () { StoryUI.openDeck(app); });
     return h('div', { class: 'play-pane pane-story' }, [
       banner,
@@ -104645,7 +104992,7 @@ body { font-weight: 700; letter-spacing: 0; }
     return sheet(app, [
       h('div', { class: 'sty-shead' }, [big, h('div', null, [
         h('div', { class: 'sty-sname' }, inf.name),
-        h('div', { class: 'sty-ssub' }, String(rar) + ' · ' + (inf.elixir == null ? '?' : inf.elixir) + ' Elixier' + (inf.role ? ' · ' + inf.role : '')),
+        h('div', { class: 'sty-ssub' }, String(rar) + ' · ' + (inf.elixir == null ? '?' : inf.elixir) + (inf.elixir === 1 ? ' Kristall' : ' Kristalle') + (inf.role ? ' · ' + inf.role : '')),
         h('div', { class: 'sty-ssub' }, open ? 'Freigeschaltet' : 'Gesperrt – ' + unlockWhere(id)),
       ])]),
       h('p', { class: 'sheet-desc' }, inf.desc || ''),
@@ -104719,7 +105066,7 @@ body { font-weight: 700; letter-spacing: 0; }
         if (id) top.appendChild(cardEl(id, { onClick: function () { deck = deck.filter(function (x) { return x !== id; }); snd('select'); paint(); } }));
         else top.appendChild(h('button', { type: 'button', class: 'card is-empty', 'aria-label': 'Leerer Platz' }, h('span', { class: 'empty-plus' }, '+')));
       }
-      avgEl.textContent = deck.length + '/8 Karten · Ø ' + avg(deck) + ' Elixier';
+      avgEl.textContent = deck.length + '/8 Karten · Ø ' + avg(deck) + ' Kristalle';
       pool.textContent = '';
       const ids = (UI().sortedCardIds ? UI().sortedCardIds() : St.enabledCards()).filter(function (id) { return St.isUnlocked(p, id); });
       for (let i = 0; i < ids.length; i++) {
@@ -105918,7 +106265,7 @@ body { font-weight: 700; letter-spacing: 0; }
     plaster: [0xf6ecd6, 0xf1dfba], timber: 0x6a4127,
     roof: [0xd97b3f, 0xb05c3b, 0x6f9152], ridge: 0x7a3a2a,
     leaf: 0x5aa83f, leafD: 0x3f8a33, leafL: 0x7cc24a, bark: 0x6e4a2c, straw: 0xe2c06a, strawD: 0xc49a46,
-    gold: 0xf2c43c, lava: 0xff7a1a, lavaL: 0xffc24a, elixir: 0xd64ee8, elixirL: 0xf7a3ff, forge: 0xff8a2a, lamp: 0xffd27a,
+    gold: 0xf2c43c, lava: 0xff7a1a, lavaL: 0xffc24a, elixir: 0x2fd6d0, elixirL: 0xa6fbf4, forge: 0xff8a2a, lamp: 0xffd27a,
     awn: [0xe8493a, 0x3a7fe0, 0xf2c43c, 0x4fae4a], soot: 0x4a4440, earth: 0x8a6a48, glass: 0xffd57a,
   };
   const TEAMC = [0x2f6dff, 0xe5322b], TEAMD = [0x1f4cc0, 0xa82420], TEAML = [0x8fb6ff, 0xff9a90];
@@ -107169,7 +107516,7 @@ body { font-weight: 700; letter-spacing: 0; }
       const R = Math.min(w, d) * 0.36;
       mb.add(U.cyl16, 0, 0.22, 0, 0, 0, 0, R * 2, 0.44, R * 2, soot(P.b), [0, 0.44, 0.8]);
       mb.add(U.torus, 0, 0.455, 0, HP, 0, 0, R * 2.04, R * 2.04, 0.9, soot(P.capS));
-      mb.add(U.cyl16, 0, 0.445, 0, 0, 0, 0, R * 1.8, 0.02, R * 1.8, ruined ? 0x3a3530 : 0x5a2068);
+      mb.add(U.cyl16, 0, 0.445, 0, 0, 0, 0, R * 1.8, 0.02, R * 1.8, ruined ? 0x3a3530 : 0x0e5a66);
       if (!ruined) {
         for (const sx of [-1, 1]) mb.bev(U, sx * (R + 0.04), 0.8, -0.05, 0.1, 0.7, 0.1, 0.025, C.woodD, 0, C.wood);
         mb.add(U.cyl12, 0, 1.1, -0.05, 0, 0, HP, 0.11, R * 2 + 0.28, 0.11, C.wood);
@@ -107757,7 +108104,7 @@ body { font-weight: 700; letter-spacing: 0; }
       }
       case 'plunder': if (fx) { fx.burst('poof', x, 0.8, z, 1.0); fx.emit('confetti', x, 1.0, z, 0.8, 12); } break;
       case 'militia': if (fx) fx.burst('spawn', x, 0.1, z, 0.9); break;
-      case 'elixir': if (fx) fx.emit('sparkle', x, 0.8, z, 0.6, 6, 0xd04cff, 0xffd0ff); break;
+      case 'elixir': if (fx) fx.emit('sparkle', x, 0.8, z, 0.6, 6, 0x2fd6d0, 0xd0fffa); break;
       case 'hop': if (fx) fx.emit('dust', x, 0.05, z, 0.5, 4); break;
       case 'climb': if (fx) fx.emit('dust', x, 0.05, z, 0.35, 3); break;
       default: break;
@@ -108248,7 +108595,7 @@ body { font-weight: 700; letter-spacing: 0; }
       if (!counts.win) warnings.push({ id: 'noWin', text: 'Keine Siegbedingung – keine Karte greift gezielt Tore und Gebäude an.' });
       if (!antiAir) warnings.push({ id: 'noAir', text: 'Keine Luftabwehr – fliegende Gegner greifen ungestört an.' });
       if (!counts.spell) warnings.push({ id: 'noSpell', text: 'Kein Zauber – gegen Gruppen kleiner Gegner hilft ein Zauber.' });
-      if (avg > Tut.EXPENSIVE_AVG) warnings.push({ id: 'expensive', text: 'Sehr teuer (Ø ' + dec1(avg) + ') – du wartest oft auf Elixier.' });
+      if (avg > Tut.EXPENSIVE_AVG) warnings.push({ id: 'expensive', text: 'Sehr teuer (Ø ' + dec1(avg) + ') – du wartest oft auf Kristalle.' });
     }
     return { n: n, ids: list, avg: avg, avgText: dec1(avg), roles: roles, counts: counts, antiAir: antiAir, warnings: warnings };
   };
@@ -108342,12 +108689,12 @@ body { font-weight: 700; letter-spacing: 0; }
 
   Tut.HINTS = {
     drag: { text: 'Ziehe eine Karte aus deiner Hand auf das leuchtende Feld.', target: 'drag', pause: true, ms: 0 },
-    elixir: { text: 'Elixier lädt sich von selbst auf. Die Zahl auf jeder Karte zeigt, was sie kostet.', target: 'elixir', slow: 0.5, ms: 5500 },
+    elixir: { text: 'Kristalle laden sich von selbst auf. Die Zahl auf jeder Karte zeigt, was sie kostet.', target: 'elixir', slow: 0.5, ms: 5500 },
     ranged: { text: 'Fernkämpfer hinter Tanks: Der Tank fängt den Schaden ab, die Schützen treffen von hinten.', target: 'hand', slow: 0.6, ms: 6000 },
     spell: { text: 'Viele Gegner auf einem Haufen – jetzt lohnt sich ein Zauber!', target: 'card', slow: 0.45, ms: 6000 },
     gate: { text: 'Tor zerstört! Der Weg ins Dorf ist offen – jetzt aufs Rathaus.', target: 'point', slow: 0.6, ms: 5500 },
     champ: { text: 'Champion auf dem Feld! Tippe auf seinen Knopf für die Spezialfähigkeit.', target: 'champ', slow: 0.6, ms: 6000 },
-    plunder: { text: 'Bleib neben einem Dorfhaus stehen, um es zu plündern – der Brunnen gibt dir sofort Elixier.', target: 'point', slow: 0.6, ms: 6500 },
+    plunder: { text: 'Bleib neben einem Dorfhaus stehen, um es zu plündern – der Brunnen gibt dir sofort Kristalle.', target: 'point', slow: 0.6, ms: 6500 },
   };
   /** Priority order: the first unseen hint whose trigger fires is shown. */
   Tut.ORDER = ['drag', 'gate', 'champ', 'spell', 'plunder', 'elixir', 'ranged'];
@@ -108531,7 +108878,7 @@ body { font-weight: 700; letter-spacing: 0; }
     chaos: 'C.H.A.O.S: Im Kampf bekommst du Upgrade-Angebote – tippe eins an, um deine Karten zu verstärken.',
     touchdown: 'Touchdown: Keine Türme – bring deine Truppen in die Endzone des Gegners.',
     build: 'Bau-Modus: Zu Beginn wählst du ein Spezialgebäude und setzt es auf deine Hälfte.',
-    team2: '2 gegen 2: Du kämpfst mit einem Partner – jeder hat sein eigenes Deck und Elixier.',
+    team2: '2 gegen 2: Du kämpfst mit einem Partner – jeder hat sein eigenes Deck und eigene Kristalle.',
   };
   /**
    * The first-time tips of a battle: {map, mode, teamSize, siege} -> { lines: [max 2 texts],
@@ -111173,8 +111520,8 @@ body { font-weight: 700; letter-spacing: 0; }
   const LIST = [
     { id: 'champions', code: 'ch', name: 'Nur Champions', short: 'Nur Champions', mode: 'classic', map: null,
       desc: 'Jedes Deck besteht nur aus Champions – deine eigenen bleiben, der Rest wird aufgefüllt.', options: { deckRule: 'champions' } },
-    { id: 'kraken2x', code: 'kr', name: 'Doppeltes Elixier auf dem Kraken-See', short: '2× Elixier: Kraken-See', mode: 'classic', map: 'kraken',
-      desc: 'Der Kraken-See mit doppelt so schnellem Elixier vom ersten Moment an.', options: { elixirBoost: 2 } },
+    { id: 'kraken2x', code: 'kr', name: 'Doppelte Kristalle auf dem Kraken-See', short: '2× Kristalle: Kraken-See', mode: 'classic', map: 'kraken',
+      desc: 'Der Kraken-See mit doppelt so schnellen Kristallen vom ersten Moment an.', options: { elixirBoost: 2 } },
     { id: 'random', code: 'rd', name: 'Zufallsdecks', short: 'Zufallsdecks', mode: 'classic', map: null,
       desc: 'Jeder Spieler bekommt ein zufälliges Deck – Improvisation gewinnt.', options: { randomDecks: true } },
     { id: 'mirror', code: 'mi', name: 'Spiegel-Duell', short: 'Spiegel-Duell', mode: 'classic', map: null,
@@ -111184,9 +111531,9 @@ body { font-weight: 700; letter-spacing: 0; }
     { id: 'siegebare', code: 'sb', name: 'Belagerung ohne Torturm-Waffen', short: 'Belagerung ohne Waffen', mode: 'classic', map: null,
       desc: 'Belagerungs-Türme, aber die Tore schießen nicht – nur deine Truppen verteidigen.', options: { towerLayout: 'siege', noGateWeapons: true } },
     { id: 'suddendeath', code: 'sd', name: 'Super-Sudden-Death', short: 'Super-Sudden-Death', mode: 'classic', map: null,
-      desc: 'Sofort Verlängerung mit dreifachem Elixier: die erste Krone gewinnt.', options: { superSudden: true, overtime: 120 } },
+      desc: 'Sofort Verlängerung mit dreifachen Kristallen: die erste Krone gewinnt.', options: { superSudden: true, overtime: 120 } },
     { id: 'light', code: 'lt', name: 'Leichte Karten', short: 'Leichte Karten', mode: 'classic', map: null,
-      desc: 'Nur Karten bis 3 Elixier – schnelle Zyklen, viele Karten.', options: { maxElixir: 3 } },
+      desc: 'Nur Karten bis 3 Kristalle – schnelle Zyklen, viele Karten.', options: { maxElixir: 3 } },
   ];
   const BY_ID = Object.create(null);
   for (let i = 0; i < LIST.length; i++) BY_ID[LIST[i].id] = LIST[i];
@@ -111356,13 +111703,10 @@ body { font-weight: 700; letter-spacing: 0; }
 </script>
 <script>
 /* src/40-feat-a.js */
-/* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): three new neutral map features, each on its
- * own map, plus the combined map "Wunderland" with all five features (+ feat-b's two, 41-feat-b.js).
+/* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): new neutral map features, each on its
+ * own map, plus the combined map "Wunderland" with four features (+ feat-b's two, 41-feat-b.js).
+ * v32: the carousel map "Karussell" (and the two small carousels on Wunderland) was removed.
  *
- *   'carousel'   "Karussell"      : a big round turning platform in the middle (one turn / 28 s, the
- *                                    direction flips every turn, soft ramps at the reversal); ground
- *                                    troops standing on it are carried round (from one lane to the
- *                                    other), no buildings on it, a small hub post in the centre.
  *   'treasure'   "Schatzinsel"    : a neutral treasure chest in the middle: the side that keeps a
  *                                    ground troop next to it for 2 s (no enemy ground troop there)
  *                                    opens it -> reward (rotating, seeded: +2 elixir / a short rage for
@@ -111373,18 +111717,18 @@ body { font-weight: 700; letter-spacing: 0; }
  *                                    (0.8 s) takes the catapult over; it winds and fires every 10 s: a big
  *                                    boulder at the biggest enemy troop group, else the nearest enemy
  *                                    gate / tower (fireball-like tower damage).
- *   'wonderland' "Wunderland"     : all five features (these three + feat-b's ice / whirlwind), each in
+ *   'wonderland' "Wunderland"     : four features (chest + catapults + feat-b's ice / whirlwind), each in
  *                                    its own zone.
  *
  * Everything lives in this file (loaded after every other module) and plugs in by wrapping:
  *   - CR.RULES.arena.maps.<id> (map defs with a `featA` block), siege map list, Touchdown fields
  *     (= the plain field), CR.Arena.MAP_RULES texts;
  *   - CR.Arena.rebuild -> CR.Arena.FEATA (geometry of the current map, null elsewhere / in Touchdown)
- *     + the solid parts as OBSTACLES ({feat: 'hub' | 'chest' | 'cat'}); noBuilding / checkDeploy /
- *     deployGrid -> no buildings on the carousel, at the chest, at a catapult or its plate;
+ *     + the solid parts as OBSTACLES ({feat: 'chest' | 'cat'}); noBuilding / checkDeploy /
+ *     deployGrid -> no buildings at the chest, at a catapult or its plate;
  *   - CR.MapHz (create / post / view): state sim.hz = {m: map id, fa: {...}} (deterministic: the time
  *     and an own integer LCG seeded from the battle seed - no other random stream is touched);
- *     view.hz = {m, c: [angle, ang. speed] (carousel), x: [up, kind, side, progress, s] (chest),
+ *     view.hz = {m, x: [up, kind, side, progress, s] (chest),
  *     k: [[owner, wind 0..1, aimX, aimY, shots, taking side, take progress 0..1] per catapult],
  *     r: [[x0, y0, x1, y1, k 0..1, side, flight s] boulders]};
  *     events {t: 'hz', k: 'chest' | 'chestup' | 'take' | 'fire' | 'boom'};
@@ -111405,11 +111749,6 @@ body { font-weight: 700; letter-spacing: 0; }
 
   // ============================================================================ 1. rules / maps
   // Feature data (side-0 coordinates; the field is 18 x 32, the middle band y 15..17).
-  function carDef(x, y) {
-    // r = walkable platform radius; hub = half size of the centre post (obstacle); period = s per
-    // turn; ramp = s to speed up / slow down at a reversal; noBuild = extra margin for buildings
-    return { x: x, y: y, r: 4.0, hub: 0.45, period: 28, ramp: 1.6, noBuild: 0.6 };
-  }
   function chestDef(x, y) {
     return {
       x: x, y: y, size: 1.2,            // stone pedestal (obstacle) under the chest
@@ -111447,28 +111786,22 @@ body { font-weight: 700; letter-spacing: 0; }
     const b = { x: 18 - a.x, y: 32 - a.y, x0: 18 - a.x1, y0: 32 - a.y1, x1: 18 - a.x0, y1: 32 - a.y0, px: 18 - a.px, py: 32 - a.py };
     return [a, b];
   }
-  FA.carDef = carDef; FA.chestDef = chestDef; FA.catDef = catDef; FA.catPair = catPair;
+  FA.chestDef = chestDef; FA.catDef = catDef; FA.catPair = catPair;
 
-  const IDS = ['carousel', 'treasure', 'catapult', 'wonderland'];
+  const IDS = ['treasure', 'catapult', 'wonderland'];
   FA.IDS = IDS;
-  const NAMES = { carousel: 'Karussell', treasure: 'Schatzinsel', catapult: 'Katapult-Hügel', wonderland: 'Wunderland' };
+  const NAMES = { treasure: 'Schatzinsel', catapult: 'Katapult-Hügel', wonderland: 'Wunderland' };
   FA.NAMES = NAMES;
   (function () {
     const RA = CR.RULES && CR.RULES.arena;
     if (!RA) return;
     const maps = RA.maps || (RA.maps = {});
-    if (!maps.carousel) {
-      maps.carousel = {
-        id: 'carousel', name: NAMES.carousel, river: false, featA: { car: carDef(9, 16) },
-        desc: 'Ein riesiges Karussell dreht sich in der Mitte und trägt Bodentruppen von Bahn zu Bahn.',
-      };
-    }
     if (!maps.treasure) {
       maps.treasure = {
         id: 'treasure', name: NAMES.treasure, river: false, featA: { chest: chestDef(9, 16) },
         towerHpMult: 1.03,           // bot balance (docs/V31-FEAT-A.md): the rewards made matches ~4 s shorter
         hp2Mult: 1.04,               // 2v2 on top (section 4: applied on the first tick)
-        desc: 'Eine Schatztruhe in der Mitte: Wer sie 2 Sekunden allein hält, bekommt Elixier, Wut oder Kobolde.',
+        desc: 'Eine Schatztruhe in der Mitte: Wer sie 2 Sekunden allein hält, bekommt Kristalle, Wut oder Kobolde.',
       };
     }
     if (!maps.catapult) {
@@ -111483,22 +111816,21 @@ body { font-weight: 700; letter-spacing: 0; }
       // v31 combined map (section 9 fills in feat-b's zones when 41-feat-b.js is there)
       maps.wonderland = {
         id: 'wonderland', name: NAMES.wonderland, river: false,
-        towerHpMult: 1.06,           // bot balance: five features speed the match up (~7 s)
-        hp2Mult: 1.08,
+        towerHpMult: 1.03,           // bot balance (v32: without the two carousels x1.06 -> x1.03, 2v2 x1.08 -> x1.03)
+        hp2Mult: 1.03,
         // zones (side 0 at the bottom; side 1 = the 180-degree mirror):
         //   middle   : the treasure island (9, 16) in a frozen lake (feat-b ice, x 4..14, y 14..18) with
         //              the whirlwind roaming over the lake;
-        //   lanes    : a catapult at each side line, its plate in the lane level with the island;
-        //   fronts   : a small carousel in front of each side's right gate (a point-symmetric pair).
+        //   lanes    : a catapult at each side line, its plate in the lane level with the island.
+        // (v32: the two small carousels in front of the right gates were removed)
         featA: {
-          cars: [Object.assign(carDef(13.5, 11.3), { r: 2.4 }), Object.assign(carDef(4.5, 20.7), { r: 2.4 })],
           chest: chestDef(9, 16),
           cat: catDef(catPair(16, 3.5)),
         },
         // feat-b (41-feat-b.js, data driven): the frozen lake around the island + the whirlwind over it
         ice: { x0: 4, x1: 14, y0: 14, y1: 18, shore: 1 },
         whirlwind: { cx: 9, cy: 16, ax: [3.4, 0.8], ay: [2.2, 0.6], xMin: 4.5, xMax: 13.5, yMin: 13.5, yMax: 18.5, first: 20 },
-        desc: 'Alle fünf Spezial-Features auf einer Karte – jedes in seiner eigenen Zone.',
+        desc: 'Vier Spezial-Features auf einer Karte – jedes in seiner eigenen Zone.',
       };
     }
     // the siege layout (default) on these maps too + the plain Touchdown field
@@ -111509,20 +111841,16 @@ body { font-weight: 700; letter-spacing: 0; }
 
   // German rules lines (rules screen / CR.Arena.mapRules)
   const RULE_TXT = {
-    carousel: [
-      'Karussell: In der Mitte dreht sich eine große runde Plattform – eine Runde in 28 Sekunden, danach dreht sie andersherum.',
-      'Bodentruppen, die darauf stehen, werden mitgedreht (auch von einer Bahn zur anderen). Gebäude dürfen nicht aufs Karussell.',
-    ],
     treasure: [
       'Schatzinsel: In der Mitte steht eine Schatztruhe. Steht 2 Sekunden lang nur eine deiner Bodentruppen daneben (kein Gegner), öffnet sie sich.',
-      'Belohnung (wechselt): +2 Elixier, Wut für deine Truppen in der Nähe oder drei Kobolde. 40 Sekunden später steht eine neue Truhe da.',
+      'Belohnung (wechselt): +2 Kristalle, Wut für deine Truppen in der Nähe oder drei Kobolde. 40 Sekunden später steht eine neue Truhe da.',
     ],
     catapult: [
       'Katapult-Hügel: An jeder Seitenlinie steht ein neutrales Katapult mit einer Druckplatte in der Bahn.',
       'Steht kurz nur eine deiner Bodentruppen auf der Platte, gehört das Katapult dir (bis der Gegner die Platte allein besetzt). Es zieht sich auf und schleudert alle 10 Sekunden einen Felsbrocken auf die größte gegnerische Truppengruppe, sonst aufs nächste Tor bzw. den nächsten Turm. Stehen beide Seiten auf der Platte, stoppt es.',
     ],
     wonderland: [
-      'Wunderland: alle fünf Spezial-Features auf einer Karte – Karussell in der Mitte, zwei Katapulte an den Seiten und die Features von Eis und Wirbelsturm in eigenen Zonen.',
+      'Wunderland: vier Spezial-Features auf einer Karte – die Schatzinsel in der Mitte auf einem gefrorenen See mit Wirbelsturm, zwei Katapulte an den Seiten.',
     ],
   };
   FA.RULE_TXT = RULE_TXT;
@@ -111530,21 +111858,11 @@ body { font-weight: 700; letter-spacing: 0; }
 
   // ============================================================================ 2. arena geometry
   const Arena = CR.Arena;
-  /** Geometry of the current arena's features ({car, chest, cats, nb: no-build circles / rects}) or null. */
+  /** Geometry of the current arena's features ({chest, cats, nb: no-build circles / rects}) or null. */
   function buildFeat(M) {
     const F = M && M.featA;
     if (!F) return null;
-    const out = { car: null, cars: [], chest: null, cat: null, cats: [], nbC: [], nbR: [], obs: [] };
-    // one carousel (`car`) or several (`cars`, e.g. a point-symmetric pair - they share one clock and
-    // turn the same way, which keeps the map fair under the 180-degree rotation)
-    const cl = F.cars || (F.car ? [F.car] : []);
-    for (let i = 0; i < cl.length; i++) {
-      const c = cl[i];
-      out.cars.push({ index: i, x: c.x, y: c.y, r: c.r, hub: c.hub, period: c.period, ramp: Math.min(c.ramp, c.period / 3) });
-      out.obs.push({ x0: c.x - c.hub, y0: c.y - c.hub, x1: c.x + c.hub, y1: c.y + c.hub, obstacle: true, feat: 'hub' });
-      out.nbC.push({ x: c.x, y: c.y, r: c.r + c.noBuild });
-    }
-    out.car = out.cars[0] || null;
+    const out = { chest: null, cat: null, cats: [], nbC: [], nbR: [], obs: [] };
     if (F.chest) {
       const c = F.chest, h = c.size / 2;
       out.chest = Object.assign({}, c);
@@ -111613,27 +111931,6 @@ body { font-weight: 700; letter-spacing: 0; }
     try { if (Arena.applyTowerLayout) Arena.applyTowerLayout(Arena.towerLayoutMode); Arena.rebuild(); } catch (e) { /* ignore */ }
   }
 
-  // ============================================================================ 3. carousel clock
-  /** Carousel angle at time t (rad, one full turn per period, direction flips every period, soft
-   *  speed ramps of `ramp` s at the ends of every turn) and its angular speed (rad / s). */
-  function carF(u, P, a) {
-    if (u < a) return 0.5 * u * u / a;
-    if (u <= P - a) return 0.5 * a + (u - a);
-    const v = P - u;
-    return (P - a) - 0.5 * v * v / a;
-  }
-  function carAngle(C, t, out) {
-    const P = C.period, a = C.ramp, om = TAU / (P - a);
-    const k = Math.floor(t / P), u = t - k * P, d = (k & 1) ? -1 : 1;
-    let ang = d * om * carF(u, P, a);
-    ang -= Math.floor(ang / TAU) * TAU;
-    const w = d * om * Math.min(1, u / a, (P - u) / a);
-    if (out) { out.a = ang; out.w = w; return out; }
-    return ang;
-  }
-  FA.carAngle = carAngle;
-  function wrapPi(a) { while (a > Math.PI) a -= TAU; while (a <= -Math.PI) a += TAU; return a; }
-
   // ============================================================================ 4. MapHz
   /** feat-b / combined-map extensions: { id, create(sim) -> st | null, pre(sim, st), post(sim, st),
    *  view(sim, st) -> value } - their state lives in sim.hz.fx[id], their view in view.hz[id]. */
@@ -111649,7 +111946,7 @@ body { font-weight: 700; letter-spacing: 0; }
   function createFeat(sim) {
     const A = CR.Arena, F = A.FEATA;
     if (!F || sim.mode === 'touchdown') return null;
-    const H = { m: A.map, fa: true, rs: ((num(sim.seed, 1) * 2654435761) ^ 0x5bd1e995) >>> 0, ct: 0, chest: null, cats: null, rocks: [], fx: {}, n: { opens: 0, shots: 0, takes: 0, hits: 0, carried: 0 } };
+    const H = { m: A.map, fa: true, rs: ((num(sim.seed, 1) * 2654435761) ^ 0x5bd1e995) >>> 0, chest: null, cats: null, rocks: [], fx: {}, n: { opens: 0, shots: 0, takes: 0, hits: 0 } };
     if (F.chest) {
       const k = Math.floor(lcg(H) * 3) % 3;
       H.chest = { up: 0, at: F.chest.first, kind: k, cs: -1, cp: 0, last: -1 };
@@ -111661,28 +111958,6 @@ body { font-weight: 700; letter-spacing: 0; }
       try { const st = e.create(sim); if (st) H.fx[e.id] = st; } catch (er) { /* an extension must never break the battle */ }
     }
     return H;
-  }
-
-  // --- carousel: carry the ground troops on the platform round its centre
-  const CA = { a: 0, w: 0 };
-  function carStep(sim, H, C) {
-    const t1 = sim.time, t0 = H.ct;
-    H.ct = t1;
-    if (!(t1 > t0)) return;
-    const d = wrapPi(carAngle(C, t1) - carAngle(C, t0));
-    if (Math.abs(d) < 1e-12) return;
-    const cs = Math.cos(d), sn = Math.sin(d), rr = C.r * C.r;
-    const us = sim.units;
-    for (let i = 0; i < us.length; i++) {
-      const u = us[i];
-      if (!groundOk(sim, u)) continue;
-      const dx = u.x - C.x, dy = u.y - C.y;
-      if (dx * dx + dy * dy > rr) continue;
-      u.x = C.x + dx * cs - dy * sn;
-      u.y = C.y + dx * sn + dy * cs;
-      if (typeof u.dir === 'number' && isFinite(u.dir)) u.dir += d;
-      H.n.carried += sim.dt;
-    }
   }
 
   // --- treasure chest
@@ -111862,7 +112137,6 @@ body { font-weight: 700; letter-spacing: 0; }
       const M = CR.Arena.MAP, k = M && M.hp2Mult > 0 && sim.teamSize > 1 ? M.hp2Mult : 1;
       if (k !== 1) for (let i = 0; i < sim.towers.length; i++) { const t = sim.towers[i]; t.maxHp = Math.round(t.maxHp * k); t.hp = Math.round(t.hp * k); }
     }
-    if (F.car) { const t0 = H.ct; for (let i = 0; i < F.cars.length; i++) { H.ct = t0; carStep(sim, H, F.cars[i]); } }
     if (F.chest && H.chest) chestStep(sim, H, F.chest);
     if (F.cats.length && H.cats) catStep(sim, H, F);
   }
@@ -111871,7 +112145,6 @@ body { font-weight: 700; letter-spacing: 0; }
   function viewFeat(sim, H) {
     const F = CR.Arena.FEATA, o = { m: H.m };
     if (!F) return o;
-    if (F.car) { carAngle(F.car, sim.time, CA); o.c = [r3(CA.a), r3(CA.w)]; }
     if (F.chest && H.chest) {
       const S = H.chest;
       o.x = [S.up, S.kind, S.cs, r3(clamp(S.cp / F.chest.capT, 0, 1)), r3(S.up ? 0 : Math.max(0, S.at - sim.time)), S.last];
@@ -111986,19 +112259,15 @@ body { font-weight: 700; letter-spacing: 0; }
   // One group per arena (r._fa), freed with the arena. Built on the 'flat' field of 26 (the maps are
   // in Render3D.v18.FLAT_IDS - the renderer's map is 'flat', the real id is r._faId). Everything is
   // read from view.hz + 'hz' events (host = guest) and CR.Arena.FEATA (static geometry).
-  //  carousel : deck (12 coloured plank sectors, brass rim, ring gear, poles, hub column + striped
-  //             canopy) = ONE merged mesh turning with the sim angle; carved horses (instanced, bob on
-  //             their poles), bulbs (instanced, chase lights), the static stone skirt with 4 wooden
-  //             ramps, 3 pinion gears meshing with the ring gear (instanced, spin) - 5 draw calls;
   //  chest    : sandy island + pedestal (static), the chest (body + lid + reward gem), the capture
   //             ring (progress arc in the capturing team's colour), gold coins (instanced burst);
   //  catapult : stone mound + plate (static, both catapults in one mesh), per catapult a turning
   //             frame (wheels, uprights, crossbar, winch), the throwing arm (winds down with the
   //             view's wind, swings up on a shot), the drum, a team-coloured pennant; plate rings
   //             (take progress / owner colour); boulders + ground shadows (instanced).
-  // Quality 'low' (r._lq): 4 horses instead of 8, fewer bulbs / coins / sparkles.
+  // Quality 'low' (r._lq): fewer coins / sparkles.
   const TEAM = [0x1f5eff, 0xe5322b];
-  const RCOL = { elixir: 0xe040fb, rage: 0x9b5cff, goblins: 0x5fd04a };
+  const RCOL = { elixir: 0x2fe0d8, rage: 0x9b5cff, goblins: 0x5fd04a };
   function sstep(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
   function outBack(t) { t = clamp(t, 0, 1); const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
   function teamOf(r, side) { return side === (r.localSide === 1 ? 1 : 0) ? TEAM[0] : TEAM[1]; }
@@ -112030,157 +112299,6 @@ body { font-weight: 700; letter-spacing: 0; }
   function own(F, o) { if (o.geometry) F.geos.push(o.geometry); if (o.material) F.mats.push(o.material); return o; }
   function wx(r, x) { return x - r.hw; }
   function wz(r, y) { return r.hh - y; }
-
-  // ---------------------------------------------------------------- carousel
-  const CC = { deck: [0xf4e4bf, 0x2fb3a6, 0xf3b63c, 0x5aa6e8], plank: 0x8a5a2e, brass: 0xe0b04a, brassD: 0xa97a28, wood: 0x9c6a3a, woodL: 0xc89a62,
-    stone: 0xb9b2a2, stoneD: 0x8e8778, canopy: [0x2fb3a6, 0xf6ead0, 0xf3b63c, 0xf6ead0], horse: 0xfaf4e6, mane: 0xc0823e, saddle: 0xf2c14e, blanket: [0x2fb3a6, 0x5aa6e8, 0xb07ae0, 0xf08a3c] };
-  function horseGeo(T, Merge, k) {
-    const m = new Merge(T);
-    m.add(new T.SphereGeometry(0.5, 10, 7), 0, 0, 0, 0, 0, 0, 0.46, 0.22, 0.2, CC.horse);
-    m.add(new T.CylinderGeometry(0.07, 0.11, 0.34, 7), 0.29, 0.17, 0, 0, 0, -0.62, 1, 1, 1, CC.horse);
-    m.add(new T.BoxGeometry(0.26, 0.12, 0.12), 0.45, 0.3, 0, 0, 0, -0.42, 1, 1, 1, CC.horse);
-    m.add(new T.BoxGeometry(0.06, 0.08, 0.03), 0.4, 0.39, 0.035, 0, 0, -0.3, 1, 1, 1, CC.horse);
-    m.add(new T.BoxGeometry(0.06, 0.08, 0.03), 0.4, 0.39, -0.035, 0, 0, -0.3, 1, 1, 1, CC.horse);
-    m.add(new T.BoxGeometry(0.24, 0.07, 0.05), 0.31, 0.3, 0, 0, 0, -0.75, 1, 1, 1, CC.mane);
-    m.add(new T.CylinderGeometry(0.035, 0.07, 0.34, 5), -0.5, 0.02, 0, 0, 0, 1.05, 1, 1, 1, CC.mane);
-    for (let s = -1; s <= 1; s += 2) {
-      m.add(new T.CylinderGeometry(0.035, 0.03, 0.32, 5), 0.27, -0.18, 0.07 * s, 0, 0, 0.95, 1, 1, 1, CC.horse);
-      m.add(new T.CylinderGeometry(0.035, 0.03, 0.32, 5), -0.27, -0.18, 0.07 * s, 0, 0, -0.65, 1, 1, 1, CC.horse);
-      m.add(new T.BoxGeometry(0.06, 0.05, 0.05), 0.4, -0.28, 0.07 * s, 0, 0, 0.95, 1, 1, 1, CC.saddle);
-      m.add(new T.BoxGeometry(0.06, 0.05, 0.05), -0.36, -0.3, 0.07 * s, 0, 0, -0.65, 1, 1, 1, CC.saddle);
-    }
-    m.add(new T.BoxGeometry(0.26, 0.04, 0.25), 0, 0.2, 0, 0, 0, 0, 1, 1, 1, CC.blanket[k % 4]);
-    m.add(new T.BoxGeometry(0.16, 0.05, 0.2), 0, 0.235, 0, 0, 0, 0, 1, 1, 1, CC.saddle);
-    return m.build();
-  }
-  function buildCarousel(r, F, C) {
-    const K = geoKit(r), T = K.T, lo = !!r._lq, R = C.r;
-    const mat = own(F, { material: K.toon(r) }).material;
-    const g = new T.Group();
-    g.position.set(wx(r, C.x), 0, wz(r, C.y));
-    F.group.add(g);
-    // static: stone skirt (a gentle ramp all round) + 4 wooden ramps
-    const sm = new K.Merge(T);
-    sm.add(new T.CylinderGeometry(R + 0.06, R + 0.55, 0.07, 56, 1, true), 0, 0.035, 0, 0, 0, 0, 1, 1, 1, CC.stone);
-    sm.add(new T.RingGeometry(R - 0.02, R + 0.08, 56), 0, 0.071, 0, -Math.PI / 2, 0, 0, 1, 1, 1, CC.stoneD);
-    for (let i = 0; i < 4; i++) {
-      const a = i / 4 * TAU + Math.PI / 4;
-      sm.add(new T.BoxGeometry(0.9, 0.03, 0.7), Math.cos(a) * (R + 0.32), 0.05, -Math.sin(a) * (R + 0.32), 0, a, -0.06, 1, 1, 1, CC.woodL);
-      for (let k = -1; k <= 1; k++) sm.add(new T.BoxGeometry(0.06, 0.035, 0.68), Math.cos(a) * (R + 0.32 + k * 0.25), 0.055, -Math.sin(a) * (R + 0.32 + k * 0.25), 0, a, 0, 1, 1, 1, CC.wood);
-    }
-    const base = new T.Mesh(own(F, { geometry: sm.build() }).geometry, mat);
-    g.add(base);
-    // the turning deck
-    const rot = new T.Group();
-    g.add(rot);
-    const dm = new K.Merge(T);
-    const NS = 12;
-    for (let i = 0; i < NS; i++) {
-      const a0 = i / NS * TAU;
-      dm.add(new T.CircleGeometry(R, 6, a0, TAU / NS), 0, 0.075, 0, -Math.PI / 2, 0, 0, 1, 1, 1, CC.deck[i % 4]);
-      dm.add(new T.BoxGeometry(R - 1.2, 0.012, 0.05), Math.cos(a0) * (R / 2 + 0.6), 0.082, -Math.sin(a0) * (R / 2 + 0.6), 0, a0, 0, 1, 1, 1, CC.plank);
-    }
-    dm.add(new T.RingGeometry(R - 0.32, R, 56), 0, 0.079, 0, -Math.PI / 2, 0, 0, 1, 1, 1, 0x2a8f86);
-    dm.add(new T.CircleGeometry(1.25, 20), 0, 0.08, 0, -Math.PI / 2, 0, 0, 1, 1, 1, CC.wood);
-    dm.add(new T.RingGeometry(1.2, 1.32, 24), 0, 0.085, 0, -Math.PI / 2, 0, 0, 1, 1, 1, CC.brass);
-    dm.add(new T.RingGeometry(R * 0.62, R * 0.62 + 0.07, 40), 0, 0.083, 0, -Math.PI / 2, 0, 0, 1, 1, 1, CC.brassD);
-    // brass rim band + ring gear teeth
-    dm.add(new T.CylinderGeometry(R, R, 0.16, 56, 1, true), 0, 0.02, 0, 0, 0, 0, 1, 1, 1, CC.brass);
-    dm.add(new T.TorusGeometry(R, 0.05, 5, 56), 0, 0.1, 0, Math.PI / 2, 0, 0, 1, 1, 1, CC.brassD);
-    const NT = lo ? 36 : 56;
-    for (let i = 0; i < NT; i++) { const a = i / NT * TAU; dm.add(new T.BoxGeometry(0.12, 0.08, 0.1), Math.cos(a) * (R + 0.06), 0.03, -Math.sin(a) * (R + 0.06), 0, a, 0, 1, 1, 1, CC.brassD); }
-    // poles of the horses + hub column + canopy (small: troops stay visible)
-    const NH = lo ? 4 : (R >= 3.5 ? 8 : 6), pr = R - 0.55, cr = Math.min(1.35, R * 0.36);
-    for (let i = 0; i < NH; i++) {
-      const a = (i + 0.5) / NH * TAU;
-      dm.add(new T.CylinderGeometry(0.045, 0.045, 1.75, 6), Math.cos(a) * pr, 0.95, -Math.sin(a) * pr, 0, 0, 0, 1, 1, 1, CC.brass);
-      dm.add(new T.SphereGeometry(0.08, 6, 4), Math.cos(a) * pr, 1.85, -Math.sin(a) * pr, 0, 0, 0, 1, 1, 1, CC.brass);
-    }
-    for (let k = 0; k < 6; k++) dm.add(new T.CylinderGeometry(0.33, 0.33, 0.36, 12), 0, 0.27 + k * 0.36, 0, 0, 0, 0, 1, 1, 1, k % 2 ? 0xf6ead0 : 0x2fb3a6);
-    dm.add(new T.CylinderGeometry(0.45, 0.52, 0.18, 14), 0, 0.17, 0, 0, 0, 0, 1, 1, 1, CC.brassD);
-    const CN = 10, ch = 2.45;
-    for (let i = 0; i < CN; i++) {
-      dm.add(new T.ConeGeometry(cr, 0.75, 2, 1, true, i / CN * TAU, TAU / CN), 0, ch + 0.37, 0, 0, 0, 0, 1, 1, 1, CC.canopy[i % 4]);
-      const a = (i + 0.5) / CN * TAU;
-      dm.add(new T.SphereGeometry(0.2, 6, 3, 0, TAU, Math.PI / 2, Math.PI / 2), Math.cos(a) * (cr - 0.1), ch + 0.02, -Math.sin(a) * (cr - 0.1), 0, 0, 0, 1, 0.9, 0.35, CC.canopy[(i + 2) % 4]);
-    }
-    dm.add(new T.CylinderGeometry(cr + 0.01, cr + 0.01, 0.1, CN * 2, 1, true), 0, ch, 0, 0, 0, 0, 1, 1, 1, CC.brass);
-    dm.add(new T.SphereGeometry(0.13, 8, 6), 0, ch + 0.85, 0, 0, 0, 0, 1, 1, 1, CC.brass);
-    dm.add(new T.CylinderGeometry(0.02, 0.02, 0.5, 4), 0, ch + 1.1, 0, 0, 0, 0, 1, 1, 1, CC.brassD);
-    dm.add(new T.ConeGeometry(0.16, 0.36, 3), 0.17, ch + 1.25, 0, 0, 0, -Math.PI / 2, 1, 1, 0.12, 0xf3b63c);
-    const deck = new T.Mesh(own(F, { geometry: dm.build() }).geometry, mat);
-    rot.add(deck);
-    // horses (instanced; one geometry, saddle blankets vary by instance colour)
-    const hg = own(F, { geometry: horseGeo(T, K.Merge, 0) }).geometry;
-    const horses = new T.InstancedMesh(hg, mat, NH);
-    horses.frustumCulled = false;
-    rot.add(horses);
-    F.disp.push(horses);
-    // bulbs (chase lights): rim + canopy edge
-    const NB = Math.round((lo ? 4 : 8) * R), NC = lo ? 0 : CN;
-    const bg = own(F, { geometry: new T.SphereGeometry(0.065, 6, 4) }).geometry;
-    const bm = own(F, { material: new T.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) }).material;
-    const bulbs = new T.InstancedMesh(bg, bm, NB + NC);
-    bulbs.frustumCulled = false;
-    const O = new T.Object3D();
-    for (let i = 0; i < NB; i++) { const a = i / NB * TAU; O.position.set(Math.cos(a) * (R - 0.12), 0.14, -Math.sin(a) * (R - 0.12)); O.updateMatrix(); bulbs.setMatrixAt(i, O.matrix); }
-    for (let i = 0; i < NC; i++) { const a = i / NC * TAU; O.position.set(Math.cos(a) * (cr + 0.01), ch - 0.02, -Math.sin(a) * (cr + 0.01)); O.updateMatrix(); bulbs.setMatrixAt(NB + i, O.matrix); }
-    const col = new T.Color(0xfff0a0);
-    for (let i = 0; i < NB + NC; i++) bulbs.setColorAt(i, col);
-    rot.add(bulbs);
-    F.disp.push(bulbs);
-    // pinion gears below the skirt (static spots, spinning)
-    const gm = new K.Merge(T);
-    gm.add(new T.CylinderGeometry(0.55, 0.55, 0.08, 18), 0, 0, 0, 0, 0, 0, 1, 1, 1, CC.brass);
-    gm.add(new T.CylinderGeometry(0.16, 0.16, 0.12, 10), 0, 0.02, 0, 0, 0, 0, 1, 1, 1, CC.brassD);
-    for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; gm.add(new T.BoxGeometry(0.16, 0.08, 0.14), Math.cos(a) * 0.6, 0, -Math.sin(a) * 0.6, 0, a, 0, 1, 1, 1, CC.brassD); }
-    for (let i = 0; i < 4; i++) { const a = i / 4 * TAU; gm.add(new T.BoxGeometry(0.42, 0.09, 0.06), Math.cos(a) * 0.3, 0.01, -Math.sin(a) * 0.3, 0, a, 0, 1, 1, 1, CC.brassD); }
-    const gears = new T.InstancedMesh(own(F, { geometry: gm.build() }).geometry, mat, 3);
-    gears.frustumCulled = false;
-    g.add(gears);
-    F.disp.push(gears);
-    F.cars.push({ g: g, rot: rot, horses: horses, bulbs: bulbs, gears: gears, O: O, col: col, NH: NH, NB: NB, NC: NC, R: R, pr: pr, a: 0, la: NaN, lw: 0, tv: -1, C: C, gearA: [Math.PI * 0.25, Math.PI * 0.92, Math.PI * 1.6] });
-  }
-  function updCarousel(r, F, hz, t, dt) {
-    for (let i = 0; i < F.cars.length; i++) updCar1(r, F.cars[i], hz, t, dt);
-  }
-  function updCar1(r, S, hz, t, dt) {
-    // the angle from the game clock (r._tv: interpolated sim time) - smooth between snapshots
-    const tv = r._tv >= 0 ? r._tv : (S.tv >= 0 ? S.tv + dt : 0);
-    S.tv = tv;
-    const A = carAngle(S.C, tv, CA);
-    const ang = A.a, w = A.w;
-    S.rot.rotation.y = ang;
-    // reversal: a clunk puff at the gears when the speed passes zero
-    if (S.lw * w < 0 && r.fx) for (let i = 0; i < 3; i++) { const a = S.gearA[i]; r.fx.emit('dust', wx(r, S.C.x) + Math.cos(a) * (S.R + 0.6), 0.08, wz(r, S.C.y) - Math.sin(a) * (S.R + 0.6), 0.5, 4, 0xd8ccb0); }
-    S.lw = w;
-    const O = S.O;
-    for (let i = 0; i < S.NH; i++) {
-      const a = (i + 0.5) / S.NH * TAU, bob = 0.62 + 0.2 * Math.sin(t * 2.2 + i * 1.9);
-      O.position.set(Math.cos(a) * S.pr, bob, -Math.sin(a) * S.pr);
-      O.rotation.set(0, a + (w >= 0 ? Math.PI / 2 : -Math.PI / 2), 0.12 * Math.sin(t * 2.2 + i * 1.9 + 1.2));
-      O.scale.setScalar(1.6);
-      O.updateMatrix();
-      S.horses.setMatrixAt(i, O.matrix);
-    }
-    S.horses.instanceMatrix.needsUpdate = true;
-    // chase lights (3 on, 1 off running round; the canopy blinks in pairs)
-    const ph = Math.floor(t * 8);
-    for (let i = 0; i < S.NB; i++) { S.col.setHex(((i + ph) & 3) === 0 ? 0x8a6a30 : 0xfff0a0); S.bulbs.setColorAt(i, S.col); }
-    for (let i = 0; i < S.NC; i++) { S.col.setHex(((i + (ph >> 1)) & 1) ? 0xffffff : 0xffc46a); S.bulbs.setColorAt(S.NB + i, S.col); }
-    if (S.bulbs.instanceColor) S.bulbs.instanceColor.needsUpdate = true;
-    // pinion gears spin against the ring gear (gear ratio R / 0.6)
-    for (let i = 0; i < 3; i++) {
-      const a = S.gearA[i], gr = S.R + 0.62;
-      O.position.set(Math.cos(a) * gr, 0.02, -Math.sin(a) * gr);
-      O.rotation.set(0, -ang * S.R / 0.6, 0);
-      O.scale.setScalar(1);
-      O.updateMatrix();
-      S.gears.setMatrixAt(i, O.matrix);
-    }
-    S.gears.instanceMatrix.needsUpdate = true;
-    void hz;
-  }
 
   // ---------------------------------------------------------------- treasure chest
   const CH = { sand: 0xdcb46c, sandD: 0xb88c4a, rock: 0x9b9384, shell: 0xf6e7d6, wood: 0x8b5a2b, woodD: 0x6b4220, gold: 0xf2c14e, goldD: 0xc8922a, stone: 0xb7ae9c, inner: 0x3a2412 };
@@ -112526,9 +112644,8 @@ body { font-weight: 700; letter-spacing: 0; }
     if (!id) return;
     const Fg = A && A.FEATA && A.map === id ? A.FEATA : buildFeat((CR.RULES.arena.maps || {})[id]);
     if (!Fg) return;
-    const F = r._fa = { id: id, group: new T.Group(), geos: [], mats: [], disp: [], cars: [], chest: null, cats: null, lastT: -1 };
+    const F = r._fa = { id: id, group: new T.Group(), geos: [], mats: [], disp: [], chest: null, cats: null, lastT: -1 };
     r.arena.add(F.group);
-    for (let i = 0; i < Fg.cars.length; i++) buildCarousel(r, F, Fg.cars[i]);
     if (Fg.chest) buildChest(r, F, Fg.chest);
     if (Fg.cats.length) buildCatapults(r, F, Fg.cats, Fg.cat);
     if (FA.gfxExt) for (let i = 0; i < FA.gfxExt.length; i++) { const e = FA.gfxExt[i]; if (e && e.build) { try { e.build(r, F, id); } catch (er) { /* ignore */ } } }
@@ -112540,7 +112657,6 @@ body { font-weight: 700; letter-spacing: 0; }
     const dr = clamp(F.lastT >= 0 ? t - F.lastT : 0, 0, 0.1);
     F.lastT = t;
     const hz = cur && cur.hz && cur.hz.m === F.id ? cur.hz : null;
-    updCarousel(r, F, hz, t, dr);
     updChest(r, F, hz, t, dr);
     updCatapults(r, F, hz, t, dr);
     if (FA.gfxExt) for (let i = 0; i < FA.gfxExt.length; i++) { const e = FA.gfxExt[i]; if (e && e.update) e.update(r, F, hz, t, dr); }
@@ -112655,21 +112771,6 @@ body { font-weight: 700; letter-spacing: 0; }
     const tcol = function (s) { return s === ls ? '#1f5eff' : '#e5322b'; };
     g.save();
     g.setTransform(d, 0, 0, d, 0, 0);
-    for (let ci = 0; ci < F.cars.length; ci++) {
-      const C = F.cars[ci], c = P(C.x, C.y), R = C.r * ts, a = carAngle(C, t);
-      const flip = (P(C.x, C.y + 1).py < c.py) ? -1 : 1;
-      for (let i = 0; i < 12; i++) {
-        g.fillStyle = HEX(CC.deck[i % 4]);
-        g.beginPath(); g.moveTo(c.px, c.py);
-        g.arc(c.px, c.py, R, flip * (a + i / 12 * TAU), flip * (a + (i + 1) / 12 * TAU), flip < 0);
-        g.closePath(); g.fill();
-      }
-      g.strokeStyle = '#c8922a'; g.lineWidth = Math.max(2, ts * 0.12);
-      g.beginPath(); g.arc(c.px, c.py, R, 0, TAU); g.stroke();
-      g.fillStyle = '#2fb3a6'; g.beginPath(); g.arc(c.px, c.py, ts * 0.6, 0, TAU); g.fill();
-      g.fillStyle = '#faf4e6';
-      for (let i = 0; i < 8; i++) { const b = flip * (a + (i + 0.5) / 8 * TAU); g.beginPath(); g.arc(c.px + Math.cos(b) * (R - ts * 0.55), c.py + Math.sin(b) * (R - ts * 0.55), ts * 0.22, 0, TAU); g.fill(); }
-    }
     if (F.chest && hz.x) {
       const C = F.chest, c = P(C.x, C.y), x = hz.x;
       g.fillStyle = 'rgba(233,207,142,0.85)'; g.beginPath(); g.arc(c.px, c.py, (C.capR + 0.3) * ts, 0, TAU); g.fill();
@@ -112741,14 +112842,13 @@ body { font-weight: 700; letter-spacing: 0; }
   // A gallery group "Spezial-Features" with the five single-feature maps (+ feat-b's 'ice' /
   // 'whirlwind'); the combined map goes to "Spezial". Map cards / tags / text from FEAT_META.
   const FEAT_META = {
-    carousel: { group: 'feat', desc: 'Ein riesiges Karussell dreht sich in der Mitte – Bodentruppen fahren mit, von Bahn zu Bahn.', tags: [['Mauer + Tore', 'tw'], ['Karussell', 'ft'], ['Neu', 'nw']] },
-    treasure: { group: 'feat', desc: 'Schatztruhe in der Mitte: 2 Sekunden allein daneben stehen – Elixier, Wut oder Kobolde.', tags: [['Mauer + Tore', 'tw'], ['Schatz', 'ft'], ['Neu', 'nw']] },
-    catapult: { group: 'feat', desc: 'Zwei neutrale Katapulte: Wer allein auf der Druckplatte steht, schießt Felsbrocken auf den Gegner.', tags: [['Mauer + Tore', 'tw'], ['Katapult', 'ft'], ['Neu', 'nw']] },
-    wonderland: { group: 'special', desc: 'Alle fünf Spezial-Features auf einer Karte – jedes in seiner eigenen Zone.', tags: [['Mauer + Tore', 'tw'], ['5 Features', 'ft'], ['Neu', 'nw']] },
+    treasure: { group: 'feat', desc: 'Schatztruhe in der Mitte: 2 Sekunden allein daneben stehen – Kristalle, Wut oder Kobolde.', tags: [['Schatz', 'ft'], ['Neu', 'nw']] },
+    catapult: { group: 'feat', desc: 'Zwei neutrale Katapulte: Wer allein auf der Druckplatte steht, schießt Felsbrocken auf den Gegner.', tags: [['Katapult', 'ft'], ['Neu', 'nw']] },
+    wonderland: { group: 'special', desc: 'Vier Spezial-Features auf einer Karte – jedes in seiner eigenen Zone.', tags: [['4 Features', 'ft'], ['Neu', 'nw']] },
   };
   FA.FEAT_META = FEAT_META;
   FA.FEAT_GROUP = { id: 'feat', label: 'Spezial-Features', short: 'Features', sub: 'Je ein neues Feature pro Karte' };
-  FA.GROUP_MAPS = ['carousel', 'treasure', 'catapult', 'ice', 'whirlwind'];
+  FA.GROUP_MAPS = ['treasure', 'catapult', 'ice', 'whirlwind'];
   function previewSvg(id) {
     const M = (CR.RULES.arena.maps || {})[id];
     const F = M ? buildFeat(M) : null;
@@ -112757,18 +112857,10 @@ body { font-weight: 700; letter-spacing: 0; }
     let b = '';
     // feat-b parts of the combined map (frozen lake, whirlwind) under / over ours
     if (M.ice && M.ice.x1 > M.ice.x0) b += '<rect x="' + M.ice.x0 + '" y="' + sy(M.ice.y1) + '" width="' + (M.ice.x1 - M.ice.x0) + '" height="' + (M.ice.y1 - M.ice.y0) + '" rx=".6" fill="#bfe6f7" stroke="#f4fbff" stroke-width=".25"/>';
-    for (let ci = 0; ci < F.cars.length; ci++) {
-      const C = F.cars[ci];
-      for (let i = 0; i < 8; i++) {
-        const a0 = i / 8 * TAU, a1 = (i + 1) / 8 * TAU;
-        b += '<path d="M' + C.x + ' ' + sy(C.y) + 'L' + (C.x + Math.cos(a0) * C.r).toFixed(2) + ' ' + sy(C.y + Math.sin(a0) * C.r) + 'A' + C.r + ' ' + C.r + ' 0 0 0 ' + (C.x + Math.cos(a1) * C.r).toFixed(2) + ' ' + sy(C.y + Math.sin(a1) * C.r) + 'Z" fill="' + ['#f4e4bf', '#2fb3a6', '#f3b63c', '#5aa6e8'][i % 4] + '"/>';
-      }
-      b += '<circle cx="' + C.x + '" cy="' + sy(C.y) + '" r="' + C.r + '" fill="none" stroke="#c8922a" stroke-width=".3"/><circle cx="' + C.x + '" cy="' + sy(C.y) + '" r=".7" fill="#2fb3a6" stroke="#f6ead0" stroke-width=".2"/>';
-    }
     if (F.chest) {
       const C = F.chest;
       b += '<circle cx="' + C.x + '" cy="' + sy(C.y) + '" r="' + (C.capR + 0.3) + '" fill="#e9cf8e"/><circle cx="' + C.x + '" cy="' + sy(C.y) + '" r="' + C.capR + '" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width=".2" stroke-dasharray=".5 .4"/>' +
-        '<rect x="' + (C.x - 0.6) + '" y="' + (32 - C.y - 0.4) + '" width="1.2" height=".8" rx=".15" fill="#8b5a2b" stroke="#f2c14e" stroke-width=".18"/><circle cx="' + C.x + '" cy="' + (32 - C.y - 0.55).toFixed(2) + '" r=".25" fill="#e040fb"/>';
+        '<rect x="' + (C.x - 0.6) + '" y="' + (32 - C.y - 0.4) + '" width="1.2" height=".8" rx=".15" fill="#8b5a2b" stroke="#f2c14e" stroke-width=".18"/><circle cx="' + C.x + '" cy="' + (32 - C.y - 0.55).toFixed(2) + '" r=".25" fill="#2fe0d8"/>';
     }
     for (let i = 0; i < F.cats.length; i++) {
       const c = F.cats[i];
@@ -112800,7 +112892,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const k = FEAT_META[id];
         if (k) {
           out.desc = k.desc; out.group = k.group; out.isNew = true;
-          out.tags = k.tags.map(function (t) { return { label: t[1] === 'tw' && !(CR.RULES.arena.maps[id] || {}).siege ? '3 Türme' : t[0], kind: t[1] }; });
+          out.tags = k.tags.map(function (t) { return { label: t[0], kind: t[1] }; });   // (v32: no tower tag - every map has the siege layout)
         } else if (out && FA.GROUP_MAPS.indexOf(id) >= 0) out.group = 'feat';   // feat-b's single-feature maps
         return out;
       };
@@ -112819,10 +112911,9 @@ body { font-weight: 700; letter-spacing: 0; }
       UI.mapRuleTexts = function () {
         const out = rt0.apply(this, arguments);
         return out.concat([
-          '<b>Karussell</b>: Eine große runde Plattform dreht sich in der Mitte (eine Runde in 28 Sekunden, danach andersherum). Bodentruppen darauf fahren mit – auch von einer Bahn zur anderen. Keine Gebäude aufs Karussell.',
-          '<b>Schatzinsel</b>: Steht 2 Sekunden lang nur eine deiner Bodentruppen neben der Truhe in der Mitte, öffnet sie sich: <b>+2 Elixier</b>, <b>Wut</b> für deine Truppen in der Nähe oder <b>drei Kobolde</b> (wechselt). Nach 40 Sekunden kommt eine neue Truhe.',
+          '<b>Schatzinsel</b>: Steht 2 Sekunden lang nur eine deiner Bodentruppen neben der Truhe in der Mitte, öffnet sie sich: <b>+2 Kristalle</b>, <b>Wut</b> für deine Truppen in der Nähe oder <b>drei Kobolde</b> (wechselt). Nach 40 Sekunden kommt eine neue Truhe.',
           '<b>Katapult-Hügel</b>: Zwei neutrale Katapulte an den Seitenlinien. Stehen nur deine Bodentruppen kurz auf der Druckplatte, gehört das Katapult dir: Es zieht sich auf und schleudert alle 10 Sekunden einen Felsbrocken auf die größte gegnerische Truppengruppe, sonst auf das nächste Tor bzw. den nächsten Turm.',
-          '<b>Wunderland</b>: alle fünf Spezial-Features auf einer Karte, jedes in seiner eigenen Zone.',
+          '<b>Wunderland</b>: vier Spezial-Features auf einer Karte, jedes in seiner eigenen Zone.',
         ]);
       };
     }
@@ -113570,7 +113661,7 @@ body { font-weight: 700; letter-spacing: 0; }
         const k = META[id];
         if (!k) return out;
         const sg = !!(maps[id] && maps[id].siege);
-        const tags = [{ label: sg ? 'Mauer + Tore' : '3 Türme', kind: 'tw' }];
+        const tags = sg ? [] : [{ label: '3 Türme', kind: 'tw' }];   // (v32: no "Mauer + Tore" tag - every map has it)
         for (let i = 0; i < k.tags.length; i++) tags.push({ label: k.tags[i][0], kind: k.tags[i][1] });
         out.desc = k.desc; out.tags = tags; out.group = featGroup(UI); out.isNew = true;
         return out;
