@@ -8,10 +8,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bust War">
+<meta name="apple-mobile-web-app-title" content="Wall of Chaos">
 <meta name="format-detection" content="telephone=no">
-<meta name="description" content="Bust War – Arena-Kampf im Browser: 1 gegen 1 oder 2 gegen 2, mit C.H.A.O.S- und Touchdown-Modus, zwei Karten und Sound.">
-<title>Bust War</title>
+<meta name="description" content="Wall of Chaos – Arena-Kampf im Browser: 1 gegen 1 oder 2 gegen 2, mit C.H.A.O.S- und Touchdown-Modus, zwei Karten und Sound.">
+<title>Wall of Chaos</title>
 <script>window.CR_NET_CONFIG = { publicUrl: 'https://kirevgeorg18.github.io/BUST-WAR/' };</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 20'%3E%3Cpath d='M2.5 6.5l5 3.6L12 2.5l4.5 7.6 5-3.6-1.9 9.6H4.4z' fill='%23e8bf5c' stroke='%232a1404' stroke-width='1.4' stroke-linejoin='round'/%3E%3Crect x='4.2' y='16.4' width='15.6' height='2.6' rx='1' fill='%23e8bf5c' stroke='%232a1404' stroke-width='1.1'/%3E%3C/svg%3E">
 <script>
@@ -47,7 +47,7 @@
   window.CR = window.CR || {};
   window.CR.MODEL_DATA = window.CR.MODEL_DATA || {};
   window.__crLate = { models: 1, audio: 1 };
-  window.__crBuild = '2457de7cfad0';   /* content hash of the single-file build (tools/build.py); '' = dev page */
+  window.__crBuild = '95f8d0727146';   /* content hash of the single-file build (tools/build.py); '' = dev page */
   window.__crBP = function (f) {
     var e = document.getElementById('boot-fill');
     if (e) e.style.transform = 'scaleX(' + Math.max(0, Math.min(1, f)) + ')';
@@ -82,7 +82,7 @@
       } catch (e) { icon = ''; }
       var scope = base.replace(/[?].*$/, '').replace(/[^\/]*$/, '');
       var m = {
-        name: 'Bust War', short_name: 'Bust War', lang: 'de',
+        name: 'Wall of Chaos', short_name: 'Wall of Chaos', lang: 'de',
         start_url: base, scope: scope, id: base,
         display: 'fullscreen', display_override: ['fullscreen', 'standalone'], orientation: 'portrait',
         background_color: '#0a1630', theme_color: '#0a1630',
@@ -469,7 +469,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   font-size: clamp(44px, 13.5vw, 70px);
   color: var(--gold-1);
 }
-.logo .logo-2 { display: block; }
+.logo .logo-0 { display: block; }   /* v44 "Wall of Chaos": small "WALL OF" over a big "CHAOS" */
 .rules-badge {
   padding: 3px 14px 4px;
   border-radius: 999px;
@@ -3998,7 +3998,7 @@ body { font-weight: 700; letter-spacing: 0; }
   line-height: 0.92;
   text-transform: uppercase;
 }
-.logo .logo-2 { font-size: 0.6em; letter-spacing: 6px; -webkit-text-stroke-width: 1.6px; }
+.logo .logo-0 { font-size: 0.44em; letter-spacing: 0.24em; padding-left: 0.24em; margin-bottom: 0.06em; -webkit-text-stroke-width: 1.3px; }
 
 .hero-card { border-radius: 12px; box-shadow: 0 0 0 2px #071028, 0 10px 18px rgba(0, 0, 0, 0.5); }
 .hero-name { font-family: var(--font-display); font-weight: 400; font-size: 12.5px; letter-spacing: 0; padding: 10px 2px 3px; }
@@ -5454,8 +5454,8 @@ body { font-weight: 700; letter-spacing: 0; }
 .mm26 > * { flex: 0 0 auto; min-width: 0; }
 .mm26 .mm-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; }
 .mm26 .mm-brand { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 0 0 2px; min-width: 0; }
-.mm26 .mm-brand .logo { font-size: 27px; line-height: 1; white-space: nowrap; transform: none; animation: none; -webkit-text-stroke-width: 1.4px; }
-.mm26 .mm-brand .logo .logo-2 { display: inline; margin-left: 5px; font-size: 0.74em; letter-spacing: 2px; -webkit-text-stroke-width: 1.2px; }
+.mm26 .mm-brand .logo { font-size: 27px; line-height: 0.86; white-space: nowrap; transform: none; animation: none; -webkit-text-stroke-width: 1.4px; }
+.mm26 .mm-brand .logo .logo-0 { font-size: 0.44em; margin-bottom: 1px; -webkit-text-stroke-width: 1px; }   /* v44: two lines in the top bar too */
 .mm26 .mm-icons { display: flex; gap: 6px; flex: 0 0 auto; }
 .mm26 .mm-icons .btn-icon { width: 42px; min-height: 42px; height: 42px; }
 .mm26 .mm-icons .btn-icon .ico { width: 24px; height: 24px; margin-top: -2px; }
@@ -5466,7 +5466,7 @@ body { font-weight: 700; letter-spacing: 0; }
 .mm26 .mm-hero .hero-card { height: 82%; }
 .mm26 .mm-hero .hero-card.hc-1 { height: 96%; }
 .mm26 .mm-hero .rules-badge { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.6px; padding: 2px 11px 3px; white-space: nowrap; pointer-events: none; }
-.mm26 .mm-hero-logo { display: none; flex: 0 0 auto; text-align: center; font-size: clamp(40px, 6vh, 60px); }
+.mm26 .mm-hero-logo { display: none; flex: 0 0 auto; text-align: center; font-size: clamp(40px, 6vh, 60px); margin-top: 14px; }
 @container (max-height: 74px) { .mm26 .mm-hero .hero { display: none; } }
 @media (min-height: 760px) {
   .mm26 .mm-brand { visibility: hidden; }
@@ -6551,10 +6551,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 /* logo: Santa hat (menu, loading screen and the static splash) */
 .logo { position: relative; }
 .logo::before {
-  content: ""; position: absolute; left: -0.3em; top: -0.5em; width: 0.95em; height: 0.72em; z-index: 2; pointer-events: none;
+  content: ""; position: absolute; left: -0.3em; top: -0.12em; width: 0.95em; height: 0.72em; z-index: 2; pointer-events: none;   /* v44: on the C of CHAOS */
   background: var(--ff-hat) center / contain no-repeat; transform: rotate(-14deg);
 }
-.mm26 .mm-brand .logo::before { left: -0.42em; top: -0.48em; width: 1.05em; height: 0.8em; }
+.mm26 .mm-brand .logo::before { left: -0.42em; top: -0.16em; width: 1.05em; height: 0.8em; }
 /* garland with fairy lights under the top bar (lights twinkle in two groups) */
 .mm26 .mm-top { position: relative; }
 .mm26 .mm-top::before, .mm26 .mm-top::after {
@@ -6626,8 +6626,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 </style>
 </head>
 <body>
-<div id="app" class="cr-root"><div class="stage"><div class="stage-bg" aria-hidden="true"><div class="stage-rays"></div></div><div class="screen screen-loading" id="boot-splash"><div class="load-center"><div class="load-crest" aria-hidden="true"><svg viewBox="0 0 24 20" aria-hidden="true"><rect x="3.4" y="1.2" width="2.3" height="18.2" rx="1.1" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="1.1"/><path d="M5.6 2.2h15.2l-3.4 5.3 3.4 5.3H5.6z" fill="currentColor" stroke="rgba(0,0,0,.62)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.8 4.2l2.4 3.3-2.4 3.3-2.4-3.3z" fill="#fff" opacity=".9"/><circle cx="4.55" cy="1.5" r="1.45" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="0.9"/></svg></div><div class="logo">Bust<span class="logo-2">War</span></div></div><div class="load-foot"><div class="load-bar"><div class="load-fill" id="boot-fill"></div><div class="load-gloss"></div></div></div></div></div></div>
-<noscript><p style="color:#fff;font-family:sans-serif;padding:24px">Bust War braucht JavaScript.</p></noscript>
+<div id="app" class="cr-root"><div class="stage"><div class="stage-bg" aria-hidden="true"><div class="stage-rays"></div></div><div class="screen screen-loading" id="boot-splash"><div class="load-center"><div class="load-crest" aria-hidden="true"><svg viewBox="0 0 24 20" aria-hidden="true"><rect x="3.4" y="1.2" width="2.3" height="18.2" rx="1.1" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="1.1"/><path d="M5.6 2.2h15.2l-3.4 5.3 3.4 5.3H5.6z" fill="currentColor" stroke="rgba(0,0,0,.62)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.8 4.2l2.4 3.3-2.4 3.3-2.4-3.3z" fill="#fff" opacity=".9"/><circle cx="4.55" cy="1.5" r="1.45" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="0.9"/></svg></div><div class="logo"><span class="logo-0">Wall of</span>Chaos</div></div><div class="load-foot"><div class="load-bar"><div class="load-fill" id="boot-fill"></div><div class="load-gloss"></div></div></div></div></div></div>
+<noscript><p style="color:#fff;font-family:sans-serif;padding:24px">Wall of Chaos braucht JavaScript.</p></noscript>
 <script>
 /* src/00-core.js */
 /* Chaos Royale - 00-core.js (engine)
@@ -9320,7 +9320,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   // so no menu, lobby, matchmaking, event or story choice reaches them (stored choices -> 'classic').
   // ---------------------------------------------------------------------------
   // v37: 'citadel' (Chaos-Zitadelle) is back (user: it was removed by mistake) - selectable again.
-  CR.RETIRED_MAPS = ['rails', 'flat', 'hill', 'tunnel', 'treasure'];
+  // v44: 'kraken' (Kraken-See) retired the same way (user: "Mach die Kristall-Kraken-Map weg");
+  // the citadel / jungle keep their kraken / frog hazard (same CR.MapHz code).
+  CR.RETIRED_MAPS = ['rails', 'flat', 'hill', 'tunnel', 'treasure', 'kraken'];
   (function () {
     const maps = CR.RULES.arena.maps || {};
     CR.RETIRED_MAPS.forEach(function (k) { if (maps[k]) maps[k].retired = true; });
@@ -9685,7 +9687,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     ],
   };
   // v24 hazard maps (docs/V24-MAPS.md): one long tower per side like "Festung" + their hazard.
-  const LONG_TOWER = 'Wie auf „Festung“ hat jede Seite nur einen langen Turm ganz hinten (zwei Schützen, 3 Banner, wenn er fällt, 1 Minute Verlängerung). Auf Kraken-See (3000) und in der Olymp-Arena (3400) hat er weniger Trefferpunkte als auf „Festung“ (4800).';
+  const LONG_TOWER = 'Wie auf „Festung“ hat jede Seite nur einen langen Turm ganz hinten (zwei Schützen, 3 Banner, wenn er fällt, 1 Minute Verlängerung). In der Olymp-Arena (3400) hat er weniger Trefferpunkte als auf „Festung“ (4800).';
   Arena.MAP_RULES.kraken = [
     'Kraken-See: In der Mitte liegt ein breiter See. Bodentruppen kommen nur über die zwei Brücken links und rechts hinüber (Keilerreiter und Co. springen darüber).',
     'Im See wohnt ein Krake. Etwa alle 24 Sekunden blubbert das Wasser an einer Stelle am Ufer oder auf einer Brücke, ein Schatten und ein Tentakel steigen auf – kurz danach schlägt der Tentakel zu.',
@@ -13559,7 +13561,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Sim = Sim;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.062)</script>
+</script><script>__crBP(0.061)</script>
 <script>
 /* src/04-units.js */
 /* Chaos Royale - 04-units.js (engine)
@@ -27872,12 +27874,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   // v35 cleanup: 'hill', 'tunnel', 'flat', 'citadel' and 'treasure' retired (CR.RETIRED_MAPS) - no
   // longer selectable / matchmaking keys / random maps; decode tolerance only (LEGACY_MAPS).
   // v37: 'citadel' selectable again (user request - removed by mistake in v35)
-  const MAPS = ['classic', 'fortress', 'pyramid', 'kraken', 'skyislands', 'portals', 'citadel', 'jungle'];
+  const MAPS = ['classic', 'fortress', 'pyramid', 'skyislands', 'portals', 'citadel', 'jungle'];   // (v44: 'kraken' retired)
   MAPS.push('ice', 'whirlwind');   // v31 feat-b: Eissee (brüchiges Eis), Sturmtal (Wirbelsturm) - src/41-feat-b.js
   MAPS.push('catapult', 'wonderland');   // v31 feat-a: Katapult-Hügel, Wunderland - src/40-feat-a.js (v32: Karussell removed, v35: Schatzinsel retired)
   // Retired map ids a received lobby blob / start info may still name (decode tolerance: the
   // engine can still build them, CR.Arena.setMap('rails')); a host never picks one itself.
-  const LEGACY_MAPS = ['rails', 'hill', 'tunnel', 'flat', 'treasure'];   // (v37: citadel selectable again)
+  const LEGACY_MAPS = ['rails', 'hill', 'tunnel', 'flat', 'treasure', 'kraken'];   // (v37: citadel selectable again; v44: + kraken)
   /** Decode: a selectable or retired map id, anything else 'classic'. */
   function sanitizeMap(v) { return MAPS.indexOf(v) >= 0 || LEGACY_MAPS.indexOf(v) >= 0 ? v : 'classic'; }
   /** Host choice: only selectable maps (retired / unknown -> 'classic'). */
@@ -34962,7 +34964,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     // v22: pyramid towers, a wall instead of the river with two tunnels and a ladder (maps.pyramid)
     { id: 'pyramid', label: 'Pyramide', sub: 'Mauer mit Toren und Leiter' },
     // v24 (docs/V24-MAPS.md): long tower per side like 'fortress' + a hazard
-    { id: 'kraken', label: 'Kraken-See', sub: 'See mit Krake, der Truppen packt' },
+    // (v44: 'kraken' / Kraken-See retired - CR.RETIRED_MAPS)
     { id: 'skyislands', label: 'Olymp-Arena', sub: 'Marmorinseln der Götter, Brücken zerfallen' },   // (v38: was "Himmelsinseln")
     { id: 'portals', label: 'Portale', sub: 'Zwei Portale, die wandern' },
   ];
@@ -34993,7 +34995,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   ];
   const DEFAULT_MUSIC = 0.6;
   const DEFAULT_SFX = 0.8;
-  const APP_NAME = 'Bust War';
+  const APP_NAME = 'Wall of Chaos';   // v44 (was "Bust War"; storage / net / queue keys keep 'bustwar')
   const PORTRAIT_W = 256;
   const PORTRAIT_H = 320;
   // v8 crisp card art: portraits come in resolution tiers; every art box asks for the smallest
@@ -35003,11 +35005,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   const ART_FIT = 0.9;
   const ART_MEASURE_TRIES = 45;      // frames an art box may wait for its first layout
   const PORTRAIT_TIMEOUT_MS = 9000;   // one portrait that never resolves must not block the queue
-  // v37 (uifix): a failed / timed-out portrait is retried after these pauses (then every 60 s,
-  // ART_MAX_TRIES in total); mounted art boxes still showing initials are re-checked every
+  // v37 (uifix): a failed / timed-out portrait is retried after these pauses (then every 60 s);
+  // mounted art boxes still showing initials are re-checked every
   // ART_SWEEP_MS (cache hit -> paint, else queue the visible ones first).
+  // v44: no try is the last one any more (after the list: every 60 s for as long as the box shows)
   const ART_RETRY_MS = [1500, 4000, 10000, 25000, 60000];
-  const ART_MAX_TRIES = 8;
   const ART_SWEEP_MS = 2500;
   // v37: during a battle (Art.hold) a HAND card without art may still render - one at a time, in
   // idle time, at least ART_BATTLE_GAP_MS apart and never while the player drags a card
@@ -36695,7 +36697,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     noteFail: function (key) {
       const n = (this.tries[key] || 0) + 1;
       this.tries[key] = n;
-      this.failed[key] = n >= ART_MAX_TRIES ? true : now() + ART_RETRY_MS[Math.min(n, ART_RETRY_MS.length) - 1];
+      this.failed[key] = now() + ART_RETRY_MS[Math.min(n, ART_RETRY_MS.length) - 1];
       this.armSweep(ART_RETRY_MS[Math.min(n, ART_RETRY_MS.length) - 1] + 50);
     },
     /** v37: paints the art of card `key` (tier suffix ignored) on EVERY mounted art box of that
@@ -36737,6 +36739,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       if (!D || typeof D.querySelectorAll !== 'function') return -1;
       let els = EMPTY;
       try { els = D.querySelectorAll('.card-art[data-art]:not(.art-on), .card-art[data-art-lo="1"]'); } catch (e) { return -1; }
+      // v44: a hold without a battle on screen (a battle left by an unusual path) would starve
+      // every portrait for the rest of the session - release it
+      try { if (this.hold && !D.querySelector('.screen-battle') && !this.inGrace()) this.setHold(false); } catch (e) { /* ignore */ }
       if (!els.length || !this.available()) return els.length;
       const vh = +G.innerHeight || 0, vw = +G.innerWidth || 0;
       const seen = Object.create(null);
@@ -36886,7 +36891,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       if (!this.sweepOn) {
         this.sweepOn = true;
         try {
-          D.addEventListener('visibilitychange', function () { if (!D.hidden) { if (self.sweepT) { G.clearTimeout(self.sweepT); self.sweepT = 0; } self.armSweep(200); } });
+          D.addEventListener('visibilitychange', function () { if (!D.hidden) { if (self.sweepT) { G.clearTimeout(self.sweepT); self.sweepT = 0; } self.verify(); self.armSweep(200); } });
         } catch (e) { /* no events */ }
       }
       this.sweepT = G.setTimeout(function () {
@@ -36895,6 +36900,29 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         const left = self.sweep();
         if (left > 0 || self.queue.length || self.busy) self.armSweep(ART_SWEEP_MS);
       }, ms > 0 ? ms : ART_SWEEP_MS);
+    },
+    /** v44: iOS may drop blob: images while the page is in the background (home-screen app) -
+     *  every cached blob URL is test-loaded; a dead one leaves the cache and its boxes go back to
+     *  the placeholder, so the sweep renders / restores them again. */
+    verify: function () {
+      const self = this, D = G.document;
+      if (typeof G.Image !== 'function' || !D) return;
+      Object.keys(this.cache).forEach(function (k) {
+        const u = self.cache[k];
+        if (typeof u !== 'string' || u.indexOf('blob:') !== 0) return;
+        const im = new G.Image();
+        im.onerror = function () {
+          if (self.cache[k] !== u) return;
+          delete self.cache[k];
+          const els = D.querySelectorAll('.card-art.art-on');
+          for (let i = 0; i < els.length; i++) {
+            const pic = els[i].firstElementChild && els[i].lastElementChild;
+            if (pic && pic.className === 'art-pic' && pic.style.backgroundImage.indexOf(u) >= 0) self.paint(els[i], null, self.hostOf(els[i]));
+          }
+          self.armSweep(100);
+        };
+        im.src = u;
+      });
     },
     /** Renders every id in order; onProgress(done, total, id). Resolves when all are done. */
     preload: function (ids, onProgress) {
@@ -37483,14 +37511,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
    *  a tentacle; three islands over clouds with four bridges; the lawn with the two portals. */
   function maps24FieldSvg(id) {
     let b = '';
-    if (id === 'kraken') {
-      b += '<rect x="0" y="14" width="18" height="4" fill="#2d7fd0"/><path d="M0 14.2h18M0 17.8h18" stroke="#9fdcff" stroke-width=".3"/>' +
-        '<path d="M0 16h18" stroke="#8fd0ff" stroke-width=".3" stroke-dasharray="1 1.4"/>' +
-        '<rect x="2.3" y="13.6" width="2.4" height="4.8" rx=".3" fill="#b47a3c" stroke="#6b4218" stroke-width=".25"/>' +
-        '<rect x="13.3" y="13.6" width="2.4" height="4.8" rx=".3" fill="#b47a3c" stroke="#6b4218" stroke-width=".25"/>' +
-        '<path class="kraken-arm" d="M8 17.4q-.6-1.6.4-2.6t1.6-.2q.6.7-.2 1.1" stroke="#a04a8e" stroke-width=".55" fill="none" stroke-linecap="round"/>' +
-        '<path d="M10.6 17.6q.6-1 1.5-1" stroke="#a04a8e" stroke-width=".45" fill="none" stroke-linecap="round"/>';
-    } else if (id === 'skyislands') {
+    // (v44: the Kraken-See lake preview is gone with the map)
+    if (id === 'skyislands') {
       b += '<rect class="sky-gap" x="0" y="12" width="18" height="2" fill="#9fd0f5"/><rect class="sky-gap" x="0" y="18" width="18" height="2" fill="#9fd0f5"/>' +
         '<ellipse cx="5" cy="13" rx="2" ry=".5" fill="#fff" opacity=".8"/><ellipse cx="13" cy="19" rx="2.3" ry=".5" fill="#fff" opacity=".8"/>' +
         '<rect x="0" y="14" width="18" height="4" fill="#f1eadc"/><path d="M0 14.15h18M0 17.85h18M0 11.85h18M0 20.15h18" stroke="#d9a73e" stroke-width=".3"/>';   // (v38 Olymp: marble + gold)
@@ -37532,7 +37554,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         else b += '<rect class="dyn-gate" x="' + x0 + '" y="' + sy(bandY1) + '" width="' + (x1 - x0) + '" height="' + (bandY1 - bandY0) + '" fill="#b47a3c" stroke="#6b4218" stroke-width=".25"/><rect x="' + (x0 + 0.5) + '" y="' + sy(w1) + '" width="' + (x1 - x0 - 1) + '" height="' + (w1 - w0) + '" rx=".4" fill="#2e2418"/>';
       }
     } else if (W) b += pyramidFieldSvg();
-    else if (d.kraken) b += maps24FieldSvg('kraken');
     else if (d.sky) b += maps24FieldSvg('skyislands');
     else if (d.ridge) b += '<rect x="0" y="13.5" width="18" height="5" fill="#4f9a30"/><rect x="0" y="15" width="18" height="2" fill="#83c95a"/><path d="M0 13.5h18M0 18.5h18" stroke="#3d7a24" stroke-width=".45"/>';
     else if (d.river !== false) {
@@ -37617,7 +37638,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         '<path d="M3.5 9v14M14.5 9v14" stroke="#c9a46a" stroke-opacity=".55" stroke-width=".9"/>';
     } else if (id === 'pyramid') {
       b += pyramidFieldSvg();
-    } else if (id === 'kraken' || id === 'skyislands' || id === 'portals') {
+    } else if (id === 'skyislands' || id === 'portals') {
       b += maps24FieldSvg(id);   // v24
     } else if (id === 'tunnel') {
       b += '<path d="M0 16h18" stroke="#fff" stroke-opacity=".5" stroke-width=".25"/>' + tunnelSvg();
@@ -37764,7 +37785,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     // v28 (docs/V28-SIEGE.md): the four former long-tower maps (v32: in "Klassisch" / "Spezial"; no
     // tower tag - every map has walls + gates)
     fortress: { group: 'classic', desc: 'Die reine Belagerung: Stadt hinter einer Mauer – brich durch eines der zwei Tore.', tags: [['Stadt', 'ft']] },
-    kraken: { group: 'special', desc: 'Ein See in der Mitte: Ein Krake packt Truppen an den Brücken.', tags: [['Gefahr', 'hz'], ['See', 'ft']] },
     skyislands: { group: 'special', desc: 'Marmorinseln der Götter über den Wolken – die goldenen Brücken zerfallen zu Licht.', tags: [['Gefahr', 'hz'], ['Olymp', 'ft']] },   // (v38 Olymp-Arena)
     portals: { group: 'special', desc: 'Zwei wandernde Portale bringen Truppen quer über das Feld.', tags: [['Portale', 'ft']] },
     // v25 Chaos-Zitadelle (docs/V25-COMBO.md; v37: selectable again)
@@ -38312,7 +38332,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const ids = UI.siegeMapIds();
     const out = [];
     for (let i = 0; i < MAPS.length; i++) if (ids.indexOf(MAPS[i].id) >= 0) out.push(MAPS[i].label);
-    return out.length ? out : ['Festung', 'Kraken-See', 'Olymp-Arena', 'Portale'];
+    return out.length ? out : ['Festung', 'Olymp-Arena', 'Portale'];
   };
   /** v29: ids of the maps that get the siege layout with "Türme: Belagerung" (CR.RULES.arena.siege.maps;
    *  v29: every map, v28: the four long-tower maps). */
@@ -39222,7 +39242,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       // (v35: no notes for the retired maps Hügel / Tunnel / Flach)
       add(f.fortress, notes.fortress || 'Die Karte „Festung“ ist gerade nicht verfügbar.');
       add(f.pyramid, notes.pyramid || 'Die Karte „Pyramide“ ist gerade nicht verfügbar.');
-      add(f.kraken && f.skyislands && f.portals, notes.kraken || notes.skyislands || notes.portals || 'Eine der neuen Karten ist gerade nicht verfügbar.');   // v24
+      add(f.skyislands && f.portals, notes.skyislands || notes.portals || 'Eine der neuen Karten ist gerade nicht verfügbar.');   // v24
       return out;
     }
 
@@ -39630,12 +39650,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const el = h('div', { class: 'screen screen-menu mm26' }, [
       h('div', { class: 'menu-top mm-top' }, [
         h('div', { class: 'logo-wrap mm-brand' }, [
-          h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),
+          h('div', { class: 'logo' }, [h('span', { class: 'logo-0' }, 'Wall of'), 'Chaos']),
         ]),
         h('div', { class: 'mm-icons' }, [rulesBtn, settingsBtn, muteBtn]),
       ]),
       h('div', { class: 'mm-hero' }, [
-        h('div', { class: 'logo mm-hero-logo', 'aria-hidden': 'true' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),   // tall phones: the big logo
+        h('div', { class: 'logo mm-hero-logo', 'aria-hidden': 'true' }, [h('span', { class: 'logo-0' }, 'Wall of'), 'Chaos']),   // tall phones: the big logo
         rulesBadge, hero, homeHint,
       ]),
       panel,
@@ -39827,7 +39847,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const el = h('div', { class: 'screen screen-loading' }, [
       h('div', { class: 'load-center' }, [
         h('div', { class: 'load-crest', 'aria-hidden': 'true', html: CROWN_SVG }),
-        h('div', { class: 'logo' }, ['Bust', h('span', { class: 'logo-2' }, 'War')]),
+        h('div', { class: 'logo' }, [h('span', { class: 'logo-0' }, 'Wall of'), 'Chaos']),
         showcase,
       ]),
       h('div', { class: 'load-foot' }, [
@@ -40740,7 +40760,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   /** v24: Kraken-See, Olymp-Arena (v38; was Himmelsinseln), Portale for the rules screen (docs/V24-MAPS.md). */
   UI.maps24RuleTexts = function () {
     return [
-      '<b>Kraken-See</b>: ein breiter See in der Mitte mit zwei Brücken. Etwa alle 24 Sekunden blubbert es am Ufer, ein Tentakel steigt auf – dann packt der <b>Krake</b> eine Bodentruppe in der Nähe (egal von welcher Seite) und zieht sie ins Wasser. Schwere Truppen bekommen nur Schaden und werden weggeschleudert.',
       '<b>Olymp-Arena</b>: drei schwebende Marmorinseln der Götter über den Wolken. Die goldenen Brücken zwischen den Inseln <b>zerfallen abwechselnd zu Licht und kehren zurück</b> (12 s oben, 8 s weg; vorher leuchten die Runen). Wer auf einer versinkenden Brücke steht, stürzt ab – Truppen warten am Rand, wenn es knapp wird. Du setzt nur auf deiner Insel.',
       '<b>Portale</b>: ein blaues und ein oranges Portal. Bodentruppen, die hineinlaufen, kommen sofort aus dem anderen heraus – sie nehmen ein Portal, wenn es ihren Weg deutlich kürzer macht. Alle 30 Sekunden wandern die Portale an einen neuen, gespiegelten Platz.',
     ];
@@ -40962,7 +40981,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.259)</script>
+</script><script>__crBP(0.258)</script>
 <script>
 /* src/10d-ui-lobby.js */
 /* 10d-ui-lobby.js – Bust War app shell UI, part 4 of 5 (v36 split of the former src/10-ui.js; same
@@ -44108,7 +44127,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.281)</script>
+</script><script>__crBP(0.280)</script>
 <script>
 /* src/11-main.js */
 /* 11-main.js – CR.App: bootstrap (loading screen with 3D portrait pre-render), screen
@@ -44324,7 +44343,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         const nav = G.navigator || {};
         const scr = G.screen || {};
         const lines = [];
-        lines.push('Bust War Fehlerbericht ' + BUG_BUILD + ' (Netz ' + (CR.Net && CR.Net.PROTOCOL || '-') + '/' + (CR.Net && typeof CR.Net.tableHash === 'function' ? safeHash() : '-') + ')');
+        lines.push('Wall of Chaos Fehlerbericht ' + BUG_BUILD + ' (Netz ' + (CR.Net && CR.Net.PROTOCOL || '-') + '/' + (CR.Net && typeof CR.Net.tableHash === 'function' ? safeHash() : '-') + ')');
         try { lines.push('Zeit: ' + new Date().toISOString().slice(0, 19) + 'Z, seit Start ' + Math.round(clock() / 1000) + ' s'); } catch (e) { /* ignore */ }
         const ua = scrub(nav.userAgent || '-');
         lines.push('Gerät: ' + ua);
@@ -44797,10 +44816,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
    *  retired v14 'rails': 'classic'). Used for the host's own choices. */
   // (v35 cleanup: 'hill', 'tunnel', 'flat', 'citadel', 'treasure' retired - CR.RETIRED_MAPS; a stored
   // choice falls back to 'classic', a received one still decodes via normMap below)
-  const PICK_MAPS = ['fortress', 'pyramid', 'kraken', 'skyislands', 'portals', 'citadel', 'jungle'];   // (v37: Chaos-Zitadelle back)   // (v27: + Chaos-Dschungel)   // v21: + 'fortress' (Festung), v22: + 'pyramid' (Pyramide), v24: + Kraken-See, Himmelsinseln, Portale
+  const PICK_MAPS = ['fortress', 'pyramid', 'skyislands', 'portals', 'citadel', 'jungle'];   // (v37: Chaos-Zitadelle back)   // (v27: + Chaos-Dschungel)   // v21: + 'fortress' (Festung), v22: + 'pyramid' (Pyramide), v24: + Kraken-See, Himmelsinseln, Portale
   PICK_MAPS.push('ice', 'whirlwind');   // v31 feat-b: Eissee, Sturmtal (src/41-feat-b.js)
   PICK_MAPS.push('catapult', 'wonderland');   // v31 feat-a: Katapult-Hügel, Wunderland (src/40-feat-a.js; v32: Karussell removed)
-  const LEGACY_MAPS = ['rails', 'hill', 'tunnel', 'flat', 'treasure'];   // v35: decode tolerance only (v37: citadel selectable again)
+  const LEGACY_MAPS = ['rails', 'hill', 'tunnel', 'flat', 'treasure', 'kraken'];   // (v44: + kraken) v35: decode tolerance only (v37: citadel selectable again)
   // v24 hazard maps (docs/V24-MAPS.md): feature key = map id, German name for the notes
   const MAPS24 = { kraken: 'Kraken-See', skyislands: 'Olymp-Arena', portals: 'Portale' };   // (v38: Himmelsinseln -> Olymp-Arena)
   App.MAPS24 = MAPS24;
@@ -46230,7 +46249,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const doc = G.document;
     const root = rootEl || doc.body;
     if (!UI || typeof UI.MenuScreen !== 'function') {
-      root.textContent = 'Bust War konnte nicht geladen werden (UI-Modul fehlt).';
+      root.textContent = 'Wall of Chaos konnte nicht geladen werden (UI-Modul fehlt).';
       return null;
     }
     const h = UI.h;
@@ -48306,7 +48325,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.310)</script>
+</script><script>__crBP(0.309)</script>
 <script>
 /* src/12-chaos-ui.js */
 /* Bust War - 12-chaos-ui.js (app shell, v3 + v5)
@@ -49277,7 +49296,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.ChaosUI = ChaosUI;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.320)</script>
+</script><script>__crBP(0.319)</script>
 <script>
 /* src/13-audio.js */
 /*
@@ -51918,7 +51937,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   A.UNIT_SFX = UNIT_SFX;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.338)</script>
+</script><script>__crBP(0.337)</script>
 <script>
 /* src/14-draft.js */
 /* Bust War - 14-draft.js (draft): the Touchdown DRAFT before the battle (v7).
@@ -53463,7 +53482,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.349)</script>
+</script><script>__crBP(0.348)</script>
 <script>
 /* src/16-story.js */
 /* 16-story.js – Story-Modus "Der Bust" (v25, redesigned in v33 – docs/V25-STORY.md): campaign data,
@@ -53479,7 +53498,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
  * v33 data:
  *   Story.CHAPTERS [{id, num, title, map, fallback?, shard, blurb, feature, theme, battles: [battle]}]
  *     – 16 chapters on the 11 selectable maps (v35: hill / tunnel / flat / treasure / citadel retired - their
- *       chapters moved to classic / portals / whirlwind / kraken / jungle); the map's special feature is a
+ *       chapters moved to classic / portals / whirlwind / kraken / jungle; v44: kraken retired too - c8 -> jungle, c9 -> citadel); the map's special feature is a
  *       story element (chapter.feature).
  *   battle = {id 'c-b', name, mode ('classic'|'chaos'|'build'), ai ('leicht'|'normal'|'schwer'),
  *     goal {type 'win'|'survive'|'gate'|'plunder', time?, maxLost?, count?},
@@ -54171,9 +54190,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       ],
     },
     {
-      id: 'c8', num: 8, title: 'Die Schatzinsel', map: 'kraken', shard: 'Splitter des Glücks', theme: ['#2fa09a', '#0b2d2a'],
+      // v44: Kraken-See retired - c8 plays on the Chaos-Dschungel (the island's jungle ruin), c9 on the
+      // Chaos-Zitadelle (Mutter Tiefe in the moat); ids / battles / progress unchanged
+      id: 'c8', num: 8, title: 'Die Schatzinsel', map: 'jungle', shard: 'Splitter des Glücks', theme: ['#2fa09a', '#0b2d2a'],
       blurb: 'Eine Insel, eine Truhe, zwei Diebinnen. Kapitänin Perla und Elster wollen beide den Schatz.',
-      feature: 'Die Schatzinsel liegt mitten im Kraken-See – und irgendetwas Großes packt Truppen an den Brücken.',
+      feature: 'Auf der Schatzinsel wuchert der Dschungel – und im Sumpf lauert etwas Großes, das Truppen packt.',
       battles: [
         B('8-1', 'Land in Sicht', {
           ai: 'normal', enemy: { name: 'Perlas Mannschaft', speaker: 'perla', deck: ['executioner', 'musketeer', 'bandit', 'goblins', 'cannon', 'arrows', 'skeletons', 'minions'] },
@@ -54213,9 +54234,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       ],
     },
     {
-      id: 'c9', num: 9, title: 'Der Kraken-See', map: 'kraken', shard: 'Splitter der Tiefe', theme: ['#1f6f8c', '#06202c'],
-      blurb: 'Die Legende sagt: Im See wohnt Mutter Tiefe. Wer zu nah ans Wasser kommt, wird gepackt.',
-      feature: 'Im See lebt eine Krake, die Truppen packt und in die Tiefe zieht.',
+      id: 'c9', num: 9, title: 'Mutter Tiefe', map: 'citadel', shard: 'Splitter der Tiefe', theme: ['#1f6f8c', '#06202c'],
+      blurb: 'Die Legende sagt: Im Wasser wohnt Mutter Tiefe. Wer zu nah ans Wasser kommt, wird gepackt.',
+      feature: 'Im Burggraben lauert Mutter Tiefe, die Krake – sie packt Truppen am Tor und zieht sie in die Tiefe.',
       battles: [
         B('9-1', 'Die Legende der Krake', {
           ai: 'normal', choice: 'schatz', ally: { name: 'Kapitänin Perla', speaker: 'perla', deck: ['musketeer', 'cannon', 'goblins', 'arrows', 'executioner', 'skeletons', 'minions', 'bandit'] },
@@ -55311,7 +55332,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.365)</script>
+</script><script>__crBP(0.364)</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 <script>
 /* src/20-gfx-core.js */
@@ -55976,6 +55997,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const sw = (globalThis.screen && Math.min(globalThis.screen.width || 0, globalThis.screen.height || 0)) || 0;
     CONFIG.detail = coarse || (sw > 0 && sw < 700) ? 'phone' : 'desktop';
   }
+  // v44: a touch phone (smaller portrait buffers, see renderPortrait)
+  let PHONE = false;
+  try { PHONE = !!(globalThis.matchMedia && globalThis.matchMedia('(pointer: coarse)').matches); } catch (e) { PHONE = false; }
   const DEFAULT_OUTLINE = 0.045;  // tiles at the reference scale (60 device px per tile, G.setOutline)
   const MAX_PIVOTS = 32;
   const BODY_WALK = { biped: 'march', quadruped: 'gallop', flyer: 'flap', blob: 'hop', spirit: 'hop',
@@ -60860,12 +60884,30 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   let PR = null;
   let PQ = Promise.resolve();
   const PCACHE = Object.create(null);
+  // v44 (iOS: card art missing): the portrait context can be lost at any time (memory pressure,
+  // too many contexts, the home-screen app in the background) and the 'webglcontextlost' event
+  // only comes later - a render on a lost context gives a blank picture that used to be cached
+  // for good. glLost() asks the context itself; a lost renderer is thrown away and built anew.
+  function glLost(P) { try { const c = P.renderer.getContext(); return !c || c.isContextLost(); } catch (e) { return true; } }
+  function dropPR() {
+    const P = PR;
+    PR = null;
+    if (!P) return;
+    try { P.renderer.dispose(); } catch (e) { /* ignore */ }
+    try { P.renderer.forceContextLoss(); } catch (e) { /* ignore */ }
+    P.canvas.width = P.canvas.height = 1; P.out.width = P.out.height = 1;
+  }
+  /** v44: frees the portrait WebGL context (rebuilt lazily by the next portrait). */
+  G.releasePortraitRenderer = dropPR;
+  /** v44 (tests): the portrait renderer's WebGL context or null. */
+  G._portraitGL = function () { return PR ? PR.renderer.getContext() : null; };
   function portraitRenderer() {
-    if (PR && !PR.lost) return PR;
-    if (PR && PR.lost) { try { PR.renderer.dispose(); } catch (e) { /* ignore */ } }
+    if (PR && !PR.lost && !glLost(PR)) return PR;
+    dropPR();
     const canvas = document.createElement('canvas');
     canvas.width = 512; canvas.height = 640;
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: 'low-power' });
+    if (!renderer.getContext() || renderer.getContext().isContextLost()) { try { renderer.dispose(); } catch (e) { /* ignore */ } throw new Error('webgl context lost'); }
     renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0);
     if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -60889,8 +60931,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     scene.add(shadow);
     const camera = new THREE.PerspectiveCamera(28, 0.8, 0.05, 200);
     const out = document.createElement('canvas');
-    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); if (PR) PR.lost = true; }, false);
-    PR = { renderer, scene, camera, canvas, out, shadow, lights: L, lost: false, env: {} };
+    const P = { renderer, scene, camera, canvas, out, shadow, lights: L, lost: false, env: {} };
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); P.lost = true; }, false);
+    PR = P;
     return PR;
   }
   function applyPortraitStyle(P, st, fx) {
@@ -60944,11 +60987,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
   function newCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   // soft blur by repeated halving + one smooth upscale (works without ctx.filter)
-  function softBlur(src, sw, sh, steps) {
+  function softBlur(src, sw, sh, steps, tmp) {
     let cv = src, w = sw, h = sh;
     for (let i = 0; i < steps; i++) {
       const nw = Math.max(2, Math.round(w / 2)), nh = Math.max(2, Math.round(h / 2));
       const c = newCanvas(nw, nh), g = c.getContext('2d');
+      if (tmp) tmp.push(c);
       g.imageSmoothingEnabled = true;
       g.drawImage(cv, 0, 0, w, h, 0, 0, nw, nh);
       cv = c; w = nw; h = nh;
@@ -61270,9 +61314,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     else if ((opts.count || rp.count || 1) > 1 && !(rp.cfg && rp.cfg.zoom)) pd.zoom = Math.max(pd.zoom, 1.2);
     const count = clamp(opts.count || rp.count || 1, 1, 3) | 0;
     const det = opts.detail || CONFIG.portraitDetail || 'high';
-    const insts = [];
+    const insts = [], tmp = [];
     const yaw = Math.PI + pd.yaw;
     let saved = null;
+    // v44: a lost context renders nothing - fail (the UI retries) instead of handing out a blank image
+    const chk = () => { if (glLost(P)) { P.lost = true; throw new Error('webgl context lost'); } };
     try {
       for (let i = 0; i < count; i++) {
         const inst = G.createInstance(rp.model, side, det);
@@ -61332,12 +61378,15 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       saved = pushLook(st, grim ? fx : null);
       const dens = clamp(opts.density || CONFIG.portraitDensity || 1, 1, 4);
       const ow = Math.round(w * dens), oh = Math.round(h * dens);
-      const maxS = Math.max(1, Math.floor(Math.min(4096 / ow, 4096 / oh)));
+      // v44: phones (iOS memory limit): the supersampled buffer stays <= 2048 px (was 4096)
+      const lim = PHONE ? 2048 : 4096;
+      const maxS = Math.max(1, Math.floor(Math.min(lim / ow, lim / oh)));
       const ss = clamp(opts.ss === undefined ? 2 : opts.ss | 0, 1, Math.min(3, maxS));
       renderer.setSize(ow * ss, oh * ss, false);
       renderer.setClearColor(0x000000, 0);
       renderer.clear();
       renderer.render(scene, camera);
+      chk();
       const bloom = opts.glow === undefined ? st.bloom : clamp(+opts.glow || 0, 0, 3);
       let embers = opts.embers !== undefined ? (opts.embers === true ? Math.max(fx.embers, 20) : +opts.embers || 0) : (bg ? fx.embers : 0);
       // v14 hero: a few soft light motes instead of an ember storm (clean card art)
@@ -61350,6 +61399,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       while (cw > ow) {
         const nw = Math.max(ow, Math.round(cw / 2)), nh = Math.max(oh, Math.round(chh / 2));
         const cv = nw === ow ? P.out : document.createElement('canvas');
+        if (cv !== P.out) tmp.push(cv);
         cv.width = nw; cv.height = nh;
         const g = cv.getContext('2d');
         g.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
@@ -61371,7 +61421,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         renderer.render(scene, camera);
         SHARED_U.crGlowPass.value = 0;
         P.shadow.visible = shV;
+        chk();
         glowCv = newCanvas(gw, gh);
+        tmp.push(glowCv);
         glowCv.getContext('2d').drawImage(renderer.domElement, 0, 0, gw, gh);
       }
       // anchors (output px) for the backdrop / fog / embers
@@ -61383,6 +61435,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       const seed = strSeed(String(id)) % 100000;
       const rnd = mulberry(seed + 17);
       const F = newCanvas(ow, oh), g = F.getContext('2d');
+      tmp.push(F);
       g.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
       if (bg) { if (st.backdrop === 'hero') heroBackdrop(g, ow, oh, fx, seed, A, String(id), rp); else grimBackdrop(g, ow, oh, fx, seed, A); }
       const rndF = mulberry(seed + 17);
@@ -61391,7 +61444,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       if (glowCv) {
         // bloom fades with the glowing share of the frame: eyes / runes / blades glow strongly,
         // mostly-emissive spells (fireball) do not blow out to white
-        const wide = softBlur(glowCv, glowCv.width, glowCv.height, 4);
+        const wide = softBlur(glowCv, glowCv.width, glowCv.height, 4, tmp);
         let cov = 0;
         try {
           const dd = wide.getContext('2d').getImageData(0, 0, wide.width, wide.height).data;
@@ -61402,7 +61455,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         g.save();
         g.globalCompositeOperation = 'lighter';
         g.globalAlpha = clamp(0.85 * kb, 0, 1);
-        g.drawImage(softBlur(glowCv, glowCv.width, glowCv.height, 2), 0, 0, ow, oh);
+        g.drawImage(softBlur(glowCv, glowCv.width, glowCv.height, 2, tmp), 0, 0, ow, oh);
         g.globalAlpha = clamp(0.6 * kb, 0, 1);
         g.drawImage(wide, 0, 0, ow, oh);
         g.restore();
@@ -61415,6 +61468,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     } finally {
       if (saved) popLook(saved);
       for (const inst of insts) inst.release();
+      // v44: give the canvas / GPU memory back right away (iOS counts every live canvas pixel)
+      for (const c of tmp) c.width = c.height = 0;
+      try { if (!P.lost) renderer.setSize(16, 20, false); } catch (e) { /* ignore */ }
     }
   }
   // Yield to the event loop between portraits (MessageChannel: not throttled in background tabs).
@@ -61448,7 +61504,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       warnOnce('portrait:' + id, 'portrait(' + id + ') failed: ' + (e && e.message ? e.message : e));
       return null;
     });
-    PQ = p.then(() => null, () => null);
+    // v44: one render that never settles must not stall every later portrait (watchdog)
+    PQ = Promise.race([p, new Promise((r) => setTimeout(r, 15000))]).then(() => null, () => null);
     if (opts.nocache) return p; // v19: one-shot renders (card-art cut-outs) are not kept in memory
     PCACHE[key] = p; PCACHE_KEYS[key] = 1;
     p.then(v => { if (!v) { delete PCACHE[key]; delete PCACHE_KEYS[key]; } });
@@ -65981,7 +66038,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.charsA = { scallop, tatter, FACE, MOUTH, GRIM, grimace, faceRig, exprTarget, exprOf, browAmp, BROW_AMP, version: 'v16' };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.465)</script>
+</script><script>__crBP(0.464)</script>
 <script>
 /* src/22-gfx-chars-b.js */
 /* Chaos Royale - 22-gfx-chars-b.js (designer B)
@@ -75993,7 +76050,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.571)</script>
+</script><script>__crBP(0.570)</script>
 <script>
 /* src/25-gfx-vfx.js */
 /* Chaos Royale - 25-gfx-vfx.js (render3d)
@@ -79898,7 +79955,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   VFX.System = System;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.602)</script>
+</script><script>__crBP(0.601)</script>
 <script>
 /* src/26a-gfx-render3d-core.js */
 /* Chaos Royale - 26a-gfx-render3d-core.js (render3d; logical module "26-gfx-render3d")
@@ -83944,7 +84001,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.635)</script>
+</script><script>__crBP(0.634)</script>
 <script>
 /* src/26b-gfx-render3d-arena.js */
 /* 26b-gfx-render3d-arena.js – Bust War 3D battle renderer, part 2 of 4 (v36 split of the former
@@ -86695,7 +86752,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DArena);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.658)</script>
+</script><script>__crBP(0.657)</script>
 <script>
 /* src/26c-gfx-render3d-frame.js */
 /* 26c-gfx-render3d-frame.js – Bust War 3D battle renderer, part 3 of 4 (v36 split of the former
@@ -88580,7 +88637,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DFrame);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.671)</script>
+</script><script>__crBP(0.670)</script>
 <script>
 /* src/26d-gfx-render3d-fx.js */
 /* 26d-gfx-render3d-fx.js – Bust War 3D battle renderer, part 4 of 4 (v36 split of the former
@@ -89966,7 +90023,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Render3D = Render3D;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.681)</script>
+</script><script>__crBP(0.680)</script>
 <script>
 /* src/27-gfx-chars-d.js */
 /* Chaos Royale - 27-gfx-chars-d.js (render3d / graphics owner v6 + v7: new cards)
@@ -92504,7 +92561,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__cdV11 = { heroHead, heroEye, strand, lock, flatLock, headFrontZ, fierceEye, sculptHead, bodyPlan, limb, fist, hand, palm, shoe, pauldron, hood, cape, armBoot, bracer, bladePart, along, sheet, deform, spike, ribbon };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.708)</script>
+</script><script>__crBP(0.707)</script>
 <script>
 /* src/28-card-art.js */
 /* 28-card-art.js – hand-made card art (v17).
@@ -92965,7 +93022,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         if (cache19[key]) return cache19[key];
         const ss = V19.srcSize(w, h);
         const ro = Object.assign({}, o, { w, h, side, bg: false, shadow: false, nocache: true, density: ss.density, style: V19.style || 'hero' });
-        const p = Promise.resolve(orig.call(GFX, id, ro)).then(function (url) {
+        // v44: a render on a lost context fails once - the rebuilt renderer gets a second try at the
+        // cut-out (else the card would get the other, plain backdrop look)
+        const p = Promise.resolve(orig.call(GFX, id, ro)).then(function (url) { return url || orig.call(GFX, id, ro); }).then(function (url) {
           if (!url) return orig.call(GFX, id, opts);
           return composeCutout(String(id), url, w, h).catch(function (e) {
             if (G.console) G.console.warn('card art ' + id + ': ' + (e && e.message ? e.message : e));
@@ -93011,7 +93070,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.CardArt = V19;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.711)</script>
+</script><script>__crBP(0.710)</script>
 <script>
 /* src/29-hero-blackblade.js */
 /* 29-hero-blackblade.js - v18 hero model override: 'black-blade-master' ("Schwarzklingen-Meister").
@@ -93515,7 +93574,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.716)</script>
+</script><script>__crBP(0.715)</script>
 <script>
 /* src/29-hero-cyborg.js */
 /* 29-hero-cyborg.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94295,7 +94354,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.723)</script>
+</script><script>__crBP(0.722)</script>
 <script>
 /* src/29-hero-kungfu.js */
 /* 29-hero-kungfu.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94776,7 +94835,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.728)</script>
+</script><script>__crBP(0.727)</script>
 <script>
 /* src/29-hero-ninja.js */
 /* 29-hero-ninja.js - v18 hero model override: 'spiral-ninja' ("Wirbel-Ninja").
@@ -95195,7 +95254,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.732)</script>
+</script><script>__crBP(0.731)</script>
 <script>
 /* src/30-gfx-buildmode.js */
 /* 30-gfx-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): models, battle effects,
@@ -96950,7 +97009,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.745)</script>
+</script><script>__crBP(0.744)</script>
 <script>
 /* src/31-style-a.js */
 /* 31-style-a.js - v23 character restyle, group A (hero quality like src/29-hero-*.js).
@@ -98538,7 +98597,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.762)</script>
+</script><script>__crBP(0.761)</script>
 <script>
 /* src/31-style-b.js */
 /* 31-style-b.js – v23 character restyle, group B (big units) at the quality of the src/29-hero-*.js heroes.
@@ -99474,7 +99533,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.771)</script>
+</script><script>__crBP(0.770)</script>
 <script>
 /* src/31-style-c.js */
 /* 31-style-c.js – v23 character restyle, group c (hero quality like src/29-hero-*.js).
@@ -101327,7 +101386,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.791)</script>
+</script><script>__crBP(0.790)</script>
 <script>
 /* src/31-style-d.js */
 /* 31-style-d.js – v23 character restyle, group d (small / swarm units at hero quality).
@@ -102590,7 +102649,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__styleD = { ids: IDS, reverted: REVERTED };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.804)</script>
+</script><script>__crBP(0.802)</script>
 <script>
 /* src/31-style-e.js */
 /* 31-style-e.js – v23 character restyle, group e (riders / vehicles / brutes) on the quality bar of
@@ -103495,7 +103554,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function lerp3(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.813)</script>
+</script><script>__crBP(0.812)</script>
 <script>
 /* src/31-style-f.js */
 /* 31-style-f.js - v23 character restyle, group f: the AIR units (hero quality like src/29-hero-*.js).
@@ -104723,7 +104782,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }, { body: 'blob', walk: 'hop', attack: 'none', weight: 0.55 });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.826)</script>
+</script><script>__crBP(0.824)</script>
 <script>
 /* src/32-gfx-maps.js */
 /* 32-gfx-maps.js - v24 hazard maps (docs/V24-MAPS.md): 3D scenery + animations and the 2D fallback
@@ -106806,7 +106865,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.toon = toon; M24.shaderMat = shaderMat; M24.own = own; M24.wx = wx; M24.wz = wz; M24.sstep = sstep; M24.NOISE = NOISE; M24.FALL_VS = FALL_VS; M24.PCOL = PCOL; M24.rect2d = rect2d;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.842)</script>
+</script><script>__crBP(0.841)</script>
 <script>
 /* src/33-story-ui.js */
 /* 33-story-ui.js – Story-Modus screens (v25, redesigned in v33 – docs/V25-STORY.md). Data / progress:
@@ -108095,7 +108154,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.856)</script>
+</script><script>__crBP(0.854)</script>
 <script>
 /* src/34-gfx-combo.js */
 /* 34-gfx-combo.js - v25 map 'citadel' ("Chaos-Zitadelle", docs/V25-COMBO.md): the scenery that the
@@ -108322,7 +108381,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.citadel = { build: build, update: update, paint2d: paint2d };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.857)</script>
+</script><script>__crBP(0.856)</script>
 <script>
 /* src/35-gfx-jungle.js */
 /* 35-gfx-jungle.js - v27 map 'jungle' ("Chaos-Dschungel", docs/V27-JUNGLE.md): the 3D scenery +
@@ -109174,7 +109233,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.jungle = { build: build, update: update, dispose: dispose, paint2d: paint2d, draw2d: draw2d, geo: geo, PC: PC };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.864)</script>
+</script><script>__crBP(0.863)</script>
 <script>
 /* src/36-gfx-siege.js */
 /* 36-gfx-siege.js - tower layout "Belagerung" (siege, docs/V28-SIEGE.md v28 + v29): the 3D models,
@@ -111564,7 +111623,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   S3.gateUpdate = gateUpdate; S3.drawStrands = drawStrands; S3.onSg = onSg; S3.onLaunch = onLaunch;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.886)</script>
+</script><script>__crBP(0.884)</script>
 <script>
 /* src/37-tutorial.js */
 /* 37-tutorial.js – onboarding tutorial + deck help (v31, agent "onboard").
@@ -111979,7 +112038,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   Tut.MAP_TIPS = {
     pyramid: 'Pyramide: Eine Mauer in der Mitte – durch die zwei Tore oder über die Leiter.',
     fortress: 'Festung: Vor dem Kampf wählst du ein Spezialgebäude und setzt es auf deine Hälfte.',
-    kraken: 'Kraken-See: Etwa alle 24 Sekunden packt der Krake eine Bodentruppe am Ufer – Vorsicht an den Brücken!',
     skyislands: 'Olymp-Arena: Die goldenen Brücken zerfallen abwechselnd zu Licht – wer draufsteht, stürzt ab.',
     portals: 'Portale: Bodentruppen laufen ins eine Portal und kommen aus dem anderen heraus. Alle 30 s wandern sie.',
     citadel: 'Chaos-Zitadelle: Am Tor lauert der Krake, in der Mitte führt eine Leiter hoch, rechts ein Portal.',   // v37: back
@@ -112193,7 +112251,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     ]);
     const el = h('div', { class: 'screen screen-tut-welcome' }, [
       h('div', { class: 'tw-box' }, [
-        h('div', { class: 'tw-kicker' }, 'Willkommen bei Bust War'),
+        h('div', { class: 'tw-kicker' }, 'Willkommen bei Wall of Chaos'),
         art,
         h('div', { class: 'tw-title' }, 'Zerstöre die Tore und das Rathaus des Gegners'),
         h('div', { class: 'tw-sub' }, 'Ein kurzer Übungskampf zeigt dir, wie es geht.'),
@@ -112699,7 +112757,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.893)</script>
+</script><script>__crBP(0.892)</script>
 <script>
 /* src/38-replay.js */
 /* 38-replay.js – replays + clip export (v31, owner: "replay").
@@ -112742,7 +112800,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
  *
  * CLIP EXPORT (CR.Replay.exportClip): 10-20 s around a moment, rendered in real time by a second
  *   renderer at 360x640 CSS px x DPR 2 = 720x1280 (9:16), composited on a 2D canvas with a small
- *   "Bust War" watermark + link, canvas.captureStream + MediaRecorder (mp4 where supported -
+ *   "Wall of Chaos" watermark (v44; was "Bust War") + link, canvas.captureStream + MediaRecorder (mp4 where supported -
  *   Safari -, else webm). No audio track unless the game sound is on and CR.Audio exposes its
  *   graph. Then download / share (navigator.share with a file where supported).
  *
@@ -114117,7 +114175,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       try { canShare = !!(file && nav && nav.share && nav.canShare && nav.canShare({ files: [file] })); } catch (e) { canShare = false; }
       if (canShare) {
         body.appendChild(btn('btn-blue btn-block', 'Teilen', [ico('share'), h('span', null, 'Teilen')], function () {
-          nav.share({ files: [file], title: 'Bust War', text: 'Bust War – ' + linkText() }).catch(function () { /* cancelled */ });
+          nav.share({ files: [file], title: 'Wall of Chaos', text: 'Wall of Chaos – ' + linkText() }).catch(function () { /* cancelled */ });
         }));
       }
       body.appendChild(h('div', { class: 'hint' }, (res.ext === 'mp4' ? 'MP4' : 'WebM') + ' · ' + Math.round(res.blob.size / 1024) + ' KB · ' + Math.round(res.ms / 100) / 10 + ' s'));
@@ -114169,9 +114227,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     g.font = '900 ' + Math.round(46 * s) + 'px "Lilita One", "Arial Black", Impact, sans-serif';
     g.lineWidth = 7 * s;
     g.strokeStyle = 'rgba(10,14,28,0.9)';
-    g.strokeText('BUST WAR', w / 2, hh - 74 * s);
+    g.strokeText('WALL OF CHAOS', w / 2, hh - 74 * s);
     g.fillStyle = '#ffd54a';
-    g.fillText('BUST WAR', w / 2, hh - 74 * s);
+    g.fillText('WALL OF CHAOS', w / 2, hh - 74 * s);
     g.font = '800 ' + Math.round(22 * s) + 'px "Nunito", Arial, sans-serif';
     g.lineWidth = 4 * s;
     g.strokeText(linkText(), w / 2, hh - 38 * s);
@@ -114489,7 +114547,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   install();
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.906)</script>
+</script><script>__crBP(0.904)</script>
 <script>
 /* src/39-events.js */
 /* 39-events.js – rotating weekly events (v31, agent "postmatch"; docs/V31-POSTMATCH.md).
@@ -114526,8 +114584,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   const LIST = [
     { id: 'champions', code: 'ch', name: 'Nur Champions', short: 'Nur Champions', mode: 'classic', map: null,
       desc: 'Jedes Deck besteht nur aus Champions – deine eigenen bleiben, der Rest wird aufgefüllt.', options: { deckRule: 'champions' } },
-    { id: 'kraken2x', code: 'kr', name: 'Doppelte Kristalle auf dem Kraken-See', short: '2× Kristalle: Kraken-See', mode: 'classic', map: 'kraken',
-      desc: 'Der Kraken-See mit doppelt so schnellen Kristallen vom ersten Moment an.', options: { elixirBoost: 2 } },
+    // v44: the Kraken-See is retired - the event runs on the Eissee (id / code / queue key kept)
+    { id: 'kraken2x', code: 'kr', name: 'Doppelte Kristalle auf dem Eissee', short: '2× Kristalle: Eissee', mode: 'classic', map: 'ice',
+      desc: 'Der Eissee mit doppelt so schnellen Kristallen vom ersten Moment an.', options: { elixirBoost: 2 } },
     { id: 'random', code: 'rd', name: 'Zufallsdecks', short: 'Zufallsdecks', mode: 'classic', map: null,
       desc: 'Jeder Spieler bekommt ein zufälliges Deck – Improvisation gewinnt.', options: { randomDecks: true } },
     { id: 'mirror', code: 'mi', name: 'Spiegel-Duell', short: 'Spiegel-Duell', mode: 'classic', map: null,
@@ -114726,7 +114785,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.907)</script>
+</script><script>__crBP(0.906)</script>
 <script>
 /* src/40-feat-a.js */
 /* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): new neutral map features, each on its
@@ -115953,7 +116012,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FA.version = 1;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.917)</script>
+</script><script>__crBP(0.915)</script>
 <script>
 /* src/41-feat-b.js */
 /* 41-feat-b.js - v31 map features B (agent "feat-b", docs/V31-FEAT-B.md):
@@ -117379,7 +117438,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FB.gfx = { build: build, update: update, dispose: dispose, draw2d: draw2d, paintIce2d: paintIce2d, ICE_FS: ICE_FS, FUN_VS: FUN_VS };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.927)</script>
+</script><script>__crBP(0.925)</script>
 <script>
 /* src/43-glb-models.js */
 /* 43-glb-models.js - v34 GLB models (owner: agent "models"). Contract: docs/V34-MODELS.md.
@@ -119402,9 +119461,18 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const self = this, args = arguments;
     let mid = id;
     try { const c = CR.DATA && CR.DATA.cards && CR.DATA.cards[id]; if (c && c.unit && DATA[c.unit]) mid = c.unit; } catch (e) { /* */ }
-    if (DATA[mid] && prep(mid) && CFG_ON(mid)) return GLB.whenReady(mid).then(function () { return portrait.apply(self, args); });
+    if (DATA[mid] && prep(mid) && CFG_ON(mid)) {
+      return GLB.whenReady(mid).then(function (t) {
+        // v44: a failed texture decode (iOS memory pressure) is tried again on the next request
+        // instead of caching a grey card for good; after 3 failed decodes the card renders anyway
+        const M = prep(mid);
+        if (!t && M && M.N.image && M.N.image.bytes && (TEX_FAIL[mid] = (TEX_FAIL[mid] || 0) + 1) < 3) { delete TEX_WAIT[M.id]; return null; }
+        return portrait.apply(self, args);
+      });
+    }
     return portrait.apply(this, arguments);
   };
+  const TEX_FAIL = Object.create(null);
 
   for (const id of GLB.ids()) {
     try { register(id); } catch (e) { if (globalThis.console) console.warn('[CR.GLB] register ' + id, e); }
@@ -119646,7 +119714,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.946)</script>
+</script><script>__crBP(0.944)</script>
 <script>
 /* src/45-i18n.js */
 /* 45-i18n.js – v35 "english": second language (English) with a language switch.
@@ -119698,7 +119766,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     'count.cards': { de: ['{n} Karte', '{n} Karten'], en: ['{n} card', '{n} cards'] },
     'count.crystals': { de: ['{n} Kristall', '{n} Kristalle'], en: ['{n} Crystal', '{n} Crystals'] },
     'count.banners': { de: ['{n} Banner', '{n} Banner'], en: ['{n} Banner', '{n} Banners'] },
-    'boot.failed': { de: 'Bust War konnte nicht geladen werden. Bitte Seite neu laden.', en: 'Bust War could not be loaded. Please reload the page.' },
+    'boot.failed': { de: 'Wall of Chaos konnte nicht geladen werden. Bitte Seite neu laden.', en: 'Wall of Chaos could not be loaded. Please reload the page.' },
   };
 
   // ------------------------------------------------------------------ language state
@@ -119974,7 +120042,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.948)</script>
+</script><script>__crBP(0.947)</script>
 <script>
 /* src/46-i18n-en.js */
 /* 46-i18n-en.js – v35 "english": parallel English table keyed by the German display text
@@ -120062,7 +120130,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "25 % mehr Reichweite.": "25% more range.",
     "2D (sparsam)": "2D (light)",
     "2D spart Akku auf älteren Handys.": "2D saves battery on older phones.",
-    "2× Kristalle: Kraken-See": "2× Crystals: Kraken Lake",
+    "2× Kristalle: Eissee": "2× Crystals: Ice Lake",
     "3 Banner": "3 Banners",
     "3 Features": "3 Features",
     "3 Türme": "3 towers",
@@ -120206,7 +120274,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Aylin": "Aylin",
     "BLUBB … Splitter … in meinem … Bauch … tut weh …": "BLUBB … Shard … in my … belly … hurts …",
     "BLUBB! … Danke. Splitter raus. Bauch gut.": "BLUBB! … Thank you. Shard out. Belly good.",
-    "BUST WAR": "BUST WAR",
+    "WALL OF CHAOS": "WALL OF CHAOS",
     "Ballastbombe": "Ballast Bomb",
     "Banner": "Banners",
     "Bannerjäger": "BannerHunter",
@@ -120374,10 +120442,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Brüder.": "Brothers.",
     "Bumerang-Stamm": "Boomerang Trunk",
     "Bust": "Bust",
-    "Bust War": "Bust War",
-    "Bust War Fehlerbericht": "Bust War bug report",
-    "Bust War konnte nicht geladen werden (UI-Modul fehlt).": "Bust War could not be loaded (UI module missing).",
-    "Bust War –": "Bust War –",
+    "Wall of Chaos": "Wall of Chaos",
+    "Wall of": "Wall of",
+    "Chaos": "Chaos",
+    "Wall of Chaos Fehlerbericht": "Wall of Chaos bug report",
+    "Wall of Chaos konnte nicht geladen werden (UI-Modul fehlt).": "Wall of Chaos could not be loaded (UI module missing).",
+    "Wall of Chaos –": "Wall of Chaos –",
     "BÄÄRP.": "BUUURP.",
     "C.H.A.O.S Upgrade-Wahl, der Kampf ist pausiert": "C.H.A.O.S upgrade pick, the battle is paused",
     "C.H.A.O.S ist ein eigener Modus (ohne C.H.A.O.S gelten die normalen Regeln): Türme haben 50 % mehr Trefferpunkte und Kristalle laden 50 % schneller.": "C.H.A.O.S is a mode of its own (without C.H.A.O.S the normal rules apply): towers have 50% more hitpoints and Crystals charge 50% faster.",
@@ -120542,8 +120612,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Der Katapult-Hügel": "Catapult Hill",
     "Der Klassiker: Fluss mit zwei Brücken.": "The classic: river with two bridges.",
     "Der Klingenmeister hält alles auf, der Keilerreiter trifft die Tore.": "The Blademaster stops everything, the Boar Rider hits the gates.",
-    "Der Kraken-See": "Kraken Lake",
-    "Der Kraken-See mit doppelt so schnellen Kristallen vom ersten Moment an.": "Kraken Lake with Crystals twice as fast from the very first moment.",
+    "Der Eissee mit doppelt so schnellen Kristallen vom ersten Moment an.": "Ice Lake with Crystals twice as fast from the very first moment.",
     "Der Laaaaange": "The Looooong One",
     "Der Leben-Bonus gilt nur in Story-Kämpfen. Single-Modus, Mit Freunden und Events bleiben fair – dort zählt er nicht.": "The HP bonus only applies in story battles. Single player, With friends and Events stay fair – it doesn't count there.",
     "Der Morgen nach dem Bust": "The Morning After the Bust",
@@ -120636,7 +120705,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Die Kristalle sprudeln hier wie verrückt. Nutzen wir das!": "The Crystals are bubbling up like crazy here. Let's use that!",
     "Die Kugel springt nach dem Rollen bis zu dreimal zum nächsten Gegner weiter.": "After rolling, the ball bounces on to the nearest opponent up to three times.",
     "Die Legende der Krake": "The Legend of the Kraken",
-    "Die Legende sagt: Im See wohnt Mutter Tiefe. Wer zu nah ans Wasser kommt, wird gepackt.": "Legend says Mother Deep lives in the lake. Whoever gets too close to the water gets grabbed.",
+    "Die Legende sagt: Im Wasser wohnt Mutter Tiefe. Wer zu nah ans Wasser kommt, wird gepackt.": "Legend says Mother Deep lives in the water. Whoever gets too close to the water gets grabbed.",
     "Die Legende sagt: Mutter Tiefe packt jeden, der zu nah ans Wasser kommt. Jeden.": "Legend says Mother Deep grabs anyone who gets too close to the water. Anyone.",
     "Die Lobby ist noch nicht vollständig.": "The lobby isn't full yet.",
     "Die Lobby ist voll – du wartest, bis ein Platz frei wird.": "The lobby is full – wait until a seat opens up.",
@@ -120649,7 +120718,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Die Rakete springt weiter und explodiert noch zweimal.": "The Rocket bounces on and explodes twice more.",
     "Die Revanche-Anfrage ist abgelaufen.": "The rematch request expired.",
     "Die Schatzinsel": "Treasure Island",
-    "Die Schatzinsel liegt mitten im Kraken-See – und irgendetwas Großes packt Truppen an den Brücken.": "Treasure Island lies in the middle of Kraken Lake – and something big grabs troops at the bridges.",
+    "Auf der Schatzinsel wuchert der Dschungel – und im Sumpf lauert etwas Großes, das Truppen packt.": "Jungle runs wild on Treasure Island – and something big lurks in the swamp, grabbing troops.",
     "Die Schranken wechseln immer gleich: 3 Sekunden grün (offen), 4 Sekunden rot (zu). Nur bei Grün gehen Truppen durch die Schranke – rein in die Tram oder raus aufs Feld. Bei Rot warten sie davor.": "The barriers always switch the same way: 3 seconds green (open), 4 seconds red (closed). Troops only pass the barrier on green – into the tram or out onto the field. On red they wait in front of it.",
     "Die Seltenheit steigt: Gewöhnlich (silbern), Selten (orange), Episch (lila). Alle Angebote einer Runde haben dieselbe Seltenheit; in der Verlängerung ist das Angebot immer episch.": "Rarity goes up: Common (silver), Rare (orange), Epic (purple). All offers in a round share the same rarity; in Overtime the offer is always Epic.",
     "Die Sonne geht auf. Die Skelette … machen Mittagsschlaf?": "The sun is rising. The Skeletons are … taking a nap?",
@@ -120722,7 +120791,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Doppelt so viele Skelette – und beim Einsturz eine Explosion.": "Twice as many Skeletons – and an explosion when it collapses.",
     "Doppelt tot": "Double Dead",
     "Doppelte Barbaren": "Double Barbarians",
-    "Doppelte Kristalle auf dem Kraken-See": "Double Crystals on Kraken Lake",
+    "Doppelte Kristalle auf dem Eissee": "Double Crystals on Ice Lake",
     "Doppelte Reichweite: 12 Felder.": "Double range: 12 tiles.",
     "Doppelte TP – ihre Pfeile ziehen Gegner wie ein Mini-Tornado heran.": "Double HP – their arrows pull opponents in like a mini tornado.",
     "Doppelte Trefferpunkte – übersteht sogar eine Rakete.": "Double hitpoints – even survives a Rocket.",
@@ -120826,7 +120895,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Ein Sandsturm der Pyramidenwüste, gefangen in einem Spruch. Zieht alles in die Mitte.": "A sandstorm from the Pyramid Desert, trapped in a spell. Pulls everything to the middle.",
     "Ein Schwarm aus den Wolken der Himmelsinseln. Ohne Herrn suchen sie nun einen neuen – den Kommandanten.": "A swarm from the clouds of the Sky Islands. Masterless, they've found a new one – the Commander.",
     "Ein Schüler hat den dritten Schlag nie verstanden. Er gab lieber sein Herz her, als wieder aufzustehen.": "One student never understood the third strike. He'd rather give away his heart than get back up.",
-    "Ein See in der Mitte: Ein Krake packt Truppen an den Brücken.": "A lake in the middle: a Kraken grabs troops at the bridges.",
     "Ein Skelett mit Faible für Sprengstoff. Seit dem Bust hat er endlich genug Platz zum Werfen.": "A skeleton with a soft spot for explosives. Since the Bust, he finally has enough room to throw.",
     "Ein Spieler ist gerade nicht verbunden.": "A player is currently disconnected.",
     "Ein Splitter flüstert mir zu, seit dem Bust. Er sagt, ihr seid das Problem.": "A Shard has been whispering to me ever since the Bust. It says you are the problem.",
@@ -121268,7 +121336,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Olymp": "Olympus",
     "Olymp-Arena: Hoch über den Wolken schweben drei Marmorinseln der Götter – deine, eine in der Mitte und die gegnerische. Du setzt nur auf deiner eigenen Insel.": "Olympus Arena: High above the clouds float three marble islands of the gods – yours, one in the middle and your opponent's. You only place on your own island.",
     "Zwischen den Inseln führen je zwei goldene Brücken (links und rechts). Sie zerfallen abwechselnd zu Licht und setzen sich wieder zusammen: 12 Sekunden oben, 8 Sekunden weg. Bevor eine Brücke zerfällt, leuchten ihre Runen und sie wackelt.": "Two golden bridges (left and right) lead between the islands. They crumble into light in turns and reassemble: 12 seconds up, 8 seconds gone. Before a bridge crumbles, its runes glow and it shakes.",
-    "Wie auf „Festung“ hat jede Seite nur einen langen Turm ganz hinten (zwei Schützen, 3 Banner, wenn er fällt, 1 Minute Verlängerung). Auf Kraken-See (3000) und in der Olymp-Arena (3400) hat er weniger Trefferpunkte als auf „Festung“ (4800).": "Like on \"Fortress\", each side has just one long tower at the very back (two shooters, 3 banners when it falls, 1 minute of Overtime). On Kraken Lake (3000) and in the Olympus Arena (3400) it has fewer hit points than on \"Fortress\" (4800).",
+    "Wie auf „Festung“ hat jede Seite nur einen langen Turm ganz hinten (zwei Schützen, 3 Banner, wenn er fällt, 1 Minute Verlängerung). In der Olymp-Arena (3400) hat er weniger Trefferpunkte als auf „Festung“ (4800).": "Like on \"Fortress\", each side has just one long tower at the very back (two shooters, 3 banners when it falls, 1 minute of Overtime). In the Olympus Arena (3400) it has fewer hit points than on \"Fortress\" (4800).",
     ": drei schwebende Marmorinseln der Götter über den Wolken. Die goldenen Brücken zwischen den Inseln": ": three floating marble islands of the gods above the clouds. The golden bridges between the islands",
     "zerfallen abwechselnd zu Licht und kehren zurück": "crumble into light in turns and return",
     "Olymp-Arena: Die goldenen Brücken zerfallen abwechselnd zu Licht – wer draufsteht, stürzt ab.": "Olympus Arena: The golden bridges crumble into light in turns – anyone standing on them falls.",
@@ -121433,7 +121501,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Im C.H.A.O.S-Modus gelten alle normalen Regeln – zusätzlich bekommst du während des Kampfes": "In C.H.A.O.S mode all normal rules apply – plus during the battle you get",
     "Im C.H.A.O.S-Modus wählst du mitten im Kampf Upgrades für deine Karten.": "In C.H.A.O.S mode, you pick upgrades for your cards mid-battle.",
     "Im Deck-Editor sind sie ausgegraut, wenn Touchdown gewählt ist – für den Kampf kommen dann andere Karten ins Deck.": "In the deck editor they're greyed out when Touchdown is selected – for the battle, other cards take their place.",
-    "Im See lebt eine Krake, die Truppen packt und in die Tiefe zieht.": "A kraken lives in the lake, grabbing troops and dragging them into the deep.",
+    "Im Burggraben lauert Mutter Tiefe, die Krake – sie packt Truppen am Tor und zieht sie in die Tiefe.": "Mother Deep, the kraken, lurks in the moat – she grabs troops at the gate and drags them into the deep.",
     "Im See wohnt ein Krake. Etwa alle 24 Sekunden blubbert das Wasser an einer Stelle am Ufer oder auf einer Brücke, ein Schatten und ein Tentakel steigen auf – kurz danach schlägt der Tentakel zu.": "A kraken lives in the lake. About every 24 seconds the water bubbles at a spot on the shore or on a bridge, a shadow and a tentacle rise – shortly after, the tentacle strikes.",
     "Im Spielmodus": "In game mode",
     "Im Touchdown": "In Touchdown",
@@ -121685,7 +121753,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Krake": "Kraken",
     "Kraken-Griff": "Kraken grab",
     "Kraken-See": "Kraken Lake",
-    "Kraken-See: Etwa alle 24 Sekunden packt der Krake eine Bodentruppe am Ufer – Vorsicht an den Brücken!": "Kraken Lake: About every 24 seconds the kraken grabs a ground troop on the shore – careful at the bridges!",
     "Kraken-See: In der Mitte liegt ein breiter See. Bodentruppen kommen nur über die zwei Brücken links und rechts hinüber (Keilerreiter und Co. springen darüber).": "Kraken Lake: A wide lake lies in the middle. Ground troops can only cross via the two bridges on the left and right (Boar Riders and the like jump over it).",
     "Krass": "Wicked",
     "Kriegerin mit Speer und Schild, die Bodenziele aus kurzer Distanz trifft. Ihr Schild fängt Schaden ab, bricht aber nach 10 s im Kampf.": "Warrior with spear and shield who hits ground targets from short range. Her shield absorbs damage but breaks after 10 s of combat.",
@@ -122205,7 +122272,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Sechs statt drei Skelette.": "Six Skeletons instead of three.",
     "Sechzehn Splitter. Ein Herz. Gebt es mir zurück!": "Sixteen Shards. One heart. Give it back to me!",
     "See": "Lake",
-    "See mit Krake, der Truppen packt": "Lake with a troop-grabbing Kraken",
     "Seelenernte": "Soul Harvest",
     "Seeräuber": "Sea Raiders",
     "Sehr schnell, mit riesiger Reichweite und rasanten Einzelschüssen auf Boden- und Luftziele – aber zerbrechlich.": "Very fast, with huge range and rapid single shots at ground and air targets – but fragile.",
@@ -122728,7 +122794,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Wer zuerst 3 Touchdowns erzielt, gewinnt sofort. Nach 3 Minuten gewinnt, wer mehr Touchdowns hat (in der letzten Minute doppelte Kristalle).": "The first to score 3 Touchdowns wins instantly. After 3 minutes, whoever has more Touchdowns wins (double Crystals in the last minute).",
     "Wer zweifelt, wird umgewirbelt!": "Doubters get spun!",
     "Wer über meinen See will, muss leicht sein. Oder schnell. Oder beides.": "Whoever wants to cross my lake must be light. Or fast. Or both.",
-    "Wie auf „Festung“ hat jede Seite nur einen langen Turm ganz hinten (zwei Schützen, 3 Banner, wenn er fällt, 1 Minute Verlängerung). Auf Kraken-See (3000) und Himmelsinseln (3400) hat er weniger Trefferpunkte als auf „Festung“ (4800).": "As on \"Fortress\", each side has only one long tower at the very back (two shooters, 3 Banners when it falls, 1 minute of Overtime). On Kraken Lake (3000) and Sky Islands (3400) it has fewer hitpoints than on \"Fortress\" (4800).",
     "Wie die Karnickel": "Breeding Like Rabbits",
     "Wie viele spielen?": "How many players?",
     "Wieder untot": "Undead Again",
@@ -122742,7 +122807,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Wiederholungen ansehen": "Watch replays",
     "Wiederholungen kommen bald.": "Replays coming soon.",
     "Wild": "Wild",
-    "Willkommen bei Bust War": "Welcome to Bust War",
+    "Willkommen bei Wall of Chaos": "Welcome to Wall of Chaos",
     "Willkommen zu Hause, ihr zwei.": "Welcome home, you two.",
     "Wind dreht. Wir auch.": "Wind turns. So do we.",
     "Windarmee": "Wind Army",
@@ -123179,7 +123244,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.990)</script>
+</script><script>__crBP(0.988)</script>
 <script>
 /* src/47-late.js */
 /* src/47-late.js - v36 "loading": the big data files stream in AFTER the menu.
@@ -123437,7 +123502,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.991)</script>
+</script><script>__crBP(0.990)</script>
 <script>
 /* src/48-frost-fest.js */
 /* 48-frost-fest.js - v41 "Frost-Fest", v42 the Christmas event (docs/V41-FROSTFEST.md, docs/V42-XMAS.md).
@@ -123463,7 +123528,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
  *  swapped on the tower body meshes only - never on troops / crews), drifting ice floes on the river,
  *  falling snow, string lights + fir garlands (walls, gates, crowns, side curbs), fir trees with
  *  presents, candy canes at the bridges, a wreath on the town hall / king towers, warm house windows.
- *  The other maps keep the v41 winter look (soft drifts). Cosmetic troop trails (calendar reward) puff
+ *  v44: the same look on every other map but the pyramid (XMAP parameters + CR.Arena data: portal /
+ *  pad / plate wreaths, lake shores, island edges, water floes, curbs). Cosmetic troop trails (calendar reward) puff
  *  behind the own moving ground troops (CR.VFX).
  *  Hooks (outermost, this file loads last): Render3D.prototype.draw / _disposeArena, UI.MenuScreen,
  *  UI.openSettings. The menu / HUD / splash look is plain CSS (src/styles.css, "v42 Weihnachten").
@@ -123891,13 +123957,13 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
   // ------------------------------------------------------------------ 3D arena
   // crFfX = 1: the classic map's Christmas arena (closed snow cover), 0: the v41 winter look (drifts)
-  const U = { on: { value: 0 }, t: { value: 0 }, px: { value: 600 }, x: { value: 0 } };
+  const U = { on: { value: 0 }, t: { value: 0 }, px: { value: 600 }, x: { value: 0 }, a: { value: 0 } };
   FF.uniforms = U;
   const SNOW_VS = 'vec4 crFfP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\ncrFfP = instanceMatrix * crFfP;\n#endif\ncrFfW = (modelMatrix * crFfP).xyz;';
   const NOISE = 'float crFfH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
     'float crFfN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);\n' +
     '  return mix(mix(crFfH(i), crFfH(i + vec2(1.0, 0.0)), f.x), mix(crFfH(i + vec2(0.0, 1.0)), crFfH(i + vec2(1.0, 1.0)), f.x), f.y); }\n';
-  const SNOW_FC = 'varying vec3 crFfW;\nuniform float crFfOn, crFfX;\n' + NOISE +
+  const SNOW_FC = 'varying vec3 crFfW;\nuniform float crFfOn, crFfX, crFfA;\n' + NOISE +
     // v41 (other maps): soft drifts on about a third of the ground; raised surfaces nearly full
     'float crFfSnow(float up) { vec2 p = mat2(0.8, -0.6, 0.6, 0.8) * crFfW.xz;\n' +
     '  float n = crFfN(p * 0.42) * 0.55 + crFfN(p * 1.15 + 7.3) * 0.3 + crFfN(p * 3.3 + 1.7) * 0.15;\n' +
@@ -123917,7 +123983,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '    diffuseColor.rgb = mix(c0, vec3(0.6, 0.64, 0.8) + crFfN(crFfW.xz * 2.0) * 0.04, a * 0.94);\n' +
     '#ifndef CR_FF_NODUSK\n    diffuseColor.rgb *= vec3(0.56, 0.58, 0.86);\n#endif\n  }\n' +
     '  else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), crFfSnow(crUp)); }';
-  const SNOW_FLAT = 'if (crFfOn > 0.5) { if (crFfX > 0.5) { vec3 c0 = diffuseColor.rgb; diffuseColor.rgb = mix(crFfK(c0), crFfS(c0), crFfG(c0)); }\n' +
+  const SNOW_FLAT = 'if (crFfOn > 0.5) { if (crFfX > 0.5) { vec3 c0 = diffuseColor.rgb; diffuseColor.rgb = mix(crFfK(c0), crFfS(c0), max(crFfG(c0), crFfA * smoothstep(0.2, 0.5, crFfN(crFfW.xz * 0.85 + 5.0)))); }\n' +
     '  else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 1.0), crFfSnow(1.0)); }';
 
   function snowKind(m) {
@@ -123942,12 +124008,13 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       if (sh.fragmentShader.indexOf(anchor) < 0) return;
       sh.uniforms.crFfOn = U.on;
       sh.uniforms.crFfX = U.x;
+      sh.uniforms.crFfA = U.a;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 crFfW;')
         .replace('#include <project_vertex>', '#include <project_vertex>\n' + SNOW_VS);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', (noDusk ? '#define CR_FF_NODUSK\n' : '') + '#include <common>\n' + SNOW_FC)
         .replace(anchor, anchor + '\n' + (kind === 'lit' ? SNOW_LIT : SNOW_FLAT));
     };
-    m.customProgramCacheKey = function () { return (ownKey ? ownKey.call(this) : prevSrc) + '|crff3' + kind + (noDusk ? 'n' : ''); };
+    m.customProgramCacheKey = function () { return (ownKey ? ownKey.call(this) : prevSrc) + '|crff4' + kind + (noDusk ? 'n' : ''); };
     m.needsUpdate = true;
   }
   function snowArena(r) {
@@ -123999,9 +124066,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 
   // ---- points: uM 0 = blinking bulbs, 1 = falling snow, 2 = fir garland (solid tufts), 3 = warm windows
-  const PT_VS = 'attribute vec3 color; attribute vec2 aP; uniform float uT, uPx, uSize, uM, uH; varying vec3 vC; varying float vA;\n' +
+  const PT_VS = 'attribute vec3 color; attribute vec2 aP; uniform float uT, uPx, uSize, uM, uH, uW; varying vec3 vC; varying float vA;\n' +
     'void main() { vec3 p = position;\n' +
-    '  if (uM == 1.0) { p.y = mod(aP.x * uH - uT * aP.y, uH); p.x += sin(uT * 0.8 + aP.x * 40.0) * 0.35; p.z += cos(uT * 0.6 + aP.x * 23.0) * 0.25; vA = 0.55 + 0.45 * fract(aP.x * 7.0); }\n' +
+    '  if (uM == 1.0) { p.y = mod(aP.x * uH - uT * aP.y, uH); p.x += sin(uT * 0.8 + aP.x * 40.0) * 0.35; p.z += cos(uT * 0.6 + aP.x * 23.0) * 0.25; p.x = mod(p.x + uT * uW * (0.7 + aP.y * 0.3) + 12.0, 24.0) - 12.0; vA = 0.55 + 0.45 * fract(aP.x * 7.0); }\n' +
     '  else if (uM == 3.0) vA = 0.86 + 0.14 * sin(uT * 1.3 + aP.x * 5.0);\n' +
     '  else vA = 0.55 + 0.45 * sin(uT * 2.2 + aP.x);\n' +
     '  vC = color; vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;\n' +
@@ -124021,7 +124088,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     g.setAttribute('aP', new T.Float32BufferAttribute(ph, 2));
     const m = new T.ShaderMaterial({
-      uniforms: { uOn: U.on, uT: U.t, uPx: U.px, uSize: { value: size }, uM: { value: mode }, uH: { value: 12 } },
+      uniforms: { uOn: U.on, uT: U.t, uPx: U.px, uSize: { value: size }, uM: { value: mode }, uH: { value: 12 }, uW: { value: 0 } },
       vertexShader: PT_VS, fragmentShader: PT_FS, transparent: mode !== 2, depthWrite: mode === 2, blending: mode === 0 || mode === 3 ? T.AdditiveBlending : T.NormalBlending,
     });
     st.geos.push(g); st.mats.push(m);
@@ -124033,9 +124100,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function rnd(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
   // ---- river ice (v42 classic): floes along both banks, open water in the middle, drifting slowly
-  const ICE_VS = 'varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }';
-  const ICE_FS = 'varying vec3 vW; uniform float uOn, uT, uZ0, uZ1;\n' + NOISE +
-    'void main() { if (uOn < 0.5) discard; float d = min(vW.z - uZ0, uZ1 - vW.z) / (uZ1 - uZ0);\n' +
+  const ICE_VS = 'varying vec3 vW; varying float vD; void main() { vD = uv.y; vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }';
+  const ICE_FS = 'varying vec3 vW; varying float vD; uniform float uOn, uT;\n' + NOISE +
+    'void main() { if (uOn < 0.5) discard; float d = min(vD, 1.0 - vD);\n' +
     '  vec2 p = vec2(vW.x * 0.8 + uT * 0.05, vW.z * 1.9);\n' +
     '  float n = crFfN(p) * 0.62 + crFfN(p * 2.7 + 3.1) * 0.38;\n' +
     '  float th = mix(0.2, 0.56, smoothstep(0.1, 0.46, d)); float a = smoothstep(th, th + 0.035, n);\n' +
@@ -124044,14 +124111,20 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '  c = mix(c, vec3(1.0), (1.0 - smoothstep(th + 0.035, th + 0.1, n)) * 0.55);\n' +
     '  c *= 1.0 - 0.18 * smoothstep(0.035, 0.0, abs(crFfN(vW.xz * 4.3) - 0.5));\n' +
     '  gl_FragColor = vec4(c, a * 0.96); }';
-  function iceObj(r, st) {
-    const T = r.T, z0 = r._zr0, z1 = r._zr1;
-    const g = new T.PlaneGeometry((r.W || 18) + 12, z1 - z0, 1, 1);
-    g.rotateX(-Math.PI / 2);
-    g.translate(0, -0.3, (z0 + z1) / 2);
-    const m = new T.ShaderMaterial({ uniforms: { uOn: U.on, uT: U.t, uZ0: { value: z0 }, uZ1: { value: z1 } }, vertexShader: ICE_VS, fragmentShader: ICE_FS, transparent: true, depthWrite: false });
+  /** Ice floes over water rects [x0, x1, z0, z1] (world; floes along both z banks) at height y. */
+  function iceObj(r, st, rects, y) {
+    const T = r.T, pos = [], uv = [];
+    for (let i = 0; i < rects.length; i++) {
+      const q = rects[i], P = [[q[0], q[2], 0], [q[1], q[2], 0], [q[1], q[3], 1], [q[0], q[2], 0], [q[1], q[3], 1], [q[0], q[3], 1]];
+      for (let k = 0; k < 6; k++) { pos.push(P[k][0], y, P[k][1]); uv.push(0, P[k][2]); }
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    const m = new T.ShaderMaterial({ uniforms: { uOn: U.on, uT: U.t }, vertexShader: ICE_VS, fragmentShader: ICE_FS, transparent: true, depthWrite: false, side: T.DoubleSide });
     st.geos.push(g); st.mats.push(m);
     const o = new T.Mesh(g, m);
+    o.frustumCulled = false;
     o.renderOrder = 2;
     return o;
   }
@@ -124060,8 +124133,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   const BULB = [[1, 0.18, 0.12], [1, 0.72, 0.1], [0.2, 1, 0.35], [0.25, 0.55, 1], [1, 0.45, 0.08]];
   /** String lights collector: wire segments + bulbs along sagging chains (+ fir garland tufts). */
   function Lights() { this.wire = []; this.pos = []; this.col = []; this.ph = []; this.k = 0; this.gp = []; this.gc = []; this.gs = []; this.gar = false; }
-  Lights.prototype.bulb = function (x, y, z, sz) {
-    const c = BULB[this.k % BULB.length];
+  Lights.prototype.bulb = function (x, y, z, sz, c) {
+    c = c || (this.pal || BULB)[this.k % (this.pal || BULB).length];
     this.pos.push(x, y, z); this.col.push(c[0], c[1], c[2]); this.ph.push((this.k * 2.39) % 6.283, sz || 1);
     this.k++;
   };
@@ -124233,22 +124306,24 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 
   /** Builds the winter decoration of the current arena (lazily, on a frame of it). */
-  function buildFF(r, xm) {
+  function buildFF(r, xm, mid) {
     const T = r.T;
-    const st = r._ff = { arena: r.arena, group: new T.Group(), geos: [], mats: [], toon: null, toonC: null, towersDone: false, tries: 0, xm: xm, tw: null };
+    const st = r._ff = { arena: r.arena, group: new T.Group(), geos: [], mats: [], toon: null, toonC: null, towersDone: false, tries: 0, xm: xm, mid: mid, tw: null };
     st.group.name = 'frostFest';
     snowArena(r);
     const lq = !!(r._lq || r._weak);
     // snowflakes in a box over the whole arena (+ the scenery around it); v42 classic: lighter fall
-    const N = (lq ? 150 : 360) * (xm ? 0.75 : 1), R = rnd(4141), hw = r.hw || 9, hh = r.hh || 16;
+    const N = (lq ? 150 : 360) * (xm ? 0.75 * ((XMAP[mid] && XMAP[mid].n) || 1) : 1), R = rnd(4141), hw = r.hw || 9, hh = r.hh || 16;
     const pos = [], col = [], ph = [];
     for (let i = 0; i < N; i++) {
       pos.push((R() * 2 - 1) * (hw + 3), 0, (R() * 2 - 1) * (hh + 4));
       col.push(1, 1, 1);
       ph.push(R(), 0.7 + R() * 0.9);
     }
-    st.group.add(pointsObj(T, st, pos, col, ph, 1, 0.2));
-    if (xm && typeof r._zr0 === 'number' && r._zr1 > r._zr0) st.group.add(iceObj(r, st));
+    const fl = pointsObj(T, st, pos, col, ph, 1, 0.2);
+    fl.material.uniforms.uW.value = (XMAP[mid] && XMAP[mid].w) || 0;
+    st.group.add(fl);
+    if (xm && typeof r._zr0 === 'number' && r._zr1 > r._zr0) { const w = ((r.W || 18) + 12) / 2; st.group.add(iceObj(r, st, [[-w, w, r._zr0, r._zr1]], -0.3)); }
     const wu = xm && r._waterMat && r._waterMat.uniforms;
     if (wu && wu.uDeep && wu.uMid) { wu.uDeep.value.set(0.07, 0.34, 0.8); wu.uMid.value.set(0.2, 0.56, 0.95); }
     r.arena.add(st.group);
@@ -124402,6 +124477,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       }
       if (tp.length) grp.add(pointsObj(T, st, tp, tc, ta, 3, 1.0));
     }
+    if (xm && st.mid !== 'classic') mapDecor(r, st, st2, L, P, grp, S, cf);
     addMesh(r, st2, P, true);
     L.build(T, st2, grp);
     if (st2.toon) snowify(st2.toon, 'lit');
@@ -124409,6 +124485,162 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     st.group.add(grp);
     grp.traverse(function (o) { o.matrixAutoUpdate = false; o.updateMatrix(); });
     return true;
+  }
+
+  // ---- v44: the Christmas look on every other map (data driven: CR.Arena + the XMAP parameters)
+  /** A gingerbread man (base at x, y, z, height ~1.1 * s) into parts. */
+  function ginger(T, P, x, y, z, s, ry) {
+    const B = 0xb5652a, D = 0x8a4a1e, Wh = 0xfbf6ee, c = Math.cos(ry), n = Math.sin(ry);
+    const at = function (dx, dy, dz) { return { x: x + dx * c + dz * n, y: y + dy * s, z: z - dx * n + dz * c }; };
+    const add = function (g, col, dx, dy, dz, o) { const q = at(dx * s, dy, dz * s); q.geo = g; q.color = col; q.ry = ry; q.sx = s * (o && o[0] || 1); q.sy = s * (o && o[1] || 1); q.sz = s * (o && o[2] || 1); q.rz = o && o[3] || 0; P.push(q); };
+    add(new T.SphereGeometry(0.22, 9, 7), B, 0, 0.5, 0, [1, 1.25, 0.5]);
+    add(new T.SphereGeometry(0.17, 9, 7), B, 0, 0.92, 0, [1, 1, 0.55]);
+    for (let e = -1; e <= 1; e += 2) {
+      add(new T.CylinderGeometry(0.075, 0.075, 0.34, 7), D, e * 0.27, 0.62, 0, [1, 1, 0.7, e * 1.1]);
+      add(new T.CylinderGeometry(0.085, 0.085, 0.36, 7), D, e * 0.11, 0.18, 0, [1, 1, 0.7, e * 0.28]);
+      add(new T.SphereGeometry(0.03, 5, 4), Wh, e * 0.06, 0.96, 0.09);
+    }
+    for (let k = 0; k < 3; k++) add(new T.SphereGeometry(0.035, 5, 4), k === 1 ? 0x2f8a4a : 0xd8262a, 0, 0.62 - k * 0.12, 0.11);
+    add(new T.TorusGeometry(0.08, 0.016, 4, 10, Math.PI), Wh, 0, 0.88, 0.09, [1, 1, 1, Math.PI]);
+  }
+  /** A snowy palm (curved trunk, drooping fronds) with bulbs; base at (x, y, z). */
+  function palm(r, st, L, x, y, z, s) {
+    const T = r.T, P = [];
+    let px = x, py = y, k = 0;
+    for (; k < 6; k++) { P.push({ geo: new T.CylinderGeometry(0.09 * s, 0.12 * s, 0.4 * s, 7), color: k & 1 ? 0x7a5230 : 0x8f6438, x: px, y: py + 0.2 * s, z: z, rz: -0.05 * k }); px += 0.03 * k * s; py += 0.38 * s; }
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2;
+      P.push({ geo: new T.BoxGeometry(0.85, 0.04, 0.24), color: i & 1 ? 0x2c8a47 : 0x24763b, x: px + Math.cos(a) * 0.36 * s, y: py - 0.08 * s, z: z - Math.sin(a) * 0.36 * s, ry: a, rz: -0.45, sx: s, sy: s, sz: s });
+      L.bulb(px + Math.cos(a) * 0.62 * s, py - 0.3 * s, z - Math.sin(a) * 0.62 * s, 0.9);
+    }
+    for (let i = 0; i < 6; i++) L.bulb(x + 0.02 * i * i * s + Math.cos(i * 2.1) * 0.13 * s, y + (0.3 + i * 0.38) * s, z + Math.sin(i * 2.1) * 0.13 * s, 0.75);
+    addMesh(r, st, P);   // the snowy material: snow on the fronds
+  }
+  /** A cluster of ice crystals at (x, y, z). */
+  function crystals(T, P, x, y, z, s) {
+    for (let i = 0; i < 4; i++) P.push({ geo: new T.OctahedronGeometry(0.22, 0), color: i & 1 ? 0xbfe6ff : 0x8fc8f2, x: x + (i - 1.5) * 0.2 * s, y: y + 0.3 * s * (1 - i * 0.12), z: z + (i & 1 ? 0.12 : -0.1) * s, rz: (i - 1.5) * 0.25, sx: s * 0.8, sy: s * (2.4 - i * 0.3), sz: s * 0.8 });
+  }
+  /** Patches a map's own shader (found by its uniforms): water deep blue, sky clouds dusky. */
+  function patchSh(r, wu, from, to) {
+    if (wu && r.arena) r.arena.traverse(function (o) {
+      const m = o.material;
+      if (!m || m.uniforms !== wu || m.userData.crXw) return;
+      m.userData.crXw = 1;
+      m.fragmentShader = m.fragmentShader.replace(from, to);
+      m.needsUpdate = true;
+    });
+  }
+  const WFC = 'gl_FragColor = vec4(col, 1.0);';
+  const GOLD = [[1, 0.78, 0.25], [1, 0.95, 0.75], [1, 0.55, 0.12], [1, 0.2, 0.15]];
+  // a = snow over the non-grass field (marble, paving), n = snowfall factor, pal = bulb colours,
+  // curb = garlands along the side curbs (siege), firs = firs + presents at the field edges,
+  // canes = candy canes at the curbs, ginger = gingerbread men, palms = snowy palms, ice = crystals
+  const XMAP = {
+    fortress: { curb: 1, firs: 3, canes: 1 },
+    skyislands: { a: 0.9, pal: GOLD, firs: 1 },
+    portals: { curb: 1, firs: 1 },
+    citadel: { a: 0.5, firs: 1 },
+    jungle: { palms: 1 },
+    catapult: { curb: 1, firs: 1 },
+    ice: { curb: 1, n: 1.3, ice: 1, pal: GOLD },
+    whirlwind: { curb: 1, firs: 1, n: 2, w: 2.2 },
+    wonderland: { canes: 1, ginger: 1 },
+  };
+  FF.XMAP = XMAP;
+  function xmap(id) { return XMAP[id] || { curb: 1, firs: 1 }; }
+  function mapDecor(r, st, st2, L, P, grp, S, cf) {
+    const T = r.T, A = CR.Arena || {}, hw = r.hw, hh = r.hh, X = xmap(st.mid);
+    // a ground wreath: fir tufts all round, bulbs on top (rx, ry radii)
+    const ring = function (x, y, rx, n, h, cols, ry) {
+      ry = ry || rx;
+      const m = Math.round(rx * 52);
+      for (let i = 0; i < m; i++) { const a = i / m * Math.PI * 2; L.tuft(x - hw + Math.cos(a) * rx, h, hh - y + Math.sin(a) * ry); }
+      for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; L.bulb(x - hw + Math.cos(a) * rx, h + 0.05, hh - y + Math.sin(a) * ry, 0.9, cols && cols[i % cols.length]); }
+    };
+    const row = function (x0, x1, y, h, sag) { const n = Math.max(1, Math.round(Math.abs(x1 - x0) / 1.8)), pts = []; for (let k = 0; k <= n; k++) pts.push([x0 + (x1 - x0) * k / n - hw, h, hh - y]); L.path(pts, sag, 0.42); };
+    const col = function (x, y0, y1, h, sag) { const n = Math.max(1, Math.round(Math.abs(y1 - y0) / 2.4)), pts = []; for (let k = 0; k <= n; k++) pts.push([x - hw, h, hh - (y0 + (y1 - y0) * k / n)]); L.path(pts, sag, 0.42); };
+    const warm = [], wc = [], wa = [];
+    const lamp = function (x, y, h) { warm.push(x - hw, h, hh - y); wc.push(1, 0.55, 0.14); wa.push(warm.length, X.ice ? 1.7 : 1.2); };
+    L.pal = X.pal || null;
+    // portals: a ring of bulbs in the portal colours
+    const PC = (CR.Maps24 && CR.Maps24.PCOL) || [[0x3f86ff, 0xbfe2ff], [0xff8a1e, 0xffe2a8]], c3 = new T.Color();
+    const pc = function (h) { c3.setHex(h); return [c3.r, c3.g, c3.b]; };
+    const PS = A.PORTALS && A.PORTALS.spots || [];
+    for (let i = 0; i < PS.length; i++) for (let k = 0; k < 2; k++) { const q = (PS[i].list || [])[k]; if (q) ring(q.x, q.y, 1.3, 18, 0.12, [pc(PC[k % 2][0])]); }
+    // jump pads, tunnel holes, catapult plates: warm rings; catapults: a garland on the mound
+    ((A.PADS && A.PADS.list) || []).forEach(function (q) { ring(q.x, q.y, 0.95, 12, 0.1, GOLD); });
+    ((A.TUNNEL && A.TUNNEL.holes) || []).forEach(function (q) { ring(q.x, q.y, (q.r || 0.9) + 0.35, 12, 0.1, GOLD); });
+    const CT = A.FEATA && A.FEATA.cat;
+    if (CT) CT.list.forEach(function (q) {
+      ring(q.px, q.py, (CT.plateR || 1.1) + 0.08, 14, 0.08);
+      const ex = q.x < 9 ? q.x1 : q.x0;
+      col(ex, q.y0, q.y1, 0.55, 0.12); lamp(ex, q.y0, 0.6); lamp(ex, q.y1, 0.6);
+    });
+    // frozen lake: lights along both shores, warm lanterns
+    const IC = A.ICE;
+    if (IC) for (let e = 0; e < 2; e++) {
+      const y = e ? IC.y1 + 0.12 : IC.y0 - 0.12;
+      row(IC.x0 + 0.1, IC.x1 - 0.1, y, 0.12, 0.02);
+      for (let x = IC.x0 + 1; x < IC.x1; x += 2.5) lamp(x, y, 0.3);
+      if (X.canes) for (let x = IC.x0 + 1.2; x < IC.x1 - 0.5; x += 2.6) cane(T, P, x - hw, 0, hh - (e ? y + 0.25 : y - 0.25), 1.05, e ? 1 : -1);
+    }
+    const WH = X.w && A.WHIRL;
+    if (WH) ring(WH.cx, WH.cy, WH.xMax - WH.cx + 0.6, 30, 0.08, GOLD, WH.yMax - WH.cy + 0.6);
+    if (IC && X.ice) for (let e = 0; e < 4; e++) { const x = e & 1 ? 17.3 : 0.7, y = e & 2 ? IC.y1 + 0.55 : IC.y0 - 0.55; crystals(T, P, x - hw, 0, hh - y, 1.5); lamp(x + (e & 1 ? -0.6 : 0.6), y, 0.45); }
+    if (IC && X.ginger) for (let e = 0; e < 4; e++) ginger(T, P, (e & 1 ? 11.5 : 6.5) - hw, 0, hh - (e & 2 ? IC.y1 + 0.45 : IC.y0 - 0.45), 1.05, e & 2 ? Math.PI : 0);
+    // sky islands: gold garlands along the island edges (not over the bridges)
+    const SK = A.SKY;
+    if (SK) SK.gaps.forEach(function (g) {
+      for (let e = 0; e < 2; e++) {
+        const y = e ? g.y1 + 0.08 : g.y0 - 0.08, br = (g.bridges || []).slice().sort(function (a, b) { return a.x0 - b.x0; });
+        let x = 0.1;
+        for (let i = 0; i <= br.length; i++) { const x1 = i < br.length ? br[i].x0 - 0.15 : 17.9; if (x1 - x > 0.8) row(x, x1, y, 0.22, 0.08); x = i < br.length ? br[i].x1 + 0.15 : 18; }
+        for (let i = 0; i < br.length; i++) { lamp(br[i].x0 - 0.1, y, 0.5); lamp(br[i].x1 + 0.1, y, 0.5); }
+      }
+    });
+    // a middle wall (citadel / jungle ruin): a garland under the crown on the face the camera sees
+    const WL = A.WALL;
+    if (WL && WL.top) { const fy = cf > 0 ? WL.y0 - 0.08 : WL.y1 + 0.08; row(WL.top.x0 + 0.1, WL.top.x1 - 0.1, fy, (WL.height || 1.4) * 0.84, 0.15); }
+    // the tunnel bridges: candy canes at their corners
+    (A.BRIDGES || []).forEach(function (b) {
+      if (!b.tunnel || r.riverOn) return;
+      for (let e = 0; e < 2; e++) for (let f = 0; f < 2; f++) cane(T, P, (e ? b.x1 + 0.12 : b.x0 - 0.12) - hw, 0, hh - (f ? b.y1 + 0.1 : b.y0 - 0.1), 1.05, e ? 1 : -1);
+    });
+    // water: ice floes (+ the map's own water shader deep blue)
+    const WR = (A.WATER || []).filter(function (w) { return !w.sky && !w.wall; }).map(function (w) { return [w.x0 - hw, w.x1 - hw, hh - w.y1, hh - w.y0]; });
+    if (WR.length) grp.add(iceObj(r, st, WR, 0.07));
+    const M = r._m24;
+    const BW = 'col = mix(vec3(0.04, 0.2, 0.62), vec3(0.32, 0.64, 1.0), smoothstep(0.08, 0.6, dot(col, vec3(0.3, 0.59, 0.11)))); ' + WFC;
+    patchSh(r, M && M.cit && M.cit.wU, WFC, BW);
+    patchSh(r, r._jg && r._jg.wU, WFC, BW);
+    if (M && M.sky) {   // Olymp: a dusky evening sky under the islands
+      const CA = 'gl_FragColor = vec4(col, a);', DA = 'gl_FragColor = vec4(col * vec3(0.5, 0.52, 0.86), a * 0.75);';
+      patchSh(r, M.sky.puffU, CA, DA); patchSh(r, M.cU, CA, DA);
+      M.group.traverse(function (o) { const m = o.material; if (m && m.isMeshBasicMaterial && m.vertexColors && !m.userData.crXw) { m.userData.crXw = 1; m.color.multiply(new T.Color(0.6, 0.62, 0.9)); } });
+      patchSh(r, M.seaU, WFC, 'gl_FragColor = vec4(col * vec3(0.36, 0.38, 0.72), 1.0);');
+    }
+    // the field edges of the middle band (siege): curb garlands, firs / palms with presents, canes,
+    // gingerbread men, ice crystals
+    if (S) {
+      const ya = S.walls[0].y1 + 0.6, yb = S.walls[1].y0 - 0.6;
+      for (let sx = 0; sx < 2; sx++) {
+        const x = sx ? 18.12 : -0.12, xi = sx ? 17.55 : 0.45, hx = sx ? 1 : -1;
+        if (X.curb) col(x, ya, yb, 0.5, 0.14);
+        for (let k = 0; k < (X.firs || 2); k++) {
+          const y = k > 1 ? (ya + yb) / 2 : (k ? yb - 1.8 : ya + 1.8), Z = hh - y;
+          if (X.firs) { tree(r, st2, L, xi - hw, 0, Z, 0.9); gifts(T, P, xi - hw, 0, Z, 0.55, 3, 0.26, 61 + sx * 2 + k); }
+          if (X.palms) palm(r, st2, L, xi - hw, 0, Z, 1.35);
+          if (X.ginger) ginger(T, P, xi - hw, 0, Z, 1.25, sx ? -0.5 : 0.5);
+          if (X.canes) { cane(T, P, xi - hw, 0, Z + 1.4, 1.2, hx); cane(T, P, xi - hw, 0, Z - 1.4, 1.2, hx); }
+          if (X.ice) { crystals(T, P, xi - hw, 0, Z, 1.8); lamp(xi + (sx ? -0.6 : 0.6), y, 0.45); }
+        }
+        // Eissee: icicles under the crown of both town walls (the face the camera sees)
+        if (X.ice) { const w = S.walls[sx], fy = cf > 0 ? w.y0 : w.y1; for (let i = 0; i < 52; i++) P.push({ geo: new T.ConeGeometry(0.1, 0.3 + (i % 3) * 0.16, 5), color: i & 1 ? 0xd8f0ff : 0x9fd2f5, x: i * 0.35 + 0.1 - hw, y: (S.height || 1.7) * 0.74, z: hh - fy + cf * 0.12, rx: Math.PI }); }
+        if (X.ginger || X.canes) for (let y = ya + 4.2; y < yb - 4; y += 3.2) cane(T, P, xi - hw, 0, hh - y, 0.95, hx);
+      }
+    }
+    if (warm.length) grp.add(pointsObj(T, st, warm, wc, wa, 3, 0.95));
+    L.pal = null;
   }
 
   function disposeFF(r) {
@@ -124451,15 +124683,18 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     }
   }
 
+  const NOXM = { pyramid: 1, kraken: 1 };
   function frame(r, cur, opts) {
     const ls = opts && opts.localSide === 1 ? 1 : 0;
-    const xm = r.map === 'classic' && !r.td && !!r.riverOn;   // v42: the Christmas arena
+    const mid = r.map === 'flat' && CR.Arena && CR.Arena.map ? CR.Arena.map : r.map;   // (feat maps draw on 'flat')
+    const xm = !r.td && !NOXM[mid] && (mid !== 'classic' || !!r.riverOn);   // v42 classic, v44 every map but the pyramid
     U.on.value = 1;
     U.x.value = xm ? 1 : 0;
+    U.a.value = xm && XMAP[mid] ? XMAP[mid].a || 0 : 0;
     U.t.value = (((G.performance && G.performance.now) ? G.performance.now() : Date.now()) / 1000) % 3600;
     if (r.T && r.arena) {
-      if (r._ff && (r._ff.arena !== r.arena || r._ff.ls !== ls || r._ff.xm !== xm)) disposeFF(r);
-      if (!r._ff) { buildFF(r, xm); r._ff.ls = ls; }
+      if (r._ff && (r._ff.arena !== r.arena || r._ff.ls !== ls || r._ff.xm !== xm || r._ff.mid !== mid)) disposeFF(r);
+      if (!r._ff) { buildFF(r, xm, mid); r._ff.ls = ls; }
       const st = r._ff;
       if (st && !st.towersDone && st.tries < 400 && (st.tries++ % 10) === 0) st.towersDone = buildTowerDecor(r, st);
       if (st && st.towersDone && xm) snowTowers(r, st);
@@ -124510,7 +124745,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     if (window.CR && CR.App && typeof CR.App.start === 'function') {
       CR.App.start(document.getElementById('app'));
     } else {
-      root.textContent = (window.CR && CR.I18n) ? CR.I18n.t('boot.failed') : 'Bust War konnte nicht geladen werden. Bitte Seite neu laden.';
+      root.textContent = (window.CR && CR.I18n) ? CR.I18n.t('boot.failed') : 'Wall of Chaos konnte nicht geladen werden. Bitte Seite neu laden.';
     }
   })();
 </script>
