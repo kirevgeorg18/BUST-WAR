@@ -47,7 +47,7 @@
   window.CR = window.CR || {};
   window.CR.MODEL_DATA = window.CR.MODEL_DATA || {};
   window.__crLate = { models: 1, audio: 1 };
-  window.__crBuild = '95f8d0727146';   /* content hash of the single-file build (tools/build.py); '' = dev page */
+  window.__crBuild = '5fe99602c607';   /* content hash of the single-file build (tools/build.py); '' = dev page */
   window.__crBP = function (f) {
     var e = document.getElementById('boot-fill');
     if (e) e.style.transform = 'scaleX(' + Math.max(0, Math.min(1, f)) + ')';
@@ -6492,14 +6492,17 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 /* ===== v36 loading: Kampf! pressed while the battle is being built ===== */
 .btn-fight.is-starting { transform: translateY(2px) scale(0.97); filter: brightness(1.12); transition: none; }
 
-/* ================================================================ v42 Weihnachten (docs/V42-XMAS.md)
-   The Christmas event is always on: night sky with snowfall and warm bokeh lights, Santa hat + snow
-   cap on the logo, snow caps / icicles on tiles, panels and buttons, a festive fight button, a fir
-   garland with fairy lights under the top bar, a wintry tab bar, a red / green / gold event banner,
-   a festive deck frame, and a light touch on splash, battle HUD and result. CSS + inline SVG only. */
+/* ================================================================ v42 Weihnachten (docs/V42-XMAS.md) + v45 Weiß-Gold
+   v42: the Christmas look - snowfall, Santa hat on the logo, snow caps / icicles on tiles, panels and buttons,
+   a fir garland with fairy lights under the top bar, a red / green / gold event chip, holly on the deck and
+   the fight button, a little snow on the battle HUD and the result. CSS + inline SVG only.
+   v45 (user: "Weiß + Gold, Schwarz als Kontrast, edel und hell"): the menu family (main menu + story tab, deck
+   editor, loading screen and every sheet opened there; 11-main sets .stage.is-light) is ivory white + gold
+   with anthracite type, outlines and accents; the Christmas decoration stays (snow with a soft grey contour
+   so it reads on white). Lobby, result and battle keep the v42 night look. */
 :root {
   --ff-snow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='14'%3E%3Cpath d='M0 0h44v6c-3 0-4 3-7 3s-3-2-6-2-3 5-6 5-3-4-6-4-3 2-6 2-3-3-6-3-4 1-7 1z' fill='%23fff'/%3E%3Cpath d='M0 7c3 0 4 1 7 1s3 3 6 3 3-2 6-2 3 4 6 4 3-5 6-5 3 2 6 2 4-3 7-3' fill='none' stroke='%23a9c9ea' stroke-width='1.3'/%3E%3C/svg%3E");
-  --ff-ice: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='12'%3E%3Cpath d='M4 0l2 8 2-8zM14 0l1.4 5 1.4-5zM22 0l2.2 11 2.2-11z' fill='%23eaf7ff' stroke='%239cc4e6' stroke-width='.7'/%3E%3C/svg%3E");
+  --ff-ice: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='12'%3E%3Cpath d='M4 0l2 8 2-8zM14 0l1.4 5 1.4-5zM22 0l2.2 11 2.2-11z' fill='%23f2faff' stroke='%236f97bd' stroke-width='.9'/%3E%3C/svg%3E");
   --ff-gar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='26'%3E%3Cpath d='M0 3Q36 24 72 3' fill='none' stroke='%23123f22' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M0 3Q36 24 72 3' fill='none' stroke='%232f8a4a' stroke-width='6' stroke-dasharray='2 3'/%3E%3Cpath d='M0 2Q36 21 72 2' fill='none' stroke='%2366c27a' stroke-width='1.6' stroke-dasharray='1 4'/%3E%3Ccircle cx='18' cy='14' r='3.4' fill='%23ff4a3d'/%3E%3Ccircle cx='36' cy='18' r='3.4' fill='%23ffd34a'/%3E%3Ccircle cx='54' cy='14' r='3.4' fill='%2360b8ff'/%3E%3Ccircle cx='17' cy='13' r='1.2' fill='%23fff' opacity='.8'/%3E%3Ccircle cx='35' cy='17' r='1.2' fill='%23fff' opacity='.8'/%3E%3Ccircle cx='53' cy='13' r='1.2' fill='%23fff' opacity='.8'/%3E%3C/svg%3E");
   --ff-glow: radial-gradient(circle at 18px 14px, rgba(255, 90, 70, 0.75), transparent 9px), radial-gradient(circle at 36px 18px, rgba(255, 215, 90, 0.8), transparent 9px), radial-gradient(circle at 54px 14px, rgba(110, 190, 255, 0.75), transparent 9px);
   --ff-hat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48'%3E%3Cpath d='M8 38C14 18 30 4 48 8c6 1.4 9 7 7 13-2-4-6-6-10-5-8 3-12 13-13 24z' fill='%23e3322c' stroke='%233a0b08' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M44 16c2-3 7-4 9 0' fill='none' stroke='%23ff8a7a' stroke-width='2' stroke-linecap='round' opacity='.7'/%3E%3Crect x='2' y='34' width='38' height='11' rx='5.5' fill='%23fff' stroke='%233a0b08' stroke-width='2.5' transform='rotate(-8 21 39)'/%3E%3Ccircle cx='56' cy='22' r='6.5' fill='%23fff' stroke='%233a0b08' stroke-width='2.5'/%3E%3C/svg%3E");
@@ -6577,7 +6580,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 .mm-tile::after { left: auto; right: 10px; width: 60px; }
 /* deck: a gold / red festive frame with holly in the corner */
 .mm26 .deck-box {
-  box-shadow: inset 0 0 0 1.5px #ffd34a, inset 0 0 0 4px rgba(200, 30, 30, 0.55), 0 0 0 2px var(--board-edge), 0 4px 0 2px var(--board-edge), 0 0 18px rgba(255, 200, 80, 0.25), 0 10px 18px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1.5px #ffd34a, inset 0 0 0 4px rgba(200, 30, 30, 0.55), 0 0 0 2px var(--board-edge), 0 4px 0 2px var(--board-edge), 0 0 18px rgba(255, 200, 80, 0.25), 0 10px 18px rgba(80, 60, 20, 0.28);
 }
 .mm26 .deck-box::after {
   content: ""; position: absolute; left: -9px; top: -11px; width: 34px; height: 24px; z-index: 4; pointer-events: none;
@@ -6590,18 +6593,17 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 }
 .ev-chip.ev-frost .ev-tag { background: repeating-linear-gradient(135deg, #fff 0 4px, #e3322c 4px 8px); color: #5a0d08; text-shadow: 0 0 2px #fff, 0 0 2px #fff; }
 .ev-chip.ev-frost .ev-left { color: #ffe9a8; }
-/* fight button: festive red with gold rim, snow cap and a holly sprig */
-.btn-fight { --rim: #6e0c10; --fill: linear-gradient(180deg, #ff8b78 0%, #ee3b2e 42%, #c01a1e 72%, #9c1016 100%); --glow: rgba(255, 90, 60, 0.45); text-shadow: 0 2px 0 #4a0608, 1px 0 0 #4a0608, -1px 0 0 #4a0608, 0 -1px 0 #4a0608; }
-.btn-fight::before { box-shadow: 0 0 0 2px #071028, 0 0 0 4px #ffd34a, 0 0 0 5.5px #6a3a00; }
-.btn-fight .btn-sub { text-shadow: 0 1px 0 #4a0608, 0 0 2px rgba(60, 0, 0, 0.6); }
+/* fight button (v45): polished gold with dark type, black / gold ring, snow cap and a holly sprig */
+.btn-fight { --rim: #6b4100; --fill: linear-gradient(180deg, #fff4b8 0%, #ffd960 36%, #f4b42a 68%, #df8f16 100%); --glow: rgba(255, 196, 60, 0.5); --tx: #1c1a1f; text-shadow: 0 1.5px 0 rgba(255, 246, 205, 0.85); }
+.btn-fight::before { box-shadow: 0 0 0 2px #1c1a1f, 0 0 0 4px #f0cc6a, 0 0 0 5.5px #1c1a1f; }
+.btn-fight .btn-sub { color: #3a2804; text-shadow: none; }
 .ff-cap { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .ff-cap::before { left: 10px; right: 10px; top: -6px; height: 14px; background-size: 44px 14px; }
 .ff-cap::after { left: auto; right: 6px; top: -14px; width: 46px; height: 32px; opacity: 1; background: var(--ff-holly) center / contain no-repeat; transform: rotate(14deg); }
 /* tab bar: icy blue with a snow edge */
-.cr-root .mp-tabs { background: linear-gradient(180deg, #3a73c0 0%, #1d4688 50%, #0f2756 100%); }
 .cr-root .mp-tabs::before {
   content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 14px; pointer-events: none; z-index: 2;
-  background: var(--ff-snow) 0 0 / 44px 14px repeat-x; filter: drop-shadow(0 1px 0 rgba(20, 50, 100, 0.45));
+  background: var(--ff-snow) 0 0 / 44px 14px repeat-x; filter: drop-shadow(0 1px 1px rgba(40, 40, 60, 0.4));
 }
 /* splash / loading: a gold glow behind the crest, garland lights on the bar */
 .screen-loading .load-crest { filter: drop-shadow(0 0 14px rgba(255, 210, 110, 0.55)); }
@@ -6622,11 +6624,163 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   background: var(--ff-gar) 0 0 / 72px 26px repeat-x;
 }
 .res-board::before { top: -6px; }
+/* ---------------------------------------------------------------- v45 Weiß-Gold (.stage.is-light) */
+.is-light {
+  --ink: #1c1a1f; --ink2: #47424c; --ink3: #5d5764; --au: #8a5d06; --edge: #1c1a1f;
+  --paper: linear-gradient(180deg, #fff 0%, #fbf6ec 100%);
+  --jet: linear-gradient(180deg, #48444d 0%, #2a272e 50%, #17161a 100%);
+  --text-dim: #47424c; --text-mute: #5d5764; --gold-title: #8a5d06; --gold-ink: #8a5d06;
+  --gold-hair: rgba(184, 136, 40, 0.45); --gold-line: rgba(184, 136, 40, 0.65); --line: rgba(184, 136, 40, 0.3);
+  --well: rgba(150, 115, 45, 0.11); --well-sh: inset 0 2px 4px rgba(90, 65, 20, 0.18), 0 1px 0 #fff;
+  --metal: linear-gradient(180deg, #fffefb 0%, #f7efdf 100%); --board-edge: #1c1a1f; --board-rim: rgba(196, 150, 56, 0.8);
+  color: var(--ink);
+  background: radial-gradient(120% 45% at 50% -8%, #fff 0%, rgba(255, 255, 255, 0) 72%), radial-gradient(80% 40% at 50% 108%, rgba(206, 160, 64, 0.3), transparent 70%), linear-gradient(180deg, #fdfaf3 0%, #f6eddb 55%, #ecdcbc 100%);
+}
+.stage.is-light::before { opacity: 1; background-image: radial-gradient(130% 100% at 50% 42%, transparent 58%, rgba(150, 105, 25, 0.18) 100%); background-size: 100% 100%; }
+.is-light .stage-rays { opacity: 0.5; filter: blur(1.5px) saturate(0.85); }
+.is-light .stage-bg::after {
+  background-image:
+    radial-gradient(circle at 12% 8%, #fff 0 2px, rgba(70, 80, 105, 0.5) 2.6px, transparent 3.5px), radial-gradient(circle at 31% 22%, #fff 0 1.4px, rgba(70, 80, 105, 0.45) 2px, transparent 2.8px),
+    radial-gradient(circle at 58% 12%, #fff 0 2.4px, rgba(70, 80, 105, 0.5) 3px, transparent 3.9px), radial-gradient(circle at 77% 31%, #fff 0 1.5px, rgba(70, 80, 105, 0.45) 2.1px, transparent 2.9px),
+    radial-gradient(circle at 90% 6%, #fff 0 1.8px, rgba(70, 80, 105, 0.5) 2.4px, transparent 3.2px), radial-gradient(circle at 45% 40%, #fff 0 1.3px, rgba(70, 80, 105, 0.45) 1.9px, transparent 2.7px),
+    radial-gradient(circle at 21% 44%, #fff 0 2.2px, rgba(70, 80, 105, 0.5) 2.8px, transparent 3.6px), radial-gradient(circle at 66% 46%, #fff 0 1.2px, rgba(70, 80, 105, 0.45) 1.8px, transparent 2.6px);
+}
+.is-light .stage-bg::before {
+  opacity: 1; filter: drop-shadow(0 -1px 1.5px rgba(60, 70, 95, 0.3));
+  background:
+    radial-gradient(60% 46px at 22% 100%, #fff 98%, transparent 100%) bottom / 100% 60px no-repeat,
+    radial-gradient(70% 60px at 82% 100%, #eef1f6 98%, transparent 100%) bottom / 100% 72px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Cpath d='M20 18l12 22h-6l10 18h-7l11 20H0l11-20H4l10-18H8zM86 4l14 26h-7l12 22h-8l13 24H68l13-24h-8l12-22h-7z' fill='%231f4a30'/%3E%3Cpath d='M20 18l4 8-5 1zM86 4l5 9-6 1zM14 40h9l-4 3zM80 30h10l-5 3z' fill='%23fff'/%3E%3C/svg%3E") 0 100% / 120px 90px repeat-x;
+}
+.is-light .logo { filter: drop-shadow(0 3px 0 #1c1a1f) drop-shadow(0 6px 12px rgba(150, 100, 10, 0.35)); }
+/* buttons: white tertiary, anthracite secondary (was blue), gold primary with dark type */
+.is-light .btn-grey { --fill: linear-gradient(180deg, #fff 0%, #f5eedf 100%); color: var(--ink); text-shadow: none; filter: drop-shadow(0 2px 3px rgba(80, 60, 20, 0.28)); }
+.is-light .btn-grey::before { background: linear-gradient(180deg, #e6ca80 0%, #b8892c calc(100% - 7px), #1c1a1f calc(100% - 6px), #000 100%); }
+.is-light .btn-grey::after { box-shadow: inset 0 1px 0 #fff, inset 0 -2px 0 rgba(120, 90, 30, 0.12); }
+.is-light .btn-grey.btn-icon { color: var(--ink); }
+.is-light .btn-grey .ico svg { filter: none; }
+.is-light .btn-blue { --rim: #000; --fill: var(--jet); --tx: #fff; --glow: rgba(0, 0, 0, 0); }
+.is-light .btn-blue .ico { color: #f3c95a; }
+.is-light .btn-gold { --tx: #1c1a1f; text-shadow: 0 1px 0 rgba(255, 248, 215, 0.8); }
+.is-light .btn-gold .btn-sub { color: #3a2804; text-shadow: none; }
+/* boards, sheets, wells */
+.is-light .panel, .is-light .deck-bar, .is-light .dk-pop { background: var(--metal); border-color: var(--edge); box-shadow: inset 0 0 0 1.5px var(--board-rim), inset 0 3px 0 1px #fff, 0 0 0 2px var(--edge), 0 4px 0 2px var(--edge), 0 10px 22px rgba(90, 65, 20, 0.24); }
+.is-light .panel { box-shadow: inset 0 0 0 1.5px var(--board-rim), inset 0 3px 0 1px #fff, 0 4px 0 var(--edge), 0 10px 22px rgba(90, 65, 20, 0.24); }
+.is-light .sheet { color: var(--ink); background: radial-gradient(80% 40% at 50% 0%, #fff, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #fdf9f0 0%, #f3e9d4 100%); box-shadow: 0 0 0 2px var(--edge), inset 0 0 0 1.5px var(--board-rim), inset 0 3px 0 1px #fff, 0 -12px 30px rgba(0, 0, 0, 0.35); }
+.is-light .sheet-backdrop, .is-light .mapgal-backdrop.is-open { background: rgba(28, 26, 31, 0.55); }
+.is-light .panel-title { color: var(--ink); text-shadow: none; background: linear-gradient(180deg, #fff, #f3e8d2); border-bottom-color: var(--edge); box-shadow: inset 0 -1px 0 var(--gold-line); }
+.is-light .overlay { background: radial-gradient(80% 60% at 50% 50%, rgba(70, 55, 25, 0.35), rgba(20, 18, 22, 0.72)); }
+.is-light .ev-dlg-left { color: var(--au); }
+.is-light :is(.sheet-desc, .ab-desc, .sty-bio p, .sty-bio p + p) { color: var(--ink2); }
+.is-light .sheet-desc { border-top-color: var(--gold-hair); }
+.is-light .ab-block, .is-light .sty-bio { background: var(--well); border-color: var(--gold-line); box-shadow: inset 0 0 0 1.5px var(--gold-line); }
+.is-light :is(.ab-name, .sty-bio h4) { color: var(--ink); text-shadow: none; }
+.is-light :is(.ab-label, .ab-meta, .ab-ico) { color: var(--au); text-shadow: none; }
+.is-light .name-chip label { color: var(--au); }
+.is-light .text-input { color: var(--ink); text-shadow: none; }
+.is-light .text-input::placeholder { color: rgba(28, 26, 31, 0.42); }
+.is-light .sheet-grip { background: rgba(28, 26, 31, 0.28); }
+.is-light :is(.sheet-title .ico, .mapgal-title .ico, .toggle .tg-ico, .dk-sort > .ico:first-child, .deck-btn-title .ico) { color: var(--au); }
+/* surfaces: white card, gold hairline, anthracite outline + lip; picked = soft gold */
+.is-light :is(.mm-tile, .ds-tab, .gate-card, .mapcard, .dk-tool:not(.dk-tpl), .map-opt, .toggle) {
+  color: var(--ink); text-shadow: none; background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--gold-hair), 0 0 0 1.5px var(--edge), 0 3px 0 1.5px var(--edge);
+}
+.is-light :is(.ds-tab.on, .gate-card.on, .mapcard.on, .map-opt.on, .toggle.on, .mm26 .deck-switch-menu .ds-tab.on) {
+  color: var(--ink); background: linear-gradient(180deg, #fffaf0 0%, #fbe7ae 100%);
+  box-shadow: inset 0 0 0 2px #d4a63c, 0 0 0 1.5px var(--edge), 0 3px 0 1.5px var(--edge), 0 0 14px rgba(230, 180, 60, 0.35);
+}
+.is-light .ds-tab.is-empty { background: var(--well); box-shadow: inset 0 0 0 1.5px var(--gold-hair); color: var(--ink3); }
+.is-light .ds-tab.is-empty .ds-num { color: var(--au); }
+.is-light :is(.mm-tile-v, .mapsel-name, .ds-name, .gw-name, .mapcard-name, .mapgal-title, .mapgal-d-name, .sheet-title, .sheet-name, .dk-tpl-name, .hdr-title, .mm26 .mm-deck-avg, .dk-role, .mapcard.on .mapcard-name, .gate-card.on .gw-name) { color: var(--ink); text-shadow: none; }
+.is-light :is(.mm-tile-s, .mapsel-desc, .ds-sub, .gw-vs, .gw-how, .mapgal-d-desc, .mm-mode-desc, .dk-sheet-note, .dk-line, .dialog-text, .mapcard-anysub, .dk-tpl-tag, .ds-tab.on .ds-sub, .dk-sort .dk-slbl) { color: var(--ink2); text-shadow: none; }
+.is-light :is(.mm-tile-k, .set-sect, .set-label, .menu-label, .lobby-label, .dk-sort .dk-stxt, .mapgal-d-off) { color: var(--au); text-shadow: none; opacity: 1; }
+.is-light :is(.mm-tile-ico, .mm-tile.t-opp .mm-tile-ico, .mm-tile.t-players .mm-tile-ico, .mapcard-q) { color: #f3c95a; background: var(--jet); box-shadow: inset 0 0 0 1px rgba(243, 201, 90, 0.55), 0 1px 0 #fff; }
+.is-light .gw-check { background: rgba(28, 26, 31, 0.07); box-shadow: inset 0 0 0 2px rgba(28, 26, 31, 0.22); }
+.is-light .gate-card.on .gw-check { color: #1c1a1f; background: linear-gradient(180deg, #ffe27a, #f6a91c); box-shadow: 0 0 0 1.5px var(--edge); }
+.is-light .mm-tile.mapsel .mapsel-prev, .is-light .gate-card.on .gw-pic { box-shadow: 0 0 0 1.5px #d4a63c, 0 0 0 3px var(--edge); }
+.is-light :is(.gw-up b) { color: #23801b; } .is-light .gw-up b::before { border-bottom-color: #23801b; }
+.is-light :is(.gw-dn b) { color: #b14d00; } .is-light .gw-dn b::before { border-top-color: #b14d00; }
+.is-light .gw-more, .is-light .dk-line, .is-light .dk-tpl-row { background: var(--well); box-shadow: inset 0 0 0 1px var(--gold-hair); }
+.is-light :is(.chip, .info-chip, .rules-badge, .deck-avg, .tag, .tag.rar-common, .dk33 .dk-info .deck-count, .sty-chip) { color: #f6d27a; text-shadow: 0 1px 0 #000; background: var(--jet); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(243, 201, 90, 0.5), 0 0 0 1.5px #000, 0 2px 0 1.5px #000; }
+.is-light .tag.rar-common, .is-light .tag.rar-rare, .is-light .tag.rar-epic, .is-light .tag.rar-legendary, .is-light .tag.rar-champion { color: var(--rar); }
+.is-light .hint { color: var(--ink3); } .is-light .hint.warn { color: #8a5300; } .is-light .hint.err { color: #b02a1e; } .is-light .hint.info { color: var(--ink2); }
+.is-light .dk-line.is-warn { color: #8a5300; } .is-light .dk-line.is-ok { color: #23801b; } .is-light .dk-line.is-ok .ico { color: #2f9a24; }
+.is-light .dk-grp { color: var(--ink2); text-shadow: none; }
+.is-light .dk-tpl-avg { color: var(--ink); text-shadow: none; }
+.is-light .dk-tpl, .is-light .mm26 .mm-deck-edit { color: var(--ink); text-shadow: 0 1px 0 rgba(255, 248, 215, 0.8); box-shadow: inset 0 1px 0 #fff6cc, 0 0 0 1.5px var(--edge), 0 2px 0 1.5px var(--edge); }
+.is-light .dk33 .deck-slots .card.is-empty { background: var(--well); color: var(--au); box-shadow: inset 0 0 0 2px var(--gold-hair); }
+.is-light .mapgal-back { color: var(--ink); } .is-light .mapgal-back .ico { background: rgba(28, 26, 31, 0.07); box-shadow: inset 0 0 0 1px rgba(28, 26, 31, 0.16); }
+.is-light .mapgal-note { color: #1f5a1a; background: rgba(60, 160, 60, 0.14); }
+.is-light .home-hint, .is-light .mm26 .mm-hero .home-hint { color: var(--ink); background: var(--metal); box-shadow: inset 0 0 0 1px var(--gold-line), 0 0 0 2px var(--edge), 0 10px 22px rgba(0, 0, 0, 0.25); }
+/* segmented: white tabs in a soft well, the chosen one gold on a black lip */
+.is-light .seg { background: var(--well); box-shadow: inset 0 0 0 1px var(--gold-hair), var(--well-sh); }
+.is-light .seg > button { color: var(--ink); text-shadow: none; }
+.is-light .seg > button::before { background: linear-gradient(180deg, #e3c77e 0%, #c49a3e calc(100% - 6px), #1c1a1f calc(100% - 5px)); }
+.is-light .seg > button::after { background: var(--paper); box-shadow: inset 0 1px 0 #fff; }
+.is-light .seg > button .ico { color: var(--au); }
+.is-light .seg > button .ico svg { filter: none; }
+.is-light .seg .seg-sub { color: var(--ink2); text-shadow: none; }
+.is-light .seg > button.on::before { background: linear-gradient(180deg, #2a272e, #000); }
+.is-light :is(.seg > button.on, .seg-mode > button.on.gm-classic)::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.1) 46%, rgba(255, 255, 255, 0) 50%), linear-gradient(180deg, #ffe68e 0%, #f7c443 52%, #e5a01e 100%); }
+.is-light :is(.seg > button.on, .seg-mode > button.on.gm-classic) { color: var(--ink); text-shadow: 0 1px 0 rgba(255, 250, 220, 0.75); }
+.is-light :is(.seg > button.on .ico, .seg-mode > button.on .ico) { color: var(--ink); }
+.is-light .seg > button.on .seg-sub { color: #3a2804; }
+/* toggles + sliders */
+.is-light .toggle .tg-track { background: #d6ccb8; box-shadow: inset 0 2px 3px rgba(60, 40, 10, 0.3), 0 0 0 1.5px var(--edge); }
+.is-light .toggle .tg-knob { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 0 0 1.5px var(--edge); }
+.is-light .sl-input::-webkit-slider-runnable-track { background: linear-gradient(90deg, #ffd54a 0, #f0a51c var(--p), #d6ccb8 var(--p)); box-shadow: 0 0 0 1.5px var(--edge), inset 0 1px 2px rgba(0, 0, 0, 0.25); }
+.is-light .sl-input::-moz-range-track { background: linear-gradient(90deg, #ffd54a 0, #f0a51c var(--p), #d6ccb8 var(--p)); }
+.is-light .sl-input::-webkit-slider-thumb { border-color: var(--edge); background: radial-gradient(circle at 40% 32%, #fff, #f6efe0 55%, #cbb88c); }
+/* main menu (v45): three tiles in a row, the mode button right of "Kampf!" */
+.mm26 .mm-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mm26 .mm-tiles .mm-tile { flex-direction: column; justify-content: flex-start; gap: 5px; padding: 9px 4px 8px; text-align: center; }
+.mm26 .mm-tiles :is(.mm-tile-txt, .mapsel-txt) { align-items: center; width: 100%; }
+.mm26 .mm-tiles :is(.mm-tile-v, .mapsel-name) { font-size: 15.5px; max-width: 100%; }
+.mm26 .mm-tiles :is(.mm-tile-s, .mapsel-desc) { font-size: 11px; max-width: 100%; }
+.mm26 .mm-tiles .mm-tile::after { right: 50%; margin-right: -30px; }
+.mm26 .mm-go { display: flex; gap: 8px; align-items: stretch; }
+.mm26 .mm-go > .btn { flex: 1 1 auto; min-width: 0; }
+.mm26 .mm-go > [hidden] { display: none; }
+.is-light .mm-tile.mm-modebtn {
+  flex: 0 0 80px; flex-direction: column; justify-content: center; gap: 2px; min-height: 0; padding: 7px 4px 8px; border-radius: 18px; text-align: center;
+  color: #fff; background: radial-gradient(90% 60% at 50% 0%, rgba(255, 230, 160, 0.22), transparent 70%), var(--jet);
+  box-shadow: inset 0 0 0 1.5px #d9b45a, inset 0 3px 0 1px rgba(255, 255, 255, 0.1), 0 0 0 2px #000, 0 4px 0 2px #000, 0 6px 12px rgba(60, 40, 10, 0.3);
+}
+.is-light .mm-tile.mm-modebtn .mm-tile-ico { width: 30px; height: 30px; color: #f6cf66; background: none; box-shadow: none; }
+.mm-modebtn .mm-tile-ico .ico { width: 27px; height: 27px; }
+.mm-modebtn .mm-tile-txt { align-items: center; width: 100%; }
+.mm-modebtn .mm-tile-s { display: none; }
+.is-light .mm-tile.mm-modebtn .mm-tile-k.mm-tile-k { font-size: 8.5px; letter-spacing: 0.5px; color: #f3c95a; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.is-light .mm-tile.mm-modebtn .mm-tile-v.mm-tile-v { font-size: 13.5px; color: #fff; text-shadow: 0 1px 0 #000; max-width: 100%; }
+.mm-modebtn .mm-tile-badge { top: -8px; right: -6px; }
+.mm-modebtn .mm-tile-dot { top: 5px; left: 6px; right: auto; }
+.mm26 .ev-chip { justify-content: center; }
+@media (max-height: 759px) { .mm26 .mm-hero { padding-top: 12px; } }
+@media (max-width: 370px) { .mm26 .mm-go .btn-sub { font-size: 11.5px; } }
+/* the tab bar of the menu pages (Kampf | Story) */
+.is-light .mp-tabs { background: linear-gradient(180deg, #fffdf8 0%, #f2e6cd 100%); border-top-color: var(--edge); box-shadow: inset 0 2px 0 #fff, inset 0 3px 0 rgba(214, 172, 92, 0.4), 0 -4px 12px rgba(90, 65, 20, 0.2); }
+.is-light .mp-hl { background: radial-gradient(90% 60% at 50% 0%, rgba(255, 230, 160, 0.25), transparent 70%), var(--jet); border-color: var(--edge); box-shadow: inset 0 0 0 1.5px #d9b45a, inset 0 3px 0 rgba(255, 255, 255, 0.15); }
+.is-light .mp-tab .mp-lbl { color: var(--ink); text-shadow: none; opacity: 0.8; }
+.is-light .mp-tab.on .mp-lbl { color: #f6d27a; text-shadow: 0 1px 0 #000; opacity: 1; }
+/* story tab: light page, the chapter card keeps its own colours */
+.is-light .sty-hub { color: var(--ink); background: radial-gradient(120% 60% at 50% 0%, #fff, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #fdfaf3 0%, #f3e8d0 100%); }
+.is-light .hub-card { color: #fff; }
+.is-light .hub-title { color: var(--ink); text-shadow: 0 2px 0 #e9c15a; }
+.is-light .hub-daily, .is-light .hub-heroes { background: var(--metal); border: 0; box-shadow: inset 0 0 0 1.5px var(--board-rim), 0 0 0 2px var(--edge), 0 3px 0 2px var(--edge); }
+.is-light :is(.hub-dk, .hub-hh button) { color: var(--au); text-shadow: none; }
+.is-light :is(.hub-dt, .hub-hh, .hub-hero, .hub-dreward b) { color: var(--ink); text-shadow: none; }
+.is-light .hub-dreward { color: var(--ink2); text-shadow: none; }
+.is-light .sty-bar { background: rgba(28, 26, 31, 0.14); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25); }
+/* loading screen + splash */
+.is-light :is(.load-label, .load-tip) { color: var(--ink); text-shadow: 0 0 6px #fff, 0 0 2px #fff; }
+.is-light .load-bar { background: #2a272e; box-shadow: 0 0 0 2px var(--edge), inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 0 0 3.5px rgba(214, 172, 92, 0.6); }
+.is-light :is(.mapsel-prev, .mapcard-prev) { background: radial-gradient(90% 80% at 50% 30%, #fffdf6 0%, #efe3c8 58%, #d3bd8f 100%); }
 
 </style>
 </head>
 <body>
-<div id="app" class="cr-root"><div class="stage"><div class="stage-bg" aria-hidden="true"><div class="stage-rays"></div></div><div class="screen screen-loading" id="boot-splash"><div class="load-center"><div class="load-crest" aria-hidden="true"><svg viewBox="0 0 24 20" aria-hidden="true"><rect x="3.4" y="1.2" width="2.3" height="18.2" rx="1.1" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="1.1"/><path d="M5.6 2.2h15.2l-3.4 5.3 3.4 5.3H5.6z" fill="currentColor" stroke="rgba(0,0,0,.62)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.8 4.2l2.4 3.3-2.4 3.3-2.4-3.3z" fill="#fff" opacity=".9"/><circle cx="4.55" cy="1.5" r="1.45" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="0.9"/></svg></div><div class="logo"><span class="logo-0">Wall of</span>Chaos</div></div><div class="load-foot"><div class="load-bar"><div class="load-fill" id="boot-fill"></div><div class="load-gloss"></div></div></div></div></div></div>
+<div id="app" class="cr-root"><div class="stage is-light"><div class="stage-bg" aria-hidden="true"><div class="stage-rays"></div></div><div class="screen screen-loading" id="boot-splash"><div class="load-center"><div class="load-crest" aria-hidden="true"><svg viewBox="0 0 24 20" aria-hidden="true"><rect x="3.4" y="1.2" width="2.3" height="18.2" rx="1.1" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="1.1"/><path d="M5.6 2.2h15.2l-3.4 5.3 3.4 5.3H5.6z" fill="currentColor" stroke="rgba(0,0,0,.62)" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.8 4.2l2.4 3.3-2.4 3.3-2.4-3.3z" fill="#fff" opacity=".9"/><circle cx="4.55" cy="1.5" r="1.45" fill="#efe3c6" stroke="rgba(0,0,0,.62)" stroke-width="0.9"/></svg></div><div class="logo"><span class="logo-0">Wall of</span>Chaos</div></div><div class="load-foot"><div class="load-bar"><div class="load-fill" id="boot-fill"></div><div class="load-gloss"></div></div></div></div></div></div>
 <noscript><p style="color:#fff;font-family:sans-serif;padding:24px">Wall of Chaos braucht JavaScript.</p></noscript>
 <script>
 /* src/00-core.js */
@@ -13561,7 +13715,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Sim = Sim;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.061)</script>
+</script><script>__crBP(0.062)</script>
 <script>
 /* src/04-units.js */
 /* Chaos Royale - 04-units.js (engine)
@@ -39141,7 +39295,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
     // ---- v26 one-screen menu (user request: "alles auf EINEM Bildschirm, nicht scrollen"):
     // top bar (small logo + icon buttons) · card fan in the free space · play-type tabs · per tab
-    // four summary tiles (Spielmodus / Karte / Gegner or Spieler / Optionen) that open a bottom
+    // three summary tiles (v45: Karte / Gegner or Spieler / Torturm; the mode is a button by "Kampf!") that open a bottom
     // sheet (or the v25 map gallery) · deck row · one big primary button at the bottom (thumb zone).
     // Every setting of the old long list is still here - one tap deeper, in its sheet.
     const sheets = [];
@@ -39465,11 +39619,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       G.setTimeout(function () { try { codeInput.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 60);
     });
 
-    // ---- the summary tiles (Single-Modus and Mit Freunden each have their own four)
-    const tModeS = setupTile('t-mode', 'Spielmodus', function (b) { modeSheet.open(b); });
+    // ---- the summary tiles (Single-Modus and Mit Freunden each have their own three)
+    // v45: the Spielmodus is no tile any more - ONE square mode button right of the big button
+    // (both tabs; icon + mode name + "1,5×" badge), it opens the Spielmodus sheet
+    const tModeS = setupTile('t-mode mm-modebtn', 'Spielmodus', function (b) { modeSheet.open(b); });
     const tOpp = setupTile('t-opp', 'Gegner', function (b) { oppSheet.open(b); });
     const tGateS = setupTile('t-gate', 'Torturm', function (b) { gateSheet.open(b); });
-    const tModeD = setupTile('t-mode', 'Spielmodus', function (b) { modeSheet.open(b); });
     const tPlayers = setupTile('t-players', 'Spieler', function (b) { playersSheet.open(b); });
     const tGateD = setupTile('t-gate', 'Torturm', function (b) { gateSheet.open(b); });
     const MODE_DESC = {
@@ -39495,9 +39650,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       // v29: the elixir switch lives in the Spielmodus sheet - its tile shows a small "1,5×" badge
       const bdg = st.elixirBoost ? '1,5×' : '';
       tModeS.badge(bdg, 'is-boost', 'Schnelle Kristalle 1,5×');
-      tModeD.badge(bdg, 'is-boost', 'Schnelle Kristalle 1,5×');
       tModeS.set(gmi.icon, mLabel, mSub, warn);
-      tModeD.set(gmi.icon, mLabel, mSub, warn);
       modeDesc.textContent = MODE_DESC[gm] || '';
       const dl = (DIFFICULTIES.filter(function (d) { return d.id === st.difficulty; })[0] || DIFFICULTIES[1]).label;
       const two = can2 && st.teamSize === 2;
@@ -39533,12 +39686,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     }
 
     const singlePane = h('div', { class: 'play-pane pane-single' }, [
-      h('div', { class: 'mm-tiles' }, [tModeS.el, mapTile(mapPick), tOpp.el, tGateS.el]),
+      h('div', { class: 'mm-tiles' }, [mapTile(mapPick), tOpp.el, tGateS.el]),
     ]);
     // v24: the name is only needed online - it sits here in "Mit Freunden" (not in the menu bar)
     const duoPane = h('div', { class: 'play-pane pane-duo' }, [
       h('div', { class: 'name-chip name-duo' }, [h('label', null, 'Dein Name'), nameInput]),
-      h('div', { class: 'mm-tiles' }, [tModeD.el, mapTile(duoMap), tPlayers.el, tGateD.el]),
+      h('div', { class: 'mm-tiles' }, [mapTile(duoMap), tPlayers.el, tGateD.el]),
       h('div', { class: 'mm-actions' }, [hostBtn, joinOpen]),
       f.net && !f.match ? hint(notes.match || 'Die automatische Suche ist gerade nicht verfügbar.', 'info') : null,
       f.net ? null : hint(notes.net || 'Spielen mit Freunden ist gerade nicht möglich.'),
@@ -39551,7 +39704,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
     // ---- the bottom dock: one big primary button per tab
     const aiHint = f.ai ? null : hint(notes.ai || 'Die KI ist gerade nicht verfügbar.');
-    const dock = h('div', { class: 'mm-dock' }, [aiHint, fightBtn, searchBtn, storyGo]);
+    const dock = h('div', { class: 'mm-dock' }, [aiHint, h('div', { class: 'mm-go' }, [fightBtn, searchBtn, tModeS.el]), storyGo]);
 
     function showPane(id) {
       curPane = id;
@@ -40981,7 +41134,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.258)</script>
+</script><script>__crBP(0.259)</script>
 <script>
 /* src/10d-ui-lobby.js */
 /* 10d-ui-lobby.js – Bust War app shell UI, part 4 of 5 (v36 split of the former src/10-ui.js; same
@@ -44127,7 +44280,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.280)</script>
+</script><script>__crBP(0.281)</script>
 <script>
 /* src/11-main.js */
 /* 11-main.js – CR.App: bootstrap (loading screen with 3D portrait pre-render), screen
@@ -46785,6 +46938,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       stage.classList.toggle('in-battle', inBattle);
       // v5: the deck editor uses the whole window (no portrait column on wide screens)
       stage.classList.toggle('is-wide', !!(cl && cl.contains('is-wide')));
+      // v45: the white / gold look of the menu family (menu + story tab, deck editor, loading screen and
+      // the sheets opened there); every other screen keeps its own look (index.html: the splash starts light)
+      stage.classList.toggle('is-light', !!(cl && /\b(screen-menu|mp-root|screen-deck|screen-loading)\b/.test(screen.el.className)));
       // music: menu track on menu screens, none on the result / loading screen; the battle
       // switches its own track (Battle.audioFrame)
       if (!inBattle) UI.music(cl && (cl.contains('screen-result') || cl.contains('screen-loading')) ? null : 'menu');
@@ -48325,7 +48481,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.309)</script>
+</script><script>__crBP(0.310)</script>
 <script>
 /* src/12-chaos-ui.js */
 /* Bust War - 12-chaos-ui.js (app shell, v3 + v5)
@@ -49296,7 +49452,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.ChaosUI = ChaosUI;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.319)</script>
+</script><script>__crBP(0.320)</script>
 <script>
 /* src/13-audio.js */
 /*
@@ -51937,7 +52093,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   A.UNIT_SFX = UNIT_SFX;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.337)</script>
+</script><script>__crBP(0.338)</script>
 <script>
 /* src/14-draft.js */
 /* Bust War - 14-draft.js (draft): the Touchdown DRAFT before the battle (v7).
@@ -53482,7 +53638,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.348)</script>
+</script><script>__crBP(0.349)</script>
 <script>
 /* src/16-story.js */
 /* 16-story.js – Story-Modus "Der Bust" (v25, redesigned in v33 – docs/V25-STORY.md): campaign data,
@@ -55332,7 +55488,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.364)</script>
+</script><script>__crBP(0.365)</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 <script>
 /* src/20-gfx-core.js */
@@ -66038,7 +66194,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.charsA = { scallop, tatter, FACE, MOUTH, GRIM, grimace, faceRig, exprTarget, exprOf, browAmp, BROW_AMP, version: 'v16' };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.464)</script>
+</script><script>__crBP(0.465)</script>
 <script>
 /* src/22-gfx-chars-b.js */
 /* Chaos Royale - 22-gfx-chars-b.js (designer B)
@@ -71621,7 +71777,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.524)</script>
+</script><script>__crBP(0.525)</script>
 <script>
 /* src/24-gfx-props.js */
 /* Chaos Royale - 24-gfx-props.js (props designer)
@@ -76050,7 +76206,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.570)</script>
+</script><script>__crBP(0.571)</script>
 <script>
 /* src/25-gfx-vfx.js */
 /* Chaos Royale - 25-gfx-vfx.js (render3d)
@@ -79955,7 +80111,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   VFX.System = System;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.601)</script>
+</script><script>__crBP(0.602)</script>
 <script>
 /* src/26a-gfx-render3d-core.js */
 /* Chaos Royale - 26a-gfx-render3d-core.js (render3d; logical module "26-gfx-render3d")
@@ -84001,7 +84157,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.634)</script>
+</script><script>__crBP(0.635)</script>
 <script>
 /* src/26b-gfx-render3d-arena.js */
 /* 26b-gfx-render3d-arena.js – Bust War 3D battle renderer, part 2 of 4 (v36 split of the former
@@ -86752,7 +86908,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DArena);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.657)</script>
+</script><script>__crBP(0.658)</script>
 <script>
 /* src/26c-gfx-render3d-frame.js */
 /* 26c-gfx-render3d-frame.js – Bust War 3D battle renderer, part 3 of 4 (v36 split of the former
@@ -88637,7 +88793,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DFrame);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.670)</script>
+</script><script>__crBP(0.671)</script>
 <script>
 /* src/26d-gfx-render3d-fx.js */
 /* 26d-gfx-render3d-fx.js – Bust War 3D battle renderer, part 4 of 4 (v36 split of the former
@@ -90023,7 +90179,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Render3D = Render3D;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.680)</script>
+</script><script>__crBP(0.681)</script>
 <script>
 /* src/27-gfx-chars-d.js */
 /* Chaos Royale - 27-gfx-chars-d.js (render3d / graphics owner v6 + v7: new cards)
@@ -92561,7 +92717,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__cdV11 = { heroHead, heroEye, strand, lock, flatLock, headFrontZ, fierceEye, sculptHead, bodyPlan, limb, fist, hand, palm, shoe, pauldron, hood, cape, armBoot, bracer, bladePart, along, sheet, deform, spike, ribbon };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.707)</script>
+</script><script>__crBP(0.708)</script>
 <script>
 /* src/28-card-art.js */
 /* 28-card-art.js – hand-made card art (v17).
@@ -93070,7 +93226,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.CardArt = V19;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.710)</script>
+</script><script>__crBP(0.711)</script>
 <script>
 /* src/29-hero-blackblade.js */
 /* 29-hero-blackblade.js - v18 hero model override: 'black-blade-master' ("Schwarzklingen-Meister").
@@ -93574,7 +93730,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.715)</script>
+</script><script>__crBP(0.716)</script>
 <script>
 /* src/29-hero-cyborg.js */
 /* 29-hero-cyborg.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94354,7 +94510,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.722)</script>
+</script><script>__crBP(0.724)</script>
 <script>
 /* src/29-hero-kungfu.js */
 /* 29-hero-kungfu.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94835,7 +94991,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.727)</script>
+</script><script>__crBP(0.728)</script>
 <script>
 /* src/29-hero-ninja.js */
 /* 29-hero-ninja.js - v18 hero model override: 'spiral-ninja' ("Wirbel-Ninja").
@@ -95254,7 +95410,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.731)</script>
+</script><script>__crBP(0.732)</script>
 <script>
 /* src/30-gfx-buildmode.js */
 /* 30-gfx-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): models, battle effects,
@@ -97009,7 +97165,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.744)</script>
+</script><script>__crBP(0.745)</script>
 <script>
 /* src/31-style-a.js */
 /* 31-style-a.js - v23 character restyle, group A (hero quality like src/29-hero-*.js).
@@ -98597,7 +98753,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.761)</script>
+</script><script>__crBP(0.762)</script>
 <script>
 /* src/31-style-b.js */
 /* 31-style-b.js – v23 character restyle, group B (big units) at the quality of the src/29-hero-*.js heroes.
@@ -99533,7 +99689,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.770)</script>
+</script><script>__crBP(0.771)</script>
 <script>
 /* src/31-style-c.js */
 /* 31-style-c.js – v23 character restyle, group c (hero quality like src/29-hero-*.js).
@@ -101386,7 +101542,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.790)</script>
+</script><script>__crBP(0.791)</script>
 <script>
 /* src/31-style-d.js */
 /* 31-style-d.js – v23 character restyle, group d (small / swarm units at hero quality).
@@ -102649,7 +102805,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__styleD = { ids: IDS, reverted: REVERTED };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.802)</script>
+</script><script>__crBP(0.804)</script>
 <script>
 /* src/31-style-e.js */
 /* 31-style-e.js – v23 character restyle, group e (riders / vehicles / brutes) on the quality bar of
@@ -103554,7 +103710,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function lerp3(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.812)</script>
+</script><script>__crBP(0.813)</script>
 <script>
 /* src/31-style-f.js */
 /* 31-style-f.js - v23 character restyle, group f: the AIR units (hero quality like src/29-hero-*.js).
@@ -104782,7 +104938,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }, { body: 'blob', walk: 'hop', attack: 'none', weight: 0.55 });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.824)</script>
+</script><script>__crBP(0.826)</script>
 <script>
 /* src/32-gfx-maps.js */
 /* 32-gfx-maps.js - v24 hazard maps (docs/V24-MAPS.md): 3D scenery + animations and the 2D fallback
@@ -106865,7 +107021,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.toon = toon; M24.shaderMat = shaderMat; M24.own = own; M24.wx = wx; M24.wz = wz; M24.sstep = sstep; M24.NOISE = NOISE; M24.FALL_VS = FALL_VS; M24.PCOL = PCOL; M24.rect2d = rect2d;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.841)</script>
+</script><script>__crBP(0.842)</script>
 <script>
 /* src/33-story-ui.js */
 /* 33-story-ui.js – Story-Modus screens (v25, redesigned in v33 – docs/V25-STORY.md). Data / progress:
@@ -108154,7 +108310,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.854)</script>
+</script><script>__crBP(0.856)</script>
 <script>
 /* src/34-gfx-combo.js */
 /* 34-gfx-combo.js - v25 map 'citadel' ("Chaos-Zitadelle", docs/V25-COMBO.md): the scenery that the
@@ -108381,7 +108537,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.citadel = { build: build, update: update, paint2d: paint2d };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.856)</script>
+</script><script>__crBP(0.858)</script>
 <script>
 /* src/35-gfx-jungle.js */
 /* 35-gfx-jungle.js - v27 map 'jungle' ("Chaos-Dschungel", docs/V27-JUNGLE.md): the 3D scenery +
@@ -109233,7 +109389,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.jungle = { build: build, update: update, dispose: dispose, paint2d: paint2d, draw2d: draw2d, geo: geo, PC: PC };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.863)</script>
+</script><script>__crBP(0.864)</script>
 <script>
 /* src/36-gfx-siege.js */
 /* 36-gfx-siege.js - tower layout "Belagerung" (siege, docs/V28-SIEGE.md v28 + v29): the 3D models,
@@ -111623,7 +111779,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   S3.gateUpdate = gateUpdate; S3.drawStrands = drawStrands; S3.onSg = onSg; S3.onLaunch = onLaunch;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.884)</script>
+</script><script>__crBP(0.886)</script>
 <script>
 /* src/37-tutorial.js */
 /* 37-tutorial.js – onboarding tutorial + deck help (v31, agent "onboard").
@@ -112757,7 +112913,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.892)</script>
+</script><script>__crBP(0.893)</script>
 <script>
 /* src/38-replay.js */
 /* 38-replay.js – replays + clip export (v31, owner: "replay").
@@ -114547,7 +114703,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   install();
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.904)</script>
+</script><script>__crBP(0.906)</script>
 <script>
 /* src/39-events.js */
 /* 39-events.js – rotating weekly events (v31, agent "postmatch"; docs/V31-POSTMATCH.md).
@@ -114737,9 +114893,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     if (!d) { start(app, ev.id, 'ai'); return; }
     d.then(function (v) { if (v === 'ai' || v === 'online') start(app, ev.id, v); });
   }
-  /** The "Event" strip: one chip per event of the week (name + time left); tap = details + start. */
+  /** The "Event" strip: name + time left; tap = details + start. v45 (user: "nur EIN Event"): only the
+   *  first event (the Weihnachtsschlacht while its season is on) - the weekly events, their data and
+   *  queue keys stay (current(), start(), queueKey()), 2× Kristalle lives in the Spielmodus sheet. */
   function menuCard(app) {
-    const items = current(Date.now(), app);
+    const items = current(Date.now(), app).slice(0, 1);
     if (!items.length) return null;
     const box = el('div', 'ev-strip' + (items.length > 1 ? ' is-two' : '') + (items.length > 2 ? ' is-three' : ''));
     box.setAttribute('role', 'group');
@@ -114785,7 +114943,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.906)</script>
+</script><script>__crBP(0.907)</script>
 <script>
 /* src/40-feat-a.js */
 /* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): new neutral map features, each on its
@@ -116012,7 +116170,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FA.version = 1;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.915)</script>
+</script><script>__crBP(0.917)</script>
 <script>
 /* src/41-feat-b.js */
 /* 41-feat-b.js - v31 map features B (agent "feat-b", docs/V31-FEAT-B.md):
@@ -117438,7 +117596,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FB.gfx = { build: build, update: update, dispose: dispose, draw2d: draw2d, paintIce2d: paintIce2d, ICE_FS: ICE_FS, FUN_VS: FUN_VS };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.925)</script>
+</script><script>__crBP(0.927)</script>
 <script>
 /* src/43-glb-models.js */
 /* 43-glb-models.js - v34 GLB models (owner: agent "models"). Contract: docs/V34-MODELS.md.
@@ -119714,7 +119872,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.944)</script>
+</script><script>__crBP(0.946)</script>
 <script>
 /* src/45-i18n.js */
 /* 45-i18n.js – v35 "english": second language (English) with a language switch.
@@ -120042,7 +120200,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.947)</script>
+</script><script>__crBP(0.948)</script>
 <script>
 /* src/46-i18n-en.js */
 /* 46-i18n-en.js – v35 "english": parallel English table keyed by the German display text
@@ -123244,7 +123402,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.988)</script>
+</script><script>__crBP(0.989)</script>
 <script>
 /* src/47-late.js */
 /* src/47-late.js - v36 "loading": the big data files stream in AFTER the menu.
@@ -123502,7 +123660,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.990)</script>
+</script><script>__crBP(0.991)</script>
 <script>
 /* src/48-frost-fest.js */
 /* 48-frost-fest.js - v41 "Frost-Fest", v42 the Christmas event (docs/V41-FROSTFEST.md, docs/V42-XMAS.md).
@@ -123519,7 +123677,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
  *    doorState(day, nowMs?)                    'open' | 'ready' | 'locked' | 'preview'
  *    openDoor(day, nowMs?)                     -> reward | null (stored in UI.store 'frostCal', equips it)
  *    owned(type) / equipped(type) / equip(type, id)
- *    openCalendar(app)                         the calendar sheet (menu gift button, settings row)
+ *    (v45: the calendar sheet, the menu gift button and the settings row are out of the build until
+ *    the calendar returns - full v44 file in tmp/backup-advent/; state + stored 'frostCal' untouched)
  *
  *  Arena (CR.Render3D, built lazily on the first frame of an arena; dropped with it): v42 classic map
  *  (river field, siege + classic tower layout) = the Christmas arena: a closed snow cover (field
@@ -123531,8 +123690,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
  *  v44: the same look on every other map but the pyramid (XMAP parameters + CR.Arena data: portal /
  *  pad / plate wreaths, lake shores, island edges, water floes, curbs). Cosmetic troop trails (calendar reward) puff
  *  behind the own moving ground troops (CR.VFX).
- *  Hooks (outermost, this file loads last): Render3D.prototype.draw / _disposeArena, UI.MenuScreen,
- *  UI.openSettings. The menu / HUD / splash look is plain CSS (src/styles.css, "v42 Weihnachten").
+ *  Hooks (outermost, this file loads last): Render3D.prototype.draw / _disposeArena, UI.MenuScreen
+ *  (v45: no UI.openSettings hook any more). The menu / HUD / splash look is plain CSS (src/styles.css,
+ *  "v42 Weihnachten" + "v45 Weiß-Gold").
  *  Must not throw without THREE / DOM (jsc).
  */
 (function (CR) {
@@ -123658,32 +123818,19 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     return true;
   };
 
-  // ------------------------------------------------------------------ DOM (menu, settings, calendar)
-  const SNOWFLAKE_SVG = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none">' +
-    '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"/><path d="M9.3 4.2L12 6.6l2.7-2.4M9.3 19.8L12 17.4l2.7 2.4M4.6 10.7l3.4-.6-1.2-3.4M19.4 13.3l-3.4.6 1.2 3.4M4.6 13.3l3.4.6-1.2 3.4M19.4 10.7l-3.4-.6 1.2-3.4"/></g></svg>';
-  const GIFT_SVG = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="3.5" y="9" width="17" height="12" rx="1.6" fill="#e8413a" stroke="#241603" stroke-width="1.5"/>' +
-    '<rect x="2.5" y="6.5" width="19" height="4" rx="1.2" fill="#ff5d52" stroke="#241603" stroke-width="1.5"/><path d="M10.4 6.5h3.2v14.5h-3.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/>' +
-    '<path d="M12 6.4C10.6 3.2 7 3 7.3 5.2 7.6 6.8 10.6 6.6 12 6.4zM12 6.4c1.4-3.2 5-3.4 4.7-1.2-.3 1.6-3.3 1.4-4.7 1.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/></svg>';
-  const TYPE_ICO = {
-    title: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 7h16v10H4z" fill="#ffd34a" stroke="#241603" stroke-width="1.6"/><path d="M7 11h10M7 14h6" stroke="#241603" stroke-width="1.6" stroke-linecap="round"/></svg>',
-    frame: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="#2a4a8a" stroke="#bfe9ff" stroke-width="2.6"/><path d="M8 7h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>',
-    trail: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><circle cx="17" cy="7" r="3" fill="#fff" stroke="#241603" stroke-width="1.4"/><circle cx="11" cy="12" r="2.3" fill="#e6f4ff" stroke="#241603" stroke-width="1.3"/><circle cx="6.5" cy="16.5" r="1.7" fill="#cfe8ff" stroke="#241603" stroke-width="1.2"/><circle cx="3.5" cy="20" r="1.1" fill="#b8dcff"/></svg>',
-    banner: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M6 3h12v17l-6-4-6 4z" fill="#3a8ae0" stroke="#241603" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v6M9.4 8l5.2 3M9.4 11l5.2-3" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>',
-  };
-
+  // ------------------------------------------------------------------ DOM (menu snow, plate, frames)
+  // v45: the calendar sheet, the gift button and the settings row are out of the build (backup:
+  // tmp/backup-advent/); the calendar state above (doors, owned / equipped rewards) stays.
   const CSS = [
     // menu snow overlay: three tiled layers moved by exactly one tile (compositor only)
-    '.ff-snow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6;opacity:.8}',
+    '.ff-snow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6;opacity:.9}',
     '.ff-snow i{position:absolute;left:0;right:0;will-change:transform;animation:ff-fall linear infinite}',
-    '.ff-snow i:nth-child(1){top:-170px;height:calc(100% + 170px);--ffd:170px;animation-duration:11s;opacity:.85;background-size:150px 170px;background-image:radial-gradient(circle at 22px 30px,#fff 0 1.9px,transparent 2.8px),radial-gradient(circle at 96px 92px,#fff 0 1.5px,transparent 2.4px),radial-gradient(circle at 60px 148px,#fff 0 2.2px,transparent 3.1px),radial-gradient(circle at 128px 18px,#f0f8ff 0 1.3px,transparent 2.2px)}',
-    '.ff-snow i:nth-child(2){top:-230px;height:calc(100% + 230px);--ffd:230px;animation-duration:17s;opacity:.6;background-size:210px 230px;background-image:radial-gradient(circle at 40px 60px,#fff 0 1.2px,transparent 2px),radial-gradient(circle at 150px 130px,#fff 0 1px,transparent 1.8px),radial-gradient(circle at 100px 200px,#eaf6ff 0 1.3px,transparent 2.1px),radial-gradient(circle at 190px 30px,#fff 0 .9px,transparent 1.7px)}',
-    '.ff-snow i:nth-child(3){top:-120px;height:calc(100% + 120px);--ffd:120px;animation-duration:7.5s;opacity:.9;background-size:190px 120px;background-image:radial-gradient(circle at 30px 80px,#fff 0 2.6px,transparent 3.6px),radial-gradient(circle at 140px 20px,#fff 0 2.2px,transparent 3.2px)}',
+    '.ff-snow i:nth-child(1){top:-170px;height:calc(100% + 170px);--ffd:170px;animation-duration:11s;opacity:.85;background-size:150px 170px;background-image:radial-gradient(circle at 22px 30px,#fff 0 1.9px,rgba(70,80,105,.5) 2.4px,transparent 3.2px),radial-gradient(circle at 96px 92px,#fff 0 1.5px,rgba(70,80,105,.5) 2.0px,transparent 2.8px),radial-gradient(circle at 60px 148px,#fff 0 2.2px,rgba(70,80,105,.5) 2.7px,transparent 3.5px),radial-gradient(circle at 128px 18px,#f0f8ff 0 1.3px,rgba(70,80,105,.5) 1.8px,transparent 2.6px)}',
+    '.ff-snow i:nth-child(2){top:-230px;height:calc(100% + 230px);--ffd:230px;animation-duration:17s;opacity:.6;background-size:210px 230px;background-image:radial-gradient(circle at 40px 60px,#fff 0 1.2px,rgba(70,80,105,.5) 1.7px,transparent 2.5px),radial-gradient(circle at 150px 130px,#fff 0 1px,rgba(70,80,105,.5) 1.5px,transparent 2.3px),radial-gradient(circle at 100px 200px,#eaf6ff 0 1.3px,rgba(70,80,105,.5) 1.8px,transparent 2.6px),radial-gradient(circle at 190px 30px,#fff 0 .9px,rgba(70,80,105,.5) 1.4px,transparent 2.2px)}',
+    '.ff-snow i:nth-child(3){top:-120px;height:calc(100% + 120px);--ffd:120px;animation-duration:7.5s;opacity:.9;background-size:190px 120px;background-image:radial-gradient(circle at 30px 80px,#fff 0 2.6px,rgba(70,80,105,.5) 3.1px,transparent 3.9px),radial-gradient(circle at 140px 20px,#fff 0 2.2px,rgba(70,80,105,.5) 2.7px,transparent 3.5px)}',
     '@keyframes ff-fall{from{transform:translate3d(0,0,0)}to{transform:translate3d(-14px,var(--ffd),0)}}',
     '@media (prefers-reduced-motion:reduce){.ff-snow i{animation:none}}',
-    '.ff-gift{position:relative}',
     '.ff-vig{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(130% 75% at 50% 48%,transparent 52%,rgba(46,24,110,.4) 100%),linear-gradient(180deg,rgba(40,30,110,.3),transparent 20%,transparent 78%,rgba(40,30,110,.28))}',
-    '.ff-gift .ff-dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e8413a;color:#fff;font:900 10.5px/16px var(--font-ui,sans-serif);box-shadow:0 0 0 2px #241603;text-align:center}',
-    '.ev-strip.is-three .ev-name{font-size:12px}',
     // player plate (title + banner design)
     '.ff-plate{position:absolute;left:0;top:2px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 12px 9px 10px;min-width:96px;max-width:58%;color:#fff;border-radius:6px 6px 2px 2px;clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);pointer-events:none;background:linear-gradient(180deg,#3d5f9e,#22386a)}',
     '.ff-plate b{font:900 12.5px/1.15 var(--font-ui,sans-serif);text-shadow:0 1px 0 rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}',
@@ -123692,7 +123839,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '.ff-bn-candy{background:repeating-linear-gradient(135deg,#e8413a 0 9px,#fff 9px 18px);color:#5a0d08}',
     '.ff-bn-candy b,.ff-bn-candy span{text-shadow:0 0 3px #fff,0 0 2px #fff;color:#5a0d08}',
     '.ff-bn-aurora{background:linear-gradient(160deg,#16305e 10%,#1fa58a 45%,#6a3fc0 80%,#16305e)}',
-    '.ff-bn-lights{background:radial-gradient(circle at 10px 4px,#ffd34a 0 2.5px,transparent 3.5px) 0 0/24px 10px repeat-x,radial-gradient(circle at 22px 5px,#e8413a 0 2.5px,transparent 3.5px) 0 0/24px 10px repeat-x,linear-gradient(180deg,#1d5a33,#0e3320)}',
+    '.ff-bn-lights{background:radial-gradient(circle at 10px 4px,#ffd34a 0 2.5px,rgba(70,80,105,.5) 3.0px,transparent 3.8px) 0 0/24px 10px repeat-x,radial-gradient(circle at 22px 5px,#e8413a 0 2.5px,rgba(70,80,105,.5) 3.0px,transparent 3.8px) 0 0/24px 10px repeat-x,linear-gradient(180deg,#1d5a33,#0e3320)}',
     '.ff-bn-forest{background:linear-gradient(135deg,transparent 60%,#0c3a22 60%) 0 100%/16px 14px repeat-x,linear-gradient(225deg,transparent 60%,#0c3a22 60%) 0 100%/16px 14px repeat-x,linear-gradient(180deg,#4a8ac8,#1d4f7c)}',
     '.ff-bn-stars{background:radial-gradient(circle at 20% 30%,#ffd34a 0 2px,transparent 3px),radial-gradient(circle at 70% 20%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 85% 70%,#ffd34a 0 1.5px,transparent 2.5px),radial-gradient(circle at 45% 75%,#fff 0 1.2px,transparent 2px),linear-gradient(180deg,#2a1d5e,#120b30)}',
     // card frames (keep the rarity border, add a ring outside)
@@ -123701,40 +123848,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '.ff-fr-fir .card{box-shadow:0 0 0 2.5px #2f8a4a,0 0 0 4px #ffd34a,0 4px 0 rgba(4,10,30,.6)!important}',
     '.ff-fr-crystal .card{box-shadow:0 0 0 2px #e6f6ff,0 0 0 3.5px #5ab2ff,0 0 12px 2px rgba(110,190,255,.8),0 4px 0 rgba(4,10,30,.6)!important}',
     '.ff-fr-gold .card{box-shadow:0 0 0 2.5px #ffe27a,0 0 12px 2px rgba(255,205,80,.85),0 4px 0 rgba(4,10,30,.6)!important}',
-    // calendar sheet
-    '.ff-cal .mm-sheet-body,.ff-cal .ff-cal-body{overflow-y:auto;max-height:calc(var(--vh,1vh)*100 - 170px)}',
-    '.ff-cal-note{margin:2px 2px 8px;font-size:13px;color:rgba(255,255,255,.85)}',
-    '.ff-cal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}',
-    '.ff-door{position:relative;min-height:66px;border-radius:10px;border:0;padding:6px 5px 5px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;font:inherit;background:linear-gradient(180deg,#c22f2c,#7e1418);box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #3c0709;overflow:hidden}',
-    '.ff-door:nth-child(even){background:linear-gradient(180deg,#2a8a4e,#13502c);box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #082a16}',
-    '.ff-door::before{content:"";position:absolute;left:3px;right:3px;top:-3px;height:9px;background:var(--ff-snow) 0 0/30px 9px repeat-x}',
-    '.ff-door .ff-n{position:absolute;left:6px;top:5px;font:900 17px/1 var(--font-display,sans-serif);color:#ffd96a;text-shadow:0 2px 0 #3a1a00}',
-    '.ff-door .ico{width:24px;height:24px}',
-    '.ff-door .ff-rw{font-size:10.5px;line-height:1.1;font-weight:800;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    '.ff-door .ff-rt{font-size:9px;opacity:.75;line-height:1}',
-    '.ff-door.is-ready{background:linear-gradient(180deg,#ffe48a,#e9a91f);color:#4a2a00;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #7a4a00,0 0 12px rgba(255,210,80,.8);animation:ff-pulse 1.4s ease-in-out infinite}',
-    '.ff-door.is-ready::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:7px;margin-left:-3.5px;background:#d8262a;box-shadow:0 0 0 1px #6a0a0a}',
-    '.ff-door.is-ready .ff-n{color:#8a1a12;text-shadow:0 1px 0 #fff3b0}',
-    '.ff-door.is-ready .ff-rw{position:relative;z-index:1;background:#d8262a;color:#fff;border-radius:5px;padding:1px 5px}',
-    '.ff-door.is-open{background:linear-gradient(180deg,#f4f9ff,#cfe2f5);color:#173a66;box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 #fff,0 3px 0 #6a8fb8}',
-    '.ff-door.is-open .ff-n{color:#b3262a;text-shadow:none;font-size:13px}',
-    '.ff-door.is-locked,.ff-door.is-preview{filter:saturate(.75) brightness(.9)}',
-    '.ff-door.is-locked::after,.ff-door.is-preview::after{content:"";position:absolute;right:5px;top:6px;width:11px;height:13px;opacity:.9;background:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 11 13%27%3E%3Cpath d=%27M2.5 6V4a3 3 0 016 0v2%27 fill=%27none%27 stroke=%27%23ffd96a%27 stroke-width=%271.6%27/%3E%3Crect x=%271%27 y=%276%27 width=%279%27 height=%276.5%27 rx=%271.4%27 fill=%27%23ffd96a%27/%3E%3C/svg%3E") center/contain no-repeat}',
-    '.ff-cal .sheet-title{position:relative;padding-bottom:16px}',
-    '.ff-cal .sheet-title::after{content:"";position:absolute;left:-14px;right:-14px;bottom:-12px;height:26px;background:var(--ff-gar) 0 0/72px 26px repeat-x;pointer-events:none}',
-    '.ff-door.is-new{animation:ff-pop .5s cubic-bezier(.2,.9,.3,1.4)}',
-    '@keyframes ff-pulse{50%{transform:translateY(-2px)}}',
-    '@keyframes ff-pop{from{transform:scale(.6) rotate(-6deg)}}',
-    '.ff-cal-msg{min-height:20px;margin:8px 2px 4px;font-weight:800;color:#ffd34a;font-size:13.5px}',
-    '.ff-cal-sect{margin:10px 2px 6px;font-weight:900;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.75)}',
-    '.ff-eq{display:grid;grid-template-columns:1fr 1fr;gap:7px}',
-    '.ff-eq button{display:flex;align-items:center;gap:7px;min-height:46px;padding:5px 8px;border-radius:10px;border:0;font:inherit;color:#fff;text-align:left;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.18)}',
-    '.ff-eq button[disabled]{opacity:.45}',
-    '.ff-eq .ico{width:22px;height:22px;flex:0 0 auto}',
-    '.ff-eq small{display:block;font-size:10px;opacity:.7;line-height:1.1}',
-    '.ff-eq b{display:block;font-size:12.5px;line-height:1.15}',
-    '.ff-cal-prev{position:relative;height:46px;margin:4px 0 2px}',
-    '.ff-cal-prev .ff-plate{max-width:100%}',
   ].join('\n');
 
   let cssDone = false;
@@ -123758,7 +123871,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
   FF.applyDom = applyDom;
 
-  function P() { return (CR.UI && CR.UI.__parts) || {}; }
   function hh(tag, attrs, kids) {
     const h = CR.UI && CR.UI.h;
     if (typeof h === 'function') return h(tag, attrs, kids);
@@ -123767,14 +123879,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     (Array.isArray(kids) ? kids : [kids]).forEach(function (c) { if (c == null) return; e.appendChild(typeof c === 'string' ? G.document.createTextNode(c) : c); });
     return e;
   }
-  function svgEl(markup) {
-    const s = G.document.createElement('span');
-    s.className = 'ff-svg';
-    s.style.display = 'contents';
-    s.innerHTML = markup;
-    return s;
-  }
-  function tr(s) { const I = CR.I18n; return I && I.lang !== 'de' && typeof I.tr === 'function' ? I.tr(s) : s; }
 
   /** The player plate: banner design + title (null when nothing is equipped). */
   function plate(name) {
@@ -123807,127 +123911,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     el.appendChild(hh('div', { class: 'ff-snow ff-node', 'aria-hidden': 'true' }, [hh('i'), hh('i'), hh('i')]));
     const fb = el.querySelector('.btn-fight');
     if (fb) fb.appendChild(hh('span', { class: 'ff-cap ff-node', 'aria-hidden': 'true' }));
-    const icons = el.querySelector('.mm-icons');
-    if (icons) {
-      const n = FF.readyCount();
-      const b = hh('button', { type: 'button', class: 'btn btn-icon btn-gold ff-gift ff-node', 'aria-label': 'Adventskalender' });
-      b.appendChild(svgEl(GIFT_SVG));
-      if (n > 0) b.appendChild(hh('span', { class: 'ff-dot', 'aria-hidden': 'true' }, String(n)));
-      b.addEventListener('click', function () { FF.openCalendar(app); });
-      icons.insertBefore(b, icons.firstChild);
-    }
   }
   function refreshMenu() {
     const app = curApp || (CR.App && CR.App.state);
     const scr = app && app.screen;
     if (scr && scr.menuEl && scr.menuEl.isConnected !== false) decorateMenu(app, scr);
-  }
-
-  // ---- calendar sheet
-  let calOpen = null;
-  FF.openCalendar = function (app, n) {
-    if (!G.document) return null;
-    ensureCss();
-    if (calOpen) calOpen.close();
-    app = app || curApp || (CR.App && CR.App.state);
-    const host = (app && app.stage) || G.document.querySelector('.stage') || G.document.body;
-    const msg = hh('div', { class: 'ff-cal-msg', role: 'status' });
-    const grid = hh('div', { class: 'ff-cal-grid' });
-    const eq = hh('div', { class: 'ff-eq' });
-    const prev = hh('div', { class: 'ff-cal-prev' });
-    const note = hh('p', { class: 'ff-cal-note' },
-      FF.inSeason(n) ? 'Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.'
-        : 'Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.');
-    function door(d) {
-      const st = FF.doorState(d, n), rw = REWARDS[d - 1];
-      const kids = [hh('span', { class: 'ff-n' }, String(d))];
-      if (st === 'open' || st === 'preview') {
-        kids.push(svgEl(TYPE_ICO[rw.t]));
-        kids.push(hh('span', { class: 'ff-rw' }, rw.name));
-        kids.push(hh('span', { class: 'ff-rt' }, TYPES[rw.t]));
-      } else if (st === 'ready') kids.push(hh('span', { class: 'ff-rw' }, 'Öffnen'));
-      else kids.push(hh('span', { class: 'ff-rt' }, 'ab ' + d + '. Dez.'));
-      const b = hh('button', { type: 'button', class: 'ff-door is-' + st, 'aria-label': 'Türchen ' + d }, kids);
-      if (st === 'ready') b.addEventListener('click', function () {
-        const got = FF.openDoor(d, n);
-        if (!got) return;
-        msg.textContent = tr('Neu:') + ' ' + tr(TYPES[got.t]) + ' „' + tr(got.name) + '“ – ' + tr('ausgerüstet!');
-        render(d);
-      });
-      return b;
-    }
-    function eqBtn(t) {
-      const own = FF.owned(t), cur = FF.equipped(t);
-      const rw = cur ? rewardOf(t, cur) : null;
-      const b = hh('button', { type: 'button', 'aria-label': TYPES[t] }, [
-        hh('span', null, [hh('small', null, TYPES[t] + ' (' + own.length + ')'), hh('b', null, rw ? rw.name : 'Keine')]),
-      ]);
-      b.insertBefore(svgEl(TYPE_ICO[t]), b.firstChild);
-      if (!own.length) b.disabled = true;
-      b.addEventListener('click', function () {
-        const list = [''].concat(own);
-        const i = list.indexOf(cur);
-        FF.equip(t, list[(i + 1) % list.length]);
-        render(0);
-      });
-      return b;
-    }
-    function render(fresh) {
-      grid.textContent = '';
-      for (let d = 1; d <= DAYS; d++) { const b = door(d); if (d === fresh) b.classList.add('is-new'); grid.appendChild(b); }
-      eq.textContent = '';
-      TYPE_IDS.forEach(function (t) { eq.appendChild(eqBtn(t)); });
-      prev.textContent = '';
-      const pl = plate(ownName(app));
-      if (pl) prev.appendChild(pl);
-    }
-    render(0);
-    const done = hh('button', { class: 'btn btn-blue btn-block mm-sheet-done', type: 'button' }, 'Fertig');
-    const title = hh('div', { class: 'sheet-title' }, ['Adventskalender']);
-    title.insertBefore(svgEl(SNOWFLAKE_SVG), title.firstChild);
-    const sh = hh('div', { class: 'sheet mm-sheet ff-cal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Adventskalender' }, [
-      hh('div', { class: 'sheet-grip', 'aria-hidden': 'true' }),
-      title,
-      hh('div', { class: 'ff-cal-body' }, [note, grid, msg, hh('div', { class: 'ff-cal-sect' }, 'Deine Weihnachts-Belohnungen'), prev, eq]),
-      done,
-    ]);
-    const back = hh('div', { class: 'sheet-backdrop mm-sheet-back ff-cal-back' }, sh);
-    const api = {
-      el: back,
-      close: function () {
-        if (calOpen === api) calOpen = null;
-        if (back.parentNode) back.parentNode.removeChild(back);
-        try { refreshMenu(); } catch (e) { /* ignore */ }
-      },
-    };
-    done.addEventListener('click', api.close);
-    back.addEventListener('click', function (e) { if (e.target === back) api.close(); });
-    host.appendChild(back);
-    calOpen = api;
-    return api;
-  };
-
-  // ---- settings row: the advent calendar (v42: the "Frost-Fest: Auto / An / Aus" switch is gone)
-  function addSettingsRow(app, res) {
-    const back = res && res.el;
-    const sheet = back && back.querySelector ? back.querySelector('.sheet-settings') || back.querySelector('.sheet') : null;
-    if (!sheet) return;
-    const sect = hh('div', { class: 'set-sect' }, 'Weihnachten');
-    const cal = hh('button', { type: 'button', class: 'btn btn-blue btn-sm ff-set-cal' }, 'Adventskalender');
-    cal.addEventListener('click', function () {
-      try { if (res && typeof res.close === 'function') res.close(); } catch (e) { /* ignore */ }
-      FF.openCalendar(app);
-    });
-    const lab = hh('div', { class: 'set-label' }, ['Adventskalender']);
-    lab.insertBefore(svgEl(SNOWFLAKE_SVG), lab.firstChild);
-    const row = hh('div', { class: 'set-row set-frost' }, [lab, cal,
-      hh('div', { class: 'hint set-note' }, 'Jeden Tag im Dezember (1. bis 24.) ein Türchen mit Weihnachts-Deko.')]);
-    const sects = sheet.querySelectorAll('.set-sect');
-    let anchor = null;
-    for (let i = 0; i < sects.length; i++) if (/Hilfe|Help/.test(sects[i].textContent)) anchor = sects[i];
-    if (!anchor) { const bs = sheet.querySelectorAll(':scope > .btn'); anchor = bs.length ? bs[bs.length - 1] : null; }
-    if (anchor && anchor.parentNode) { anchor.parentNode.insertBefore(sect, anchor); anchor.parentNode.insertBefore(row, anchor); }
-    else { sheet.appendChild(sect); sheet.appendChild(row); }
   }
 
   function installUi() {
@@ -123943,14 +123931,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       };
       for (const k in ms0) if (Object.prototype.hasOwnProperty.call(ms0, k)) wrapped[k] = ms0[k];
       UI.MenuScreen = wrapped;
-    }
-    if (typeof UI.openSettings === 'function') {
-      const os0 = UI.openSettings;
-      UI.openSettings = function (app) {
-        const res = os0.apply(this, arguments);
-        try { addSettingsRow(app, res); } catch (e) { /* ignore */ }
-        return res;
-      };
     }
     applyDom();
   }
