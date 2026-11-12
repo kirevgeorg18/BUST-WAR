@@ -47,7 +47,7 @@
   window.CR = window.CR || {};
   window.CR.MODEL_DATA = window.CR.MODEL_DATA || {};
   window.__crLate = { models: 1, audio: 1 };
-  window.__crBuild = '427254230183';   /* content hash of the single-file build (tools/build.py); '' = dev page */
+  window.__crBuild = '8f5cf52f637f';   /* content hash of the single-file build (tools/build.py); '' = dev page */
   window.__crBP = function (f) {
     var e = document.getElementById('boot-fill');
     if (e) e.style.transform = 'scaleX(' + Math.max(0, Math.min(1, f)) + ')';
@@ -11437,7 +11437,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     }
     let side = 0;
     const ccw = SIDE_COST[2], cw = SIDE_COST[0];
-    if (nav && nav.rect === hit && nav.side !== 0 && SIDE_FIRST[nav.side + 1] >= 0 &&
+    // (v41: an arena obstacle (no id: wall piece, map block) counts as the same rect by its corners - a
+    // map switch of another sim (card preview, replay) rebuilds CR.Arena.OBSTACLES as new objects and
+    // the side memory was lost: the same battle routed differently when another sim ran in between)
+    if (nav && (nav.rect === hit || sameObstacle(nav.rect, hit)) && nav.side !== 0 && SIDE_FIRST[nav.side + 1] >= 0 &&
         SIDE_COST[nav.side + 1] <= SIDE_COST[1 - nav.side] + RT.sideHysteresis) side = nav.side;
     else if (SIDE_FIRST[2] >= 0 || SIDE_FIRST[0] >= 0) side = ccw <= cw ? 1 : -1;
     if (side === 0) return false;
@@ -11447,6 +11450,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     return true;
   }
   Arena.detour = detour;
+  function sameObstacle(a, b) {
+    return !!a && !!b && a.id === undefined && b.id === undefined && a.x0 === b.x0 && a.y0 === b.y0 && a.x1 === b.x1 && a.y1 === b.y1;
+  }
 
   /** Push a circle out of a rect; returns true if moved. Writes into out {x,y}. */
   const PUSH_D = [0, 0, 0, 0];
@@ -14155,12 +14161,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   Units.missesLayer = missesLayer;
 
   /** Can attacker u (by its filters) attack entity t? (ignores range) */
-  function canTarget(u, t) {
+  function canTarget(u, t, noWall) {
     if (t.side === u.side || !isTargetable(t)) return false;
     const s = u.s;
     if (s.buildingsOnly && !t.building) return false;
     if (t.air) return (s.targetsAir || (s.targetsGround && CR.Arena.RIDGE !== null && (levelled(u) || airAtGround(t)))) && !(CR.Arena.SIEGE && siegeApart(u, t));   // (v28: + siege wall)
-    if (CR.Arena.WALL && wallApart(u, t)) return false;   // v22 pyramid: melee only on the same level
+    if (CR.Arena.WALL && !noWall && wallApart(u, t)) return false;   // v22 pyramid: melee only on the same level
     if (CR.Arena.SIEGE && siegeApart(u, t)) return false;   // v28 siege: not across a closed wall (unless in range)
     return s.targetsGround;
   }
@@ -14312,7 +14318,15 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function selectTarget(sim, u) {
     const s = u.s;
     let t = u.target;
-    if (t && (!canTarget(u, t) || deployingBlocked(t, sim))) { setTarget(u, null); t = null; }
+    // v41: a melee troop walking to its target over a pyramid / citadel / jungle wall keeps chasing it
+    // while the wall levels part them (ladder rungs -> wall top): dropping it there sent the troop
+    // back down the ladder, where it saw the target again - a 3-tick ping-pong at the ladder top
+    // (a Skeleton 12 s on the jungle). It attacks once the levels match again (think: `wa`).
+    // (only while the troop itself is on the ladder / the top, i.e. crossing: a ground troop whose
+    // target climbed onto the wall drops it as before - the router does not lead it up there from a
+    // gate lane)
+    const chase = !!(t && CR.Arena.WALL && !u.building && !u.locked && CR.Arena.wallLevel(u.x, u.y) >= 1 && !canTarget(u, t) && canTarget(u, t, true) && !deployingBlocked(t, sim));
+    if (t && !chase && (!canTarget(u, t) || deployingBlocked(t, sim))) { setTarget(u, null); t = null; }
     // v13 Schattentausch: enemies that aimed at the ninja keep chasing his shadow while it lasts
     // (buildings / towers only while it is in their range).
     if (u.taunt) {
@@ -14336,10 +14350,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     u.reacquire = false;
     // Keep chasing the current target (still in sight) unless the new one is clearly closer:
     // no retarget thrashing between two nearly equidistant targets (RULES.routing).
-    if (n && t && n !== t && !free) {
+    if ((n || chase) && t && n !== t && !free) {
       const gt = gap(u, t);
       const clipped = s.sightClip > 0 && (t.y - u.y) * (u.side === 0 ? 1 : -1) < -s.sightClip;
-      if (!clipped && gt <= s.sightRange + EPS && gap(u, n) > gt - CR.RULES.routing.retargetHysteresis) return t;
+      if (!clipped && gt <= s.sightRange + EPS && (!n || gap(u, n) > gt - CR.RULES.routing.retargetHysteresis)) return t;
     }
     setTarget(u, n);
     return n;
@@ -16015,7 +16029,14 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     }
     if (!(nav.gwT > now - 0.25 + EPS) || Math.abs(nav.ggx - gx) + Math.abs(nav.ggy - gy) > 0.5 || CR.dist2(u.x, u.y, nav.gwx, nav.gwy) < 0.01) {
       nav.gwT = now; nav.ggx = gx; nav.ggy = gy;
-      if (!CR.Arena.gridWaypoint(u.x, u.y, rr, gx, gy, SR(sim, u), GWP, nav.lad === 0)) { nav.gUntil = 0; return false; }
+      // (v41: no exit with the troop's own clearance - it stands in a slot exactly one troop wide, e.g.
+      // between an Elixir Collector and the field edge / king tower on the citadel (24 s stall): plan
+      // once more with a thinner clearance r - 0.28 (min 0.2): a half-tile cell centre lies within 0.25
+      // of the middle of any slot as wide as the troop, so such slots open up - narrower gaps (a
+      // 1-tile gap for a Mega Knight) stay shut)
+      const thin = Math.max(GRID_THIN, rr - 0.28);
+      if (!CR.Arena.gridWaypoint(u.x, u.y, rr, gx, gy, SR(sim, u), GWP, nav.lad === 0) &&
+        !(rr > thin + EPS && CR.Arena.gridWaypoint(u.x, u.y, thin, gx, gy, SR(sim, u), GWP, nav.lad === 0))) { nav.gUntil = 0; return false; }
       nav.gwx = GWP.x; nav.gwy = GWP.y;
       // back to the normal router once it agrees with the grid route for 1 s (else it would lead
       // straight back into the pocket); at the latest after 20 s
@@ -16028,6 +16049,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     return true;
   }
   const GWP = { x: 0, y: 0 }, SKW = { x: 0, y: 0 };
+  const GRID_THIN = 0.2;   // v41: least clearance of the second grid try (cell centres sit 0.25 from a tile edge)
   function nearRect(sim, u, d) {
     const rs = SR(sim, u);
     for (let i = 0; i < rs.length; i++) {
@@ -16172,7 +16194,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         || (!u.air && CR.Arena.hasRiver && ((u.y < CR.Arena.H / 2) !== (t.y < CR.Arena.H / 2)
           || CR.Arena.inRiverBand(t.y - t.r - 2 * u.r - 0.5) || CR.Arena.inRiverBand(t.y + t.r + 2 * u.r + 0.5)))
         // v26 sky islands: like the river - not across / on a gap, nor round a target at a gap edge
-        || (!u.air && CR.Arena.SKY && skyApart(u, t))) {
+        || (!u.air && CR.Arena.SKY && skyApart(u, t))
+        // v41 siege: nor across a wall line - the ring round a target beyond the own wall lies partly in
+        // the wall (a Minotaurus too big for the ladders pressed 9 s under the wall towards such a slot
+        // instead of taking the gate)
+        || (!u.air && CR.Arena.SIEGE && CR.Arena.siegeZone(u.y) !== CR.Arena.siegeZone(t.y))) {
       u.slotSide = 0; u.slotT = -1; return false;
     }
     const reach = Math.max(0.05, Math.min(s.range * 0.6, s.range - 0.1));
@@ -16965,14 +16991,16 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       const g = gap(u, t);
       // Mega Knight jump / Bandit dash triggers (target between min and max range, cooldown ready).
       // (v28 siege: never across a wall line - the target must stand in the same zone or be a gate)
-      const sgOk = !CR.Arena.SIEGE || t.sgGate !== undefined || CR.Arena.siegeZone(t.y) === CR.Arena.siegeZone(u.y);
+      // (v41: a target chased over a wall (selectTarget) on another level: walk on, no attack / jump yet)
+      const wa = !!(CR.Arena.WALL && !u.building && wallApart(u, t));
+      const sgOk = !wa && (!CR.Arena.SIEGE || t.sgGate !== undefined || CR.Arena.siegeZone(t.y) === CR.Arena.siegeZone(u.y));
       if (sp.jump && sgOk && !t.air && u.jumpCd <= 0 && g >= num(sp.jump.minRange, 3.5) - EPS && g <= num(sp.jump.maxRange, 5) + EPS) {
         startJump(sim, u, t); return;
       }
       if (sp.dash && sgOk && !t.air && u.dashCd <= 0 && g >= num(sp.dash.minRange, 3.5) - EPS && g <= num(sp.dash.maxRange, 6) + EPS) {
         startDash(sim, u, t); return;
       }
-      const inRange = g <= s.range + EPS && (s.minRange <= 0 || g >= s.minRange - EPS);
+      const inRange = !wa && g <= s.range + EPS && (s.minRange <= 0 || g >= s.minRange - EPS);
       if (inRange) {
         if (u.charging && s.charge) {
           performAttack(sim, u, t, true);
@@ -18494,7 +18522,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.100)</script>
+</script><script>__crBP(0.099)</script>
 <script>
 /* src/05-spells.js */
 /* Chaos Royale - 05-spells.js (engine)
@@ -18901,7 +18929,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.102)</script>
+</script><script>__crBP(0.101)</script>
 <script>
 /* src/06-chaos.js */
 /* Chaos Royale - 06-chaos.js (chaos)
@@ -22013,7 +22041,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   })();
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.130)</script>
+</script><script>__crBP(0.129)</script>
 <script>
 /* src/07-ai.js */
 /* Chaos Royale - 07-ai.js (ai)
@@ -22196,6 +22224,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       this.t += CR.DT;
       if (this.t + 1e-9 < this.nextThink) return;
       this.nextThink = this.t + this.cfg.think * (0.75 + this.rng() * 0.5);
+      // v41: the arena is global state - another sim (card preview, replay) may have switched the map
+      // since this battle's last tick; plan on this battle's map (the sim asserts it in tick / canPlay)
+      if (typeof sim._assertArena === 'function') sim._assertArena();
       try { this.think(sim); } catch (e) { this.errors = (this.errors || 0) + 1; this.lastError = e; /* a bot error must never stop the match (v31: counted for the tests) */ }
     }
 
@@ -23679,7 +23710,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.AI = AI;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.143)</script>
+</script><script>__crBP(0.142)</script>
 <script>
 /* src/08-net.js */
 /* Bust War - 08-net.js (net)
@@ -30494,7 +30525,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.188)</script>
+</script><script>__crBP(0.187)</script>
 <script>
 /* src/09-render.js */
 /* Chaos Royale - 09-render.js (render)
@@ -34567,7 +34598,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Render = Render;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.213)</script>
+</script><script>__crBP(0.211)</script>
 <script>
 /* src/10a-ui-core.js */
 /* 10a-ui-core.js – Bust War app shell UI (logical module "10-ui": menus, deck builder, lobbies,
@@ -38523,7 +38554,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.244)</script>
+</script><script>__crBP(0.242)</script>
 <script>
 /* src/10b-ui-menu.js */
 /* 10b-ui-menu.js – Bust War app shell UI, part 2 of 5 (v36 split of the former src/10-ui.js; same
@@ -39706,7 +39737,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.253)</script>
+</script><script>__crBP(0.251)</script>
 <script>
 /* src/10c-ui-deck.js */
 /* 10c-ui-deck.js – Bust War app shell UI, part 3 of 5 (v36 split of the former src/10-ui.js; same
@@ -40800,7 +40831,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.262)</script>
+</script><script>__crBP(0.259)</script>
 <script>
 /* src/10d-ui-lobby.js */
 /* 10d-ui-lobby.js – Bust War app shell UI, part 4 of 5 (v36 split of the former src/10-ui.js; same
@@ -42089,7 +42120,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.271)</script>
+</script><script>__crBP(0.269)</script>
 <script>
 /* src/10e-ui-battle.js */
 /* 10e-ui-battle.js – Bust War app shell UI, part 5 of 5 (v36 split of the former src/10-ui.js; same
@@ -43946,7 +43977,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.284)</script>
+</script><script>__crBP(0.281)</script>
 <script>
 /* src/11-main.js */
 /* 11-main.js – CR.App: bootstrap (loading screen with 3D portrait pre-render), screen
@@ -48144,7 +48175,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.314)</script>
+</script><script>__crBP(0.310)</script>
 <script>
 /* src/12-chaos-ui.js */
 /* Bust War - 12-chaos-ui.js (app shell, v3 + v5)
@@ -49115,7 +49146,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.ChaosUI = ChaosUI;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.324)</script>
+</script><script>__crBP(0.320)</script>
 <script>
 /* src/13-audio.js */
 /*
@@ -51756,7 +51787,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   A.UNIT_SFX = UNIT_SFX;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.342)</script>
+</script><script>__crBP(0.339)</script>
 <script>
 /* src/14-draft.js */
 /* Bust War - 14-draft.js (draft): the Touchdown DRAFT before the battle (v7).
@@ -52233,7 +52264,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.346)</script>
+</script><script>__crBP(0.342)</script>
 <script>
 /* src/15-buildmode.js */
 /* 15-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): before the battle every player
@@ -53301,7 +53332,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.353)</script>
+</script><script>__crBP(0.349)</script>
 <script>
 /* src/16-story.js */
 /* 16-story.js – Story-Modus "Der Bust" (v25, redesigned in v33 – docs/V25-STORY.md): campaign data,
@@ -55149,7 +55180,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.369)</script>
+</script><script>__crBP(0.366)</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 <script>
 /* src/20-gfx-core.js */
@@ -61751,7 +61782,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.427)</script>
+</script><script>__crBP(0.423)</script>
 <script>
 /* src/21-gfx-chars-a.js */
 /* Chaos Royale - 21-gfx-chars-a.js (designer A, v16 FACES on v15 ROYALE, gfx kit v4.3)
@@ -65819,7 +65850,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.charsA = { scallop, tatter, FACE, MOUTH, GRIM, grimace, faceRig, exprTarget, exprOf, browAmp, BROW_AMP, version: 'v16' };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.471)</script>
+</script><script>__crBP(0.466)</script>
 <script>
 /* src/22-gfx-chars-b.js */
 /* Chaos Royale - 22-gfx-chars-b.js (designer B)
@@ -69360,7 +69391,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.510)</script>
+</script><script>__crBP(0.504)</script>
 <script>
 /* src/23-gfx-chars-c.js */
 /* Chaos Royale - 23-gfx-chars-c.js (designer C: air units, creatures, tower crews)
@@ -71402,7 +71433,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.531)</script>
+</script><script>__crBP(0.525)</script>
 <script>
 /* src/24-gfx-props.js */
 /* Chaos Royale - 24-gfx-props.js (props designer)
@@ -75831,7 +75862,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.578)</script>
+</script><script>__crBP(0.572)</script>
 <script>
 /* src/25-gfx-vfx.js */
 /* Chaos Royale - 25-gfx-vfx.js (render3d)
@@ -79736,7 +79767,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   VFX.System = System;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.610)</script>
+</script><script>__crBP(0.603)</script>
 <script>
 /* src/26a-gfx-render3d-core.js */
 /* Chaos Royale - 26a-gfx-render3d-core.js (render3d; logical module "26-gfx-render3d")
@@ -83782,7 +83813,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.644)</script>
+</script><script>__crBP(0.636)</script>
 <script>
 /* src/26b-gfx-render3d-arena.js */
 /* 26b-gfx-render3d-arena.js – Bust War 3D battle renderer, part 2 of 4 (v36 split of the former
@@ -86533,7 +86564,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DArena);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.666)</script>
+</script><script>__crBP(0.659)</script>
 <script>
 /* src/26c-gfx-render3d-frame.js */
 /* 26c-gfx-render3d-frame.js – Bust War 3D battle renderer, part 3 of 4 (v36 split of the former
@@ -88418,7 +88449,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DFrame);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.680)</script>
+</script><script>__crBP(0.672)</script>
 <script>
 /* src/26d-gfx-render3d-fx.js */
 /* 26d-gfx-render3d-fx.js – Bust War 3D battle renderer, part 4 of 4 (v36 split of the former
@@ -89804,7 +89835,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Render3D = Render3D;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.690)</script>
+</script><script>__crBP(0.682)</script>
 <script>
 /* src/27-gfx-chars-d.js */
 /* Chaos Royale - 27-gfx-chars-d.js (render3d / graphics owner v6 + v7: new cards)
@@ -92342,7 +92373,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__cdV11 = { heroHead, heroEye, strand, lock, flatLock, headFrontZ, fierceEye, sculptHead, bodyPlan, limb, fist, hand, palm, shoe, pauldron, hood, cape, armBoot, bracer, bladePart, along, sheet, deform, spike, ribbon };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.717)</script>
+</script><script>__crBP(0.709)</script>
 <script>
 /* src/28-card-art.js */
 /* 28-card-art.js – hand-made card art (v17).
@@ -92849,7 +92880,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.CardArt = V19;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.720)</script>
+</script><script>__crBP(0.712)</script>
 <script>
 /* src/29-hero-blackblade.js */
 /* 29-hero-blackblade.js - v18 hero model override: 'black-blade-master' ("Schwarzklingen-Meister").
@@ -93353,7 +93384,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.725)</script>
+</script><script>__crBP(0.717)</script>
 <script>
 /* src/29-hero-cyborg.js */
 /* 29-hero-cyborg.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94133,7 +94164,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.733)</script>
+</script><script>__crBP(0.725)</script>
 <script>
 /* src/29-hero-kungfu.js */
 /* 29-hero-kungfu.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94614,7 +94645,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.737)</script>
+</script><script>__crBP(0.729)</script>
 <script>
 /* src/29-hero-ninja.js */
 /* 29-hero-ninja.js - v18 hero model override: 'spiral-ninja' ("Wirbel-Ninja").
@@ -95033,7 +95064,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.741)</script>
+</script><script>__crBP(0.733)</script>
 <script>
 /* src/30-gfx-buildmode.js */
 /* 30-gfx-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): models, battle effects,
@@ -96788,7 +96819,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.755)</script>
+</script><script>__crBP(0.746)</script>
 <script>
 /* src/31-style-a.js */
 /* 31-style-a.js - v23 character restyle, group A (hero quality like src/29-hero-*.js).
@@ -98376,7 +98407,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.772)</script>
+</script><script>__crBP(0.764)</script>
 <script>
 /* src/31-style-b.js */
 /* 31-style-b.js – v23 character restyle, group B (big units) at the quality of the src/29-hero-*.js heroes.
@@ -99312,7 +99343,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.781)</script>
+</script><script>__crBP(0.772)</script>
 <script>
 /* src/31-style-c.js */
 /* 31-style-c.js – v23 character restyle, group c (hero quality like src/29-hero-*.js).
@@ -101165,7 +101196,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.801)</script>
+</script><script>__crBP(0.792)</script>
 <script>
 /* src/31-style-d.js */
 /* 31-style-d.js – v23 character restyle, group d (small / swarm units at hero quality).
@@ -102428,7 +102459,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__styleD = { ids: IDS, reverted: REVERTED };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.814)</script>
+</script><script>__crBP(0.805)</script>
 <script>
 /* src/31-style-e.js */
 /* 31-style-e.js – v23 character restyle, group e (riders / vehicles / brutes) on the quality bar of
@@ -103333,7 +103364,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function lerp3(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.824)</script>
+</script><script>__crBP(0.814)</script>
 <script>
 /* src/31-style-f.js */
 /* 31-style-f.js - v23 character restyle, group f: the AIR units (hero quality like src/29-hero-*.js).
@@ -104561,7 +104592,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }, { body: 'blob', walk: 'hop', attack: 'none', weight: 0.55 });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.836)</script>
+</script><script>__crBP(0.827)</script>
 <script>
 /* src/32-gfx-maps.js */
 /* 32-gfx-maps.js - v24 hazard maps (docs/V24-MAPS.md): 3D scenery + animations and the 2D fallback
@@ -106644,7 +106675,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.toon = toon; M24.shaderMat = shaderMat; M24.own = own; M24.wx = wx; M24.wz = wz; M24.sstep = sstep; M24.NOISE = NOISE; M24.FALL_VS = FALL_VS; M24.PCOL = PCOL; M24.rect2d = rect2d;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.853)</script>
+</script><script>__crBP(0.844)</script>
 <script>
 /* src/33-story-ui.js */
 /* 33-story-ui.js – Story-Modus screens (v25, redesigned in v33 – docs/V25-STORY.md). Data / progress:
@@ -107933,7 +107964,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.867)</script>
+</script><script>__crBP(0.857)</script>
 <script>
 /* src/34-gfx-combo.js */
 /* 34-gfx-combo.js - v25 map 'citadel' ("Chaos-Zitadelle", docs/V25-COMBO.md): the scenery that the
@@ -108160,7 +108191,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.citadel = { build: build, update: update, paint2d: paint2d };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.869)</script>
+</script><script>__crBP(0.859)</script>
 <script>
 /* src/35-gfx-jungle.js */
 /* 35-gfx-jungle.js - v27 map 'jungle' ("Chaos-Dschungel", docs/V27-JUNGLE.md): the 3D scenery +
@@ -109012,7 +109043,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.jungle = { build: build, update: update, dispose: dispose, paint2d: paint2d, draw2d: draw2d, geo: geo, PC: PC };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.875)</script>
+</script><script>__crBP(0.866)</script>
 <script>
 /* src/36-gfx-siege.js */
 /* 36-gfx-siege.js - tower layout "Belagerung" (siege, docs/V28-SIEGE.md v28 + v29): the 3D models,
@@ -111402,7 +111433,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   S3.gateUpdate = gateUpdate; S3.drawStrands = drawStrands; S3.onSg = onSg; S3.onLaunch = onLaunch;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.897)</script>
+</script><script>__crBP(0.887)</script>
 <script>
 /* src/37-tutorial.js */
 /* 37-tutorial.js – onboarding tutorial + deck help (v31, agent "onboard").
@@ -112537,7 +112568,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.905)</script>
+</script><script>__crBP(0.895)</script>
 <script>
 /* src/38-replay.js */
 /* 38-replay.js – replays + clip export (v31, owner: "replay").
@@ -114327,7 +114358,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   install();
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.917)</script>
+</script><script>__crBP(0.907)</script>
 <script>
 /* src/39-events.js */
 /* 39-events.js – rotating weekly events (v31, agent "postmatch"; docs/V31-POSTMATCH.md).
@@ -114379,8 +114410,22 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     { id: 'light', code: 'lt', name: 'Leichte Karten', short: 'Leichte Karten', mode: 'classic', map: null,
       desc: 'Nur Karten bis 3 Kristalle – schnelle Zyklen, viele Karten.', options: { maxElixir: 3 } },
   ];
+  // v41 Frost-Fest (src/48-frost-fest.js): SEASONAL events are not in the weekly rotation (LIST and
+  // forWeek stay unchanged); current() adds one while its season is on (CR.FrostFest.active, else the
+  // UTC month). Same option mechanics as every weekly event.
+  const SEASONAL = [
+    { id: 'snowball', code: 'sn', name: 'Schneeballschlacht', short: 'Schneeballschlacht', mode: 'classic', map: null, season: 'frost',
+      desc: 'Frost-Fest: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – wirf alles, was du hast!', options: { elixirBoost: 2, maxElixir: 4 } },
+  ];
   const BY_ID = Object.create(null);
   for (let i = 0; i < LIST.length; i++) BY_ID[LIST[i].id] = LIST[i];
+  for (let i = 0; i < SEASONAL.length; i++) BY_ID[SEASONAL[i].id] = SEASONAL[i];
+  function seasonOn(ev, now) {
+    if (ev.season !== 'frost') return false;
+    const FF = CR.FrostFest;
+    if (FF && typeof FF.active === 'function') { try { return !!FF.active(now); } catch (e) { return false; } }
+    return new Date(now).getUTCMonth() === 11;
+  }
 
   function byId(id) { return typeof id === 'string' && BY_ID[id] ? BY_ID[id] : null; }
   /** UTC week number, weeks start on Monday (1970-01-01 was a Thursday). */
@@ -114436,7 +114481,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const now = typeof nowMs === 'number' ? nowMs : Date.now();
     const w = weekOf(now);
     const endsAt = weekStart(w + 1);
-    return forWeek(w).filter(function (ev) { return playable(app, ev); }).map(function (ev) {
+    const evs = SEASONAL.filter(function (ev) { return seasonOn(ev, now); }).concat(forWeek(w));
+    return evs.filter(function (ev) { return playable(app, ev); }).map(function (ev) {
       return { ev: ev, endsAt: endsAt, leftMs: endsAt - now, left: leftText(endsAt - now) };
     });
   }
@@ -114495,7 +114541,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     buttons.push({ label: 'Zurück', value: null, cls: 'btn-grey' });
     const body = el('div', 'ev-dlg');
     body.appendChild(el('p', 'ev-dlg-desc', ev.desc));
-    body.appendChild(el('p', 'ev-dlg-left', 'Wöchentliches Event · ' + item.left));
+    body.appendChild(el('p', 'ev-dlg-left', (ev.season ? 'Frost-Fest-Event' : 'Wöchentliches Event') + ' · ' + item.left));
     const d = typeof app.dialog === 'function' ? app.dialog({ title: ev.name, body: body, buttons: buttons }) : null;
     if (!d) { start(app, ev.id, 'ai'); return; }
     d.then(function (v) { if (v === 'ai' || v === 'online') start(app, ev.id, v); });
@@ -114504,11 +114550,11 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function menuCard(app) {
     const items = current(Date.now(), app);
     if (!items.length) return null;
-    const box = el('div', 'ev-strip' + (items.length > 1 ? ' is-two' : ''));
+    const box = el('div', 'ev-strip' + (items.length > 1 ? ' is-two' : '') + (items.length > 2 ? ' is-three' : ''));
     box.setAttribute('role', 'group');
     box.setAttribute('aria-label', 'Events der Woche');
     items.forEach(function (it) {
-      const b = el('button', 'ev-chip');
+      const b = el('button', 'ev-chip' + (it.ev.season ? ' ev-' + it.ev.season : ''));
       b.type = 'button';
       b.setAttribute('aria-label', 'Event: ' + it.ev.name + ', ' + it.left);
       b.appendChild(el('span', 'ev-tag', 'Event'));
@@ -114543,12 +114589,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   hookMenu();
 
   CR.Events = {
-    LIST: LIST, byId: byId, weekOf: weekOf, weekStart: weekStart, forWeek: forWeek, current: current, leftText: leftText,
+    LIST: LIST, SEASONAL: SEASONAL, byId: byId, weekOf: weekOf, weekStart: weekStart, forWeek: forWeek, current: current, leftText: leftText,
     withOptions: withOptions, setup: setup, queueKey: queueKey, start: start, menuCard: menuCard, decorateMenu: decorateMenu,
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.919)</script>
+</script><script>__crBP(0.909)</script>
 <script>
 /* src/40-feat-a.js */
 /* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): new neutral map features, each on its
@@ -115775,7 +115821,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FA.version = 1;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.928)</script>
+</script><script>__crBP(0.918)</script>
 <script>
 /* src/41-feat-b.js */
 /* 41-feat-b.js - v31 map features B (agent "feat-b", docs/V31-FEAT-B.md):
@@ -117201,7 +117247,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FB.gfx = { build: build, update: update, dispose: dispose, draw2d: draw2d, paintIce2d: paintIce2d, ICE_FS: ICE_FS, FUN_VS: FUN_VS };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.939)</script>
+</script><script>__crBP(0.928)</script>
 <script>
 /* src/43-glb-models.js */
 /* 43-glb-models.js - v34 GLB models (owner: agent "models"). Contract: docs/V34-MODELS.md.
@@ -118063,7 +118109,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       attach: [{ name: 'sparkR', parent: 'handR', along: 0.06 }, { name: 'sparkL', parent: 'handL', along: 0.06 }],
       extras: [{ pivot: 'sparkR', r: 0.05, color: 0xbff4ff, glow: 1 }, { pivot: 'sparkL', r: 0.05, color: 0xbff4ff, glow: 1 }],
       team: [{ band: [0.3, 0.46], gate: [0.5, 0.75] }], teamK: [0.22, 0.85], teamSat: 0.25,
-      anim: { body: 'biped', walk: 'march', attack: 'cast', tempo: 1.05, weight: 0.4, strikeIn: 0.04, strikeHold: 0.07, strikeOut: 0.3,
+      anim: { body: 'biped', walk: 'march', attack: 'cast', tempo: 1.05, weight: 0.4, strikeIn: 0.05, strikeHold: 0.07, strikeOut: 0.45, deathTime: 0.95,
         keys: {
           'armsL.rx': [0.3, 0.45, 0.85, 0.7], 'armsR.rx': [0.3, 0.45, 0.85, 0.7], 'armsL.rz': [-0.05, -0.25, 0.2, 0.15], 'armsR.rz': [0.05, 0.25, -0.2, -0.15],
           'body.rx': [0, 0.2, -0.2, -0.14], 'head.rx': [0, 0.14, -0.1, -0.06], 'root.py': [0, 0.06, -0.03, 0], 'root.pz': [0, 0.05, -0.1, -0.07],
@@ -118074,7 +118120,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       attach: [{ name: 'fireR', parent: 'handR', along: 0.06 }, { name: 'fireL', parent: 'handL', along: 0.06 }],
       extras: [{ pivot: 'fireR', r: 0.055, color: 0x7fe9ff, glow: 1 }, { pivot: 'fireL', r: 0.04, color: 0x9dffd8, glow: 1 }],
       team: [{ band: [0.29, 0.45], gate: [-0.2, -0.1] }], teamK: [0.55, 1.1], teamSat: 0.3,
-      anim: { body: 'biped', walk: 'march', attack: 'throw', tempo: 0.95, weight: 0.55, strikeIn: 0.05, strikeHold: 0.05, strikeOut: 0.4,
+      anim: { body: 'biped', walk: 'march', attack: 'throw', tempo: 0.95, weight: 0.55, strikeIn: 0.06, strikeHold: 0.07, strikeOut: 0.45, deathTime: 1.0,
         keys: { 'arm.rx': [0.3, 2.4, 0.9, 0.4], 'off.rx': [0.2, 0.7, -0.1, 0] } },
     },
     // v39 Minotaurus: own rig (Blender names aliased to Mixamo, skirt + shoulder armour bones play
@@ -118083,7 +118129,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     minotaur: {
       kind: 'humanoid', rigged: true, height: 2.0, runAt: 1.4, portrait: { yaw: -0.3, pitch: 0.08, pose: 'idle', zoom: 1.0 },
       team: [{ box: [-0.19, 0.34, -0.22, 0.19, 0.45, 0.22], gate: [-0.2, -0.1] }], teamK: [0.35, 1.0], teamSat: 1,
-      anim: { body: 'biped', walk: 'march', attack: 'smash', tempo: 0.85, weight: 0.85, strikeIn: 0.08, strikeHold: 0.08, strikeOut: 0.5,
+      // v41: procedural double axe in the right fist (pivot 'weapon') + a team-coloured sash
+      attach: [{ name: 'weapon', parent: 'handR', along: 0.035 }],
+      parts: [{ kind: 'axe', pivot: 'weapon' }, { kind: 'sash', from: [-0.13, 0.725], to: [0.13, 0.47], w: 0.045 }],
+      anim: { body: 'biped', walk: 'march', attack: 'smash', tempo: 0.85, weight: 0.85, strikeIn: 0.08, strikeHold: 0.1, strikeOut: 0.55, deathTime: 1.1,
         keys: { 'armsL.rx': [0.25, 2.5, 0.55, 0.35], 'armsR.rx': [0.25, 2.5, 0.55, 0.35], 'body.rx': [0, 0.22, -0.4, -0.32], 'head.rx': [0, -0.12, 0.2, 0.14] } },
     },
     // v40 Zentaur (card 'centaur' = hog rider 1:1): horse body + human torso, own rig names (aliased),
@@ -118092,14 +118141,15 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     centaur: {
       kind: 'humanoid', rigged: true, height: 1.9, center: 'box', run: true, hitFrac: 0.6, portrait: { yaw: -0.75, pitch: 0.1, pose: 'idle', zoom: 1.0 },
       team: [{ box: [-0.1, 0.78, -0.38, 0.3, 1.01, 0.08], gate: [-0.2, -0.1] }], teamK: [0.3, 1.15], teamSat: 1,   // the helmet crest
-      anim: { body: 'biped', walk: 'march', attack: 'swing', tempo: 1, weight: 0.7, strikeIn: 0.06, strikeHold: 0.06, strikeOut: 0.45, deathTime: 0.6 },
+      rateMax: 3.3,   // v41: the Running playback follows the real speed up to 3.3x (was capped at 2.2x: hooves slid)
+      anim: { body: 'biped', walk: 'march', attack: 'swing', tempo: 1, weight: 0.7, strikeIn: 0.06, strikeHold: 0.06, strikeOut: 0.45, deathTime: 0.9 },
     },
     'archer-queen': {
       kind: 'humanoid', rigged: true, height: 1.62, runAt: 1.4, portrait: { yaw: -0.35, pitch: 0.06, pose: 'idle', zoom: 1.0 },
       team: [{ band: [0.33, 0.43], gate: [-0.2, -0.1] }], teamK: [0.25, 1.1], teamSat: 1,
       // the bind pose already holds the bow forward (left hand): the shot = draw with the right arm,
       // a small bow lift, torso turn
-      anim: { body: 'biped', walk: 'march', attack: 'bow', tempo: 1.0, weight: 0.3,
+      anim: { body: 'biped', walk: 'march', attack: 'bow', tempo: 1.0, weight: 0.3, strikeIn: 0.04, strikeHold: 0.06, strikeOut: 0.4, deathTime: 0.95,
         keys: { 'off.rx': [0.15, 0.2, 0.25, 0.2], 'off.rz': [0, 0, 0, 0], 'off.pz': [0, 0, 0, 0], 'arm.rx': [0.2, 0.35, 0.2, 0.2], 'arm.rz': [0, 0.25, -0.1, 0], 'arm.pz': [0, 0.08, -0.02, 0],
           'body.ry': [-0.1, -0.18, -0.1, -0.1], 'head.ry': [0.1, 0.15, 0.1, 0.1] } },
     },
@@ -118124,7 +118174,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       ],
       tip: [0.277, 0.99, -0.055],
       team: [{ box: [-0.2, 0.16, -0.32, 0.2, 0.41, 0.32], gate: [0.3, 0.55] }], teamK: [0.14, 1.0], skirt: { y: [0.16, 0.36], x: 0.06 },
-      anim: { body: 'biped', walk: 'march', attack: 'thrust', tempo: 0.95, weight: 0.55, strikeIn: 0.06, strikeHold: 0.06, strikeOut: 0.42,
+      anim: { body: 'biped', walk: 'march', attack: 'thrust', tempo: 0.95, weight: 0.55, strikeIn: 0.06, strikeHold: 0.06, strikeOut: 0.42, deathTime: 0.9,
         keys: { 'arm.rx': [0.35, 0.05, 0.95, 0.75], 'arm.pz': [0, 0.12, -0.22, -0.16], 'weapon.rx': [-0.55, -0.95, -2.45, -2.15] } },
     },
     medusa: {
@@ -118142,7 +118192,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       ],
       team: [{ box: [-0.125, 0.24, -0.3, 0.125, 0.42, 0.3], gate: [-0.2, -0.1] }], teamK: [0.3, 1.0], skirt: { y: [0.2, 0.34], x: 0.05 },
       extras: [{ pivot: 'gaze', at: [0.042, 0.802, -0.078], r: 0.016, color: 0x9dffb0, glow: 1 }, { pivot: 'gaze', at: [-0.036, 0.802, -0.078], r: 0.016, color: 0x9dffb0, glow: 1 }],
-      anim: { body: 'biped', walk: 'march', attack: 'cast', tempo: 1.05, weight: 0.25, strikeIn: 0.05, strikeHold: 0.08, strikeOut: 0.35,
+      anim: { body: 'biped', walk: 'march', attack: 'cast', tempo: 1.05, weight: 0.25, strikeIn: 0.05, strikeHold: 0.08, strikeOut: 0.35, deathTime: 0.9,
         keys: { 'armsL.rx': [0.2, 0.3, 0.9, 0.7], 'armsR.rx': [0.1, -0.25, 0.3, 0.2], 'armsR.rz': [0, 0.2, -0.1, -0.05], 'armsL.rz': [-0.1, -0.3, -0.15, -0.1],
           'body.rx': [0, 0.15, -0.18, -0.12], 'head.rx': [0, 0.2, -0.16, -0.1] } },
     },
@@ -118172,13 +118222,13 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       ],
       tip: [0.305, 0.98, -0.05], skirt: { y: [0.2, 0.4], x: 0.06 },
       team: [{ box: [-0.39, 0.24, -0.26, -0.085, 0.58, -0.075], gate: [0.12, 0.3] }], teamK: [0.16, 1.1],
-      anim: { body: 'biped', walk: 'march', attack: 'thrust', tempo: 1, weight: 0.45, strikeIn: 0.05, strikeHold: 0.05, strikeOut: 0.38,
+      anim: { body: 'biped', walk: 'march', attack: 'thrust', tempo: 1, weight: 0.45, strikeIn: 0.05, strikeHold: 0.05, strikeOut: 0.38, deathTime: 0.9,
         keys: { 'arm.rx': [0.35, 0.05, 0.95, 0.75], 'arm.pz': [0, 0.12, -0.22, -0.16], 'weapon.rx': [-0.55, -0.95, -2.45, -2.15], 'off.rx': [0.9, 0.95, 0.85, 0.9] } },
     },
     cerberus: {
       kind: 'quadruped', height: 1.25, heads: 3, portrait: { yaw: -0.3, pitch: 0.12, pose: 'idle', zoom: 1.15 },
       team: [{ band: [0.5, 0.82], gate: [0.15, 0.3] }], teamK: [0.2, 1.35], teamSat: 0.22,
-      anim: { body: 'quadruped', walk: 'trot', attack: 'bite', tempo: 0.9, weight: 0.7, strikeIn: 0.05, strikeHold: 0.05, strikeOut: 0.3,
+      anim: { body: 'quadruped', walk: 'trot', attack: 'bite', tempo: 0.9, weight: 0.7, strikeIn: 0.05, strikeHold: 0.05, strikeOut: 0.3, deathTime: 0.9,
         keys: { 'head.rx': [0, 0.38, -0.55, -0.32], 'head.pz': [0, 0.05, -0.14, -0.08], 'body.rx': [0, 0.03, -0.05, -0.03], 'body.pz': [0, 0, -0.04, -0.02], 'root.pz': [0, 0.04, -0.08, -0.04] } },
     },
   };
@@ -118330,7 +118380,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   const FS_MAP = [
     '#ifdef USE_MAP',
     '  vec4 sampledDiffuseColor = texture2D( map, vMapUv );',
-    '  if ( vCrTeamW < -0.5 ) sampledDiffuseColor = vec4( 1.0 );',
+    '  if ( vCrTeamW < -1.5 ) sampledDiffuseColor = vec4( crTeamCol, 1.0 );',   // v41: team-coloured prop parts
+    '  else if ( vCrTeamW < -0.5 ) sampledDiffuseColor = vec4( 1.0 );',
     '  else if ( vCrTeamW > 0.001 ) {',
     '    float crTL = dot( sampledDiffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) );',
     '    vec3 crTc = sampledDiffuseColor.rgb;',
@@ -118379,8 +118430,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       const gp = g.getAttribute('position'), gi = g.index ? g.index.array : null;
       ex.push({ e, pos: gp.array, idx: gi, n: gp.count });
     }
+    // v41 props (axe, sash ...): vertex-coloured parts skinned rigidly to a pivot or copying the
+    // skin of the body under them
+    const pp = M.rigged && cfg.parts ? v41Parts(M, W, index, boneIndex) : [];
     let tot = nv;
     for (const x of ex) tot += x.n;
+    for (const x of pp) tot += x.n;
     const P = new Float32Array(tot * 3), Nn = new Float32Array(tot * 3), UV = new Float32Array(tot * 2), C = new Float32Array(tot * 3);
     const GL = new Float32Array(tot), PB = new Float32Array(tot * 4), TW = new Float32Array(tot), SI = new Uint8Array(tot * 4), SW = new Float32Array(tot * 4);
     P.set(N.pos); Nn.set(N.nrm); UV.set(N.uv); C.fill(1); SI.set(W.si); SW.set(W.sw); TW.set(team);
@@ -118408,6 +118463,17 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       else for (let k = 0; k < x.n; k++) extraIdx.push(o + k);
       o += x.n;
     }
+    for (const x of pp) {
+      for (let k = 0; k < x.n; k++) {
+        const v = o + k;
+        for (let c = 0; c < 3; c++) { P[v * 3 + c] = x.pos[k * 3 + c]; Nn[v * 3 + c] = x.nrm[k * 3 + c]; C[v * 3 + c] = x.col[k * 3 + c]; }
+        UV[v * 2] = 0.5; UV[v * 2 + 1] = 0.5;
+        PB[v * 4] = x.pbr[k * 2]; PB[v * 4 + 1] = x.pbr[k * 2 + 1]; PB[v * 4 + 3] = 0.45; TW[v] = x.tw[k];
+        for (let c = 0; c < 4; c++) { SI[v * 4 + c] = x.si[k * 4 + c]; SW[v * 4 + c] = x.sw[k * 4 + c]; }
+      }
+      for (let k = 0; k < x.idx.length; k++) extraIdx.push(o + x.idx[k]);
+      o += x.n;
+    }
     const attrs = {
       position: new THREE.BufferAttribute(P, 3), normal: new THREE.BufferAttribute(Nn, 3), uv: new THREE.BufferAttribute(UV, 2),
       color: new THREE.BufferAttribute(C, 3), crGlow: new THREE.BufferAttribute(GL, 1), crPbr: new THREE.BufferAttribute(PB, 4),
@@ -118426,6 +118492,146 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       return g;
     };
     return { lod0: mk(0), lod1: mk(1), weights: W };
+  }
+  // ---- v41 props: procedural axe (rigid on a pivot) and a team sash (follows the torso skin) ----
+  // Each part -> { n, pos, nrm, col, pbr (smooth, metal), tw (-2 = team colour, -1 = vertex colour),
+  // si / sw (4 per vertex), idx }. Built once per model (shared by both sides).
+  function v41Parts(M, W, index, boneIndex) {
+    const out = [], H = M.H, at = Object.create(null);
+    for (const b of M.bones) at[b.name] = b;
+    for (const pc of M.cfg.parts) {
+      try {
+        const x = pc.kind === 'axe' ? v41Axe(M, pc, at, H, boneIndex) : pc.kind === 'sash' ? v41Sash(M, pc, W, index, H) : null;
+        if (x) out.push(x);
+      } catch (e) { if (globalThis.console) console.warn('[CR.GLB] part ' + pc.kind, e); }
+    }
+    return out;
+  }
+  // collect THREE geometries (non-indexed or indexed) with a colour, pbr and team flag into one part
+  function v41Collect(list, bone) {
+    let n = 0, ni = 0;
+    for (const g of list) { n += g.geo.getAttribute('position').count; ni += g.geo.index ? g.geo.index.count : g.geo.getAttribute('position').count; }
+    const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), col = new Float32Array(n * 3), pbr = new Float32Array(n * 2), tw = new Float32Array(n);
+    const si = new Uint8Array(n * 4), sw = new Float32Array(n * 4), idx = new Array(ni);
+    let o = 0, oi = 0;
+    const c3 = new THREE.Color();
+    for (const g of list) {
+      g.geo.computeVertexNormals();
+      const gp = g.geo.getAttribute('position'), gn = g.geo.getAttribute('normal'), m = gp.count;
+      c3.setHex(g.color);
+      for (let k = 0; k < m; k++) {
+        const v = o + k;
+        pos[v * 3] = gp.getX(k); pos[v * 3 + 1] = gp.getY(k); pos[v * 3 + 2] = gp.getZ(k);
+        nrm[v * 3] = gn.getX(k); nrm[v * 3 + 1] = gn.getY(k); nrm[v * 3 + 2] = gn.getZ(k);
+        col[v * 3] = c3.r; col[v * 3 + 1] = c3.g; col[v * 3 + 2] = c3.b;
+        pbr[v * 2] = g.smooth; pbr[v * 2 + 1] = g.metal; tw[v] = g.team ? -2 : -1;
+        si[v * 4] = bone; sw[v * 4] = 1;
+      }
+      if (g.geo.index) { const ia = g.geo.index.array; for (let k = 0; k < ia.length; k++) idx[oi++] = o + ia[k]; }
+      else for (let k = 0; k < m; k++) idx[oi++] = o + k;
+      o += m;
+    }
+    return { n, pos, nrm, col, pbr, tw, si, sw, idx };
+  }
+  // double-bit battle axe, ~500 tris: haft along the axe's local +Y from the grip, two crescent
+  // blades in the local YZ plane (edges forward / back), bronze socket, top spike, pommel, grip
+  // wraps in the team colour. Placed at the pivot (fist) with cfg.rot (Euler, bind space)
+  function v41Axe(M, pc, at, H, boneIndex) {
+    const piv = at[pc.pivot];
+    if (!piv) return null;
+    const L = (pc.len || 0.5) * H, r = 0.0125 * H, below = 0.11 * H;
+    const WOOD = 0x5b3a20, STEEL = 0xc3cad2, BRONZE = 0xb48a3a, DARK = 0x2a2a30;
+    const parts = [];
+    const add = (geo, color, smooth, metal, team) => parts.push({ geo, color, smooth, metal, team });
+    add(new THREE.CylinderGeometry(r, r * 1.1, L, 8, 1).translate(0, L / 2 - below, 0), WOOD, 0.25, 0);
+    for (const y of [0.0, 0.07]) add(new THREE.CylinderGeometry(r * 1.35, r * 1.35, 0.045 * H, 8, 1).translate(0, y * H, 0), 0xffffff, 0.3, 0, true);
+    add(new THREE.CylinderGeometry(r * 1.4, r * 1.4, 0.02 * H, 8, 1).translate(0, L - below - 0.17 * H, 0), BRONZE, 0.55, 0.8);
+    add(new THREE.SphereGeometry(r * 1.9, 8, 5).translate(0, -below, 0), BRONZE, 0.55, 0.8);
+    const top = L - below;
+    // crescent blade (2D in x = out from the haft, y = along the haft), extruded along local X
+    const sh = new THREE.Shape();
+    const bw = 0.15 * H, bh = 0.19 * H, nk = 0.035 * H;
+    sh.moveTo(0, -nk);
+    sh.quadraticCurveTo(bw * 0.5, -nk * 0.8, bw * 0.95, -bh / 2);   // lower flank (concave)
+    sh.quadraticCurveTo(bw * 1.3, 0, bw * 0.95, bh / 2);            // the curved edge
+    sh.quadraticCurveTo(bw * 0.5, nk * 0.8, 0, nk);                 // upper flank
+    sh.lineTo(0, -nk);
+    const bl = new THREE.ExtrudeGeometry(sh, { depth: 0.014 * H, bevelEnabled: true, bevelThickness: 0.006 * H, bevelSize: 0.006 * H, bevelSegments: 1, curveSegments: 5 });
+    bl.translate(0, 0, -0.007 * H);
+    // shape x -> local Z (edge direction), shape y -> local Y; extrude depth -> local X
+    const m4 = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0));
+    const yb = top - 0.12 * H;
+    add(bl.clone().applyMatrix4(m4).translate(0, yb, -r * 0.6), STEEL, 0.62, 0.85);
+    const m5 = new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0));
+    add(bl.clone().applyMatrix4(m5).translate(0, yb, r * 0.6), STEEL, 0.62, 0.85);
+    add(new THREE.BoxGeometry(0.042 * H, 0.11 * H, 0.05 * H).translate(0, yb, 0), BRONZE, 0.55, 0.8);
+    add(new THREE.ConeGeometry(r * 1.5, 0.07 * H, 6, 1).translate(0, top + 0.035 * H - 0.03 * H, 0), DARK, 0.5, 0.7);
+    const x = v41Collect(parts, boneIndex(pc.pivot));
+    // local axe frame -> bind space: Euler cfg.rot, then to the pivot (grip) position
+    const R = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler((pc.rot || [0, 0, 0])[0], (pc.rot || [0, 0, 0])[1], (pc.rot || [0, 0, 0])[2]));
+    const v = new THREE.Vector3();
+    for (let k = 0; k < x.n; k++) {
+      v.set(x.pos[k * 3], x.pos[k * 3 + 1], x.pos[k * 3 + 2]).applyMatrix4(R);
+      x.pos[k * 3] = v.x + piv.pos[0]; x.pos[k * 3 + 1] = v.y + piv.pos[1]; x.pos[k * 3 + 2] = v.z + piv.pos[2];
+      v.set(x.nrm[k * 3], x.nrm[k * 3 + 1], x.nrm[k * 3 + 2]).applyMatrix4(R);
+      x.nrm[k * 3] = v.x; x.nrm[k * 3 + 1] = v.y; x.nrm[k * 3 + 2] = v.z;
+    }
+    return x;
+  }
+  // team sash: a band on the tilted plane from `from` [x, y] to `to` [x, y] (fractions of H) around
+  // the torso, wrapped just outside the skin; every band vertex copies the skin weights of the
+  // body vertex under it (so it bends with the spine)
+  function v41Sash(M, pc, W, index, H) {
+    const N = M.N, nv = N.nv, pos = N.pos;
+    const ok = Object.create(null);
+    for (const n of ['hips', 'body', 'torso', 'chest', 'mx_Root']) if (index[n] !== undefined) ok[index[n]] = 1;
+    const x0 = pc.from[0] * H, y0 = pc.from[1] * H, x1 = pc.to[0] * H, y1 = pc.to[1] * H;
+    const slope = (y1 - y0) / (x1 - x0), yc = (y0 + y1) / 2, xc = (x0 + x1) / 2;
+    let zc = 0, zn = 0;
+    for (let i = 0; i < nv; i++) { const y = pos[i * 3 + 1]; if (Math.abs(y - yc) < 0.05 * H && ok[W.si[i * 4]]) { zc += pos[i * 3 + 2]; zn++; } }
+    zc = zn ? zc / zn : 0;
+    const NB = 40, rb = new Float32Array(NB), vb = new Int32Array(NB).fill(-1), tol = 0.03 * H;
+    for (let i = 0; i < nv; i++) {
+      if (!ok[W.si[i * 4]] || W.sw[i * 4] < 0.5) continue;
+      const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+      if (Math.abs(y - (yc + slope * (x - xc))) > tol) continue;
+      const dx = x - xc, dz = z - zc, rr = Math.hypot(dx, dz);
+      let b = Math.floor((Math.atan2(dz, dx) / (Math.PI * 2) + 0.5) * NB); if (b >= NB) b = NB - 1;
+      if (rr > rb[b]) { rb[b] = rr; vb[b] = i; }
+    }
+    // fill gaps (arms / missing samples): interpolate the neighbours
+    for (let pass = 0; pass < NB; pass++) {
+      let miss = 0;
+      for (let b = 0; b < NB; b++) {
+        if (vb[b] >= 0) continue;
+        const a = (b + NB - 1) % NB, c = (b + 1) % NB;
+        if (vb[a] >= 0 || vb[c] >= 0) { const s = vb[a] >= 0 ? a : c; rb[b] = vb[a] >= 0 && vb[c] >= 0 ? (rb[a] + rb[c]) / 2 : rb[s]; vb[b] = vb[s]; }
+        else miss++;
+      }
+      if (!miss) break;
+    }
+    if (vb[0] < 0) return null;
+    // light smoothing of the radius (no spikes from single vertices)
+    const rs = new Float32Array(NB);
+    for (let b = 0; b < NB; b++) rs[b] = (rb[(b + NB - 1) % NB] + 2 * rb[b] + rb[(b + 1) % NB]) / 4;
+    const hw = (pc.w || 0.045) * H / 2, off = 0.012 * H;
+    const n = NB * 2, P = new Float32Array(n * 3), Nn = new Float32Array(n * 3), col = new Float32Array(n * 3).fill(1), pbr = new Float32Array(n * 2), tw = new Float32Array(n).fill(-2);
+    const si = new Uint8Array(n * 4), sw = new Float32Array(n * 4), idx = [];
+    for (let b = 0; b < NB; b++) {
+      const ang = ((b + 0.5) / NB - 0.5) * Math.PI * 2, ca = Math.cos(ang), sa = Math.sin(ang);
+      const r = Math.max(rs[b], rb[b]) + off, x = xc + ca * r, z = zc + sa * r, y = yc + slope * (x - xc);
+      for (let e = 0; e < 2; e++) {
+        const v = b * 2 + e;
+        P[v * 3] = x; P[v * 3 + 1] = y + (e ? hw : -hw); P[v * 3 + 2] = z;
+        Nn[v * 3] = ca; Nn[v * 3 + 2] = sa;
+        col[v * 3] = col[v * 3 + 1] = col[v * 3 + 2] = e ? 1 : 0.82;
+        pbr[v * 2] = 0.35;
+        for (let c = 0; c < 4; c++) { si[v * 4 + c] = W.si[vb[b] * 4 + c]; sw[v * 4 + c] = W.sw[vb[b] * 4 + c]; }
+      }
+      const a0 = b * 2, a1 = ((b + 1) % NB) * 2;
+      idx.push(a0, a1, a0 + 1, a1, a1 + 1, a0 + 1);
+    }
+    return { n, pos: P, nrm: Nn, col, pbr, tw, si, sw, idx };
   }
   /** v38: the GLB's own skin weights, joint index -> kit pivot index */
   function rigWeights(M, boneIndex) {
@@ -118653,7 +118859,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     X.wR = appr(X.wR, wantRun ? 1 : 0, fade);
     if (X.wL > 0 && walk) {
       const v = ((walk.speed || 1) * (1 - X.wR) + (run.speed || 1) * X.wR) * (inst.scale || 1);
-      const rate = Math.min(2.2, Math.max(0.55, spd / Math.max(0.05, v)));
+      const rate = Math.min(cfg.rateMax > 0 ? cfg.rateMax : 2.2, Math.max(0.55, spd / Math.max(0.05, v)));   // (v41: rateMax per model)
       const dur = walk.dur * (1 - X.wR) + run.dur * X.wR;
       X.u += dt * rate / dur; X.u -= Math.floor(X.u);
     }
@@ -118716,13 +118922,235 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
   GLB.mxLayer = mxLayer;
 
+  // ---- v41 procedural body layer: whole-body attacks, hurt jerk, weighted deaths -------------
+  // Replacement while a model has no real clip of that role (a later Attack / Hit / Death clip
+  // file wins automatically: the layer switches off for that role). Keys per pivot (pivot-name
+  // based, so hips / chest / knees / feet / the weapon wrist are reachable, unlike the kit's role
+  // keys): channel -> [ready, wind, impact, follow], timed by the kit's attack envelope
+  // (_atkWeights: anticipation on attackProg, snap into the impact, hit stop, overshooting
+  // follow-through, elastic settle). Channels: rx ry rz = rotation in the parent's bind frame
+  // (= model axes: rx + forward / lean back, ry + turn left, rz + right arm out / left arm in),
+  // fx = flex about the joint's hinge (elbow / wrist / knee-like: + bends the limb forward, axis
+  // from the bind geometry, so it works for T-pose and A-pose rigs alike), px py pz = position
+  // offset (hips / root; fractions of the model height). Lag per pivot (s): hips lead, the arm
+  // whips through, the head follows last.
+  const LAG41 = { root: -0.03, hips: -0.03, legL: -0.03, legR: -0.03, legL2: -0.03, legR2: -0.03, footL: -0.03, footR: -0.03,
+    body: -0.012, torso: 0, chest: 0.008, shoulderR: 0.01, shoulderL: 0.012, armR: 0.012, armL: 0.016, armR2: 0.026, armL2: 0.03,
+    handR: 0.036, handL: 0.04, weapon: 0.04, neck: 0.03, head: 0.045 };
+  const V41 = {
+    // Zeus: overhead lightning throw - turns his right shoulder back, bolt hand cocked behind the
+    // head, left arm aims, weight on the back foot; release = hips -> chest -> arm whip, step
+    // into the throw, arm follows through across the body
+    'electro-wizard': { sq: [0, -0.04, 0.08, 0.03], atk: {
+      root: { pz: [0, 0.03, -0.05, -0.06], py: [-0.01, -0.012, -0.03, -0.025] },
+      hips: { ry: [-0.08, -0.38, 0.32, 0.4] },
+      body: { ry: [0, -0.2, 0.2, 0.24], rx: [0, 0.12, -0.16, -0.2] },
+      chest: { ry: [0, -0.22, 0.22, 0.26], rx: [0, 0.1, -0.12, -0.14] },
+      neck: { ry: [0.04, 0.3, -0.24, -0.3] }, head: { ry: [0.04, 0.38, -0.26, -0.34], rx: [0, -0.06, 0.08, 0.06] },
+      armR: { rx: [0.35, 2.55, 1.35, 0.85], rz: [0.12, 0.42, -0.05, -0.42], ry: [0, -0.3, 0, 0.2] }, armR2: { fx: [0.55, 1.5, 0.12, 0.35] }, handR: { fx: [0, 0.4, -0.25, -0.1] },
+      armL: { rx: [0.45, 1.45, 0.35, 0.25], rz: [-0.1, -0.15, -0.45, -0.35] }, armL2: { fx: [0.5, 0.2, 0.9, 0.8] },
+      legL: { rx: [0.12, 0.38, 0.42, 0.4], rz: [-0.03, -0.05, -0.06, -0.06] }, legL2: { rx: [-0.18, -0.65, -0.32, -0.3] }, footL: { rx: [0.06, 0.3, -0.1, -0.1] },
+      legR: { rx: [-0.08, 0.05, -0.38, -0.4] }, legR2: { rx: [-0.1, -0.25, -0.12, -0.15] }, footR: { rx: [0, -0.05, 0.3, 0.32] },
+    } },
+    // Hades: two-handed spell - both hands gather back and up beside the shoulders (chest opens,
+    // head up), then both palms drive forward with a step and a forward lean, push follows through
+    hades: { sq: [0, -0.05, 0.09, 0.04], atk: {
+      root: { pz: [0, 0.04, -0.07, -0.08], py: [-0.012, -0.04, -0.04, -0.03] },
+      hips: { ry: [0, -0.08, 0.06, 0.05] },
+      body: { rx: [0, 0.16, -0.18, -0.22] }, chest: { rx: [0, 0.16, -0.16, -0.18], ry: [0, -0.08, 0.06, 0.05] },
+      neck: { rx: [0, -0.06, 0.08, 0.1] }, head: { rx: [0, -0.12, 0.14, 0.16] },
+      armR: { rx: [0.55, 0.4, 1.45, 1.32], rz: [-0.1, 1.25, -0.5, -0.4], ry: [0.1, -0.2, 0.15, 0.1] }, armR2: { fx: [0.9, 1.7, 0.05, 0.2] }, handR: { fx: [-0.2, -0.5, -0.7, -0.5] },
+      armL: { rx: [0.55, 0.4, 1.45, 1.32], rz: [0.1, -1.25, 0.5, 0.4], ry: [-0.1, 0.2, -0.15, -0.1] }, armL2: { fx: [0.9, 1.7, 0.05, 0.2] }, handL: { fx: [-0.2, -0.5, -0.7, -0.5] },
+      legL: { rx: [0.12, 0.3, 0.5, 0.48] }, legL2: { rx: [-0.2, -0.55, -0.42, -0.4] }, footL: { rx: [0.06, 0.22, -0.06, -0.06] },
+      legR: { rx: [-0.1, 0.08, -0.36, -0.38] }, legR2: { rx: [-0.1, -0.3, -0.15, -0.18] }, footR: { rx: [0.02, -0.06, 0.3, 0.3] },
+    } },
+    // Artemis: archer stance (left side to the target), the bow rises to the eye, the draw arm
+    // pulls the string back past the cheek with the elbow high; the release snaps the draw hand
+    // back and the bow arm kicks, the torso recoils a little
+    'archer-queen': { sq: [0, -0.02, 0.04, 0.02], atk: {
+      root: { pz: [0, 0.02, 0.035, 0.02], py: [-0.01, -0.025, -0.02, -0.015] },
+      hips: { ry: [-0.25, -0.4, -0.36, -0.36] },
+      body: { ry: [-0.12, -0.22, -0.18, -0.18], rx: [0, 0.06, 0.1, 0.07] }, chest: { ry: [-0.1, -0.2, -0.16, -0.17], rx: [0, 0.05, 0.08, 0.05] },
+      neck: { ry: [0.15, 0.3, 0.26, 0.26] }, head: { ry: [0.18, 0.36, 0.32, 0.32], rx: [0, 0.04, 0, 0], rz: [0, 0.1, 0.08, 0.08] },
+      armL: { rx: [0.12, 0.34, 0.24, 0.28], ry: [0.15, 0.42, 0.36, 0.4], rz: [0, -0.08, 0.04, 0] }, armL2: { fx: [-0.1, -0.45, -0.3, -0.38] },
+      armR: { rx: [0.1, 0.05, 0.05, 0.05], rz: [0.3, 1.4, 1.5, 1.45], ry: [-0.2, -1.15, -1.4, -1.3] }, armR2: { fx: [0.4, 1.8, 1.1, 1.3] }, handR: { fx: [0, 0.3, -0.6, -0.4] },
+      legL: { rx: [0.1, 0.2, 0.18, 0.18], rz: [-0.08, -0.12, -0.12, -0.12] }, legL2: { rx: [-0.1, -0.25, -0.22, -0.22] },
+      legR: { rx: [-0.1, -0.16, -0.14, -0.14], rz: [0.06, 0.1, 0.1, 0.1] }, legR2: { rx: [-0.06, -0.15, -0.12, -0.12] },
+    } },
+    // Minotaurus: heavy two-handed overhead axe blow - rises onto the back leg, arches back with the
+    // axe high behind the horns, front knee up; then the whole mass drops: stomp forward, deep
+    // knees, torso and horns down, the axe bites the ground in front (wrist snaps the head down)
+    minotaur: { sq: [0, -0.07, 0.2, 0.1], atk: {
+      root: { pz: [0, 0.06, -0.14, -0.13], py: [-0.02, 0.02, -0.07, -0.06] },
+      hips: { rx: [0, 0.06, -0.12, -0.1], ry: [0, -0.1, 0.06, 0.05] },
+      body: { rx: [-0.08, 0.26, -0.42, -0.36] }, chest: { rx: [-0.04, 0.22, -0.3, -0.26] },
+      neck: { rx: [0, -0.1, 0.18, 0.14] }, head: { rx: [0, -0.12, 0.26, 0.2] },
+      armR: { rx: [0.5, 2.85, 0.95, 0.75], rz: [0, -0.9, -0.6, -0.4] }, armR2: { fx: [0.7, 1.15, 0.08, 0.2] }, weapon: { fx: [0.25, 0.7, -0.5, -0.35], rz: [0, 0.6, 0.3, 0.2] },
+      armL: { rx: [0.5, 2.8, 0.9, 0.7], rz: [-0.1, 0.8, 0.6, 0.4] }, armL2: { fx: [0.75, 1.2, 0.3, 0.4] },
+      legL: { rx: [0.18, 0.75, 0.62, 0.58], rz: [-0.06, -0.04, -0.1, -0.1] }, legL2: { rx: [-0.35, -1.25, -0.75, -0.72] }, footL: { rx: [0.12, 0.4, 0.12, 0.12] },
+      legR: { rx: [-0.12, -0.04, -0.42, -0.4], rz: [0.06, 0.04, 0.1, 0.1] }, legR2: { rx: [-0.25, -0.1, -0.55, -0.5] }, footR: { rx: [0.1, 0, 0.55, 0.52] },
+    } },
+  };
+  GLB.V41 = V41;
+  const _v41v = new Float64Array(7), _q41 = new THREE.Quaternion(), _q41b = new THREE.Quaternion(), _e41 = new THREE.Euler(), _w41 = [0, 0, 0, 0];
+  // pre-multiply a rotation (parent frame) onto a pivot; the kit rebuilds the pose next frame
+  function rot41(n, rx, ry, rz, fx, h) {
+    if (!n) return;
+    if (rx === 0 && ry === 0 && rz === 0 && !fx) return;
+    _e41.set(rx, ry, rz); _q41.setFromEuler(_e41);
+    if (fx && h) { _q41b.setFromAxisAngle(h, fx); _q41.multiply(_q41b); }
+    const q = n.quaternion, ax = _q41._x, ay = _q41._y, az = _q41._z, aw = _q41._w, bx = q._x, by = q._y, bz = q._z, bw = q._w;
+    q._x = ax * bw + aw * bx + ay * bz - az * by; q._y = ay * bw + aw * by + az * bx - ax * bz;
+    q._z = az * bw + aw * bz + ax * by - ay * bx; q._w = aw * bw - ax * bx - ay * by - az * bz;
+    n.rotation._x = NaN;
+  }
+  const CH41 = ['rx', 'ry', 'rz', 'fx', 'px', 'py', 'pz'];
+  // per instance: resolve the table to nodes + hinge axes once per template
+  function v41Setup(inst) {
+    const tpl = inst.tpl, M = tpl && tpl._glb;
+    if (!M || inst.isFlyer || inst.isBuilding) return null;
+    const C = M.rigged ? M.rig.clips : {};
+    const P = V41[inst.modelId] || null;
+    const at = Object.create(null);
+    for (const b of M.bones) at[b.name] = b;
+    const hinge = function (name) {
+      const b = at[name], pb = b && at[b.parent];
+      if (!b || !pb) return null;
+      const d = new THREE.Vector3(b.pos[0] - pb.pos[0], b.pos[1] - pb.pos[1], b.pos[2] - pb.pos[2]);
+      if (d.lengthSq() < 1e-10) return null;
+      const h = d.normalize().cross(new THREE.Vector3(0, 0, -1));
+      return h.lengthSq() < 1e-6 ? new THREE.Vector3(1, 0, 0) : h.normalize();
+    };
+    const V = { M, atk: null, sq: null, death: !C.Death, hurt: !C.Hit, H: M.H, rig: inst.rig, hinge: Object.create(null), hipY: at.hips ? at.hips.pos[1] : M.H * 0.48,
+      quad: M.kind === 'quadruped' || M.cfg.center === 'box', fall: 0, landed: false };
+    for (const n of ['armL2', 'armR2', 'handL', 'handR', 'weapon']) { const h = hinge(n); if (h) V.hinge[n] = h; }
+    if (P && P.atk && !C.Attack) {
+      V.atk = [];
+      for (const pv in P.atk) {
+        const n = inst.rig[pv];
+        if (!n) continue;
+        const k = P.atk[pv], ch = CH41.map(c => k[c] || null);
+        V.atk.push({ n, ch, lag: LAG41[pv] || 0, h: V.hinge[pv] || null, pos: pv === 'root' || pv === 'hips' });
+      }
+      V.sq = P.sq || null;
+    }
+    return V;
+  }
+  function env01(x) { return x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x); }
+  // attack + hurt + death on the pivots (after the kit pose, before the clip layer composes)
+  function v41Layer(inst, V) {
+    const A = inst.A, H = V.H;
+    if (V.atk && !A.dying) {
+      const at = inst.atk, T = A.strikeT, total = at.tin + at.hold + at.out;
+      const striking = A.strikes > 0 && T < total;
+      const blend = striking ? Math.max(A.aim, 1 - env01((T - total * 0.75) / (total * 0.25))) : A.aim;
+      if (blend > 0.001 || A.wu > 0.001) {
+        const c0 = inst._atkWeights(T, striking, blend, _w41), b0 = c0[0], b1 = c0[1], b2 = c0[2], b3 = c0[3];
+        for (let i = 0; i < V.atk.length; i++) {
+          const K = V.atk[i];
+          let w0 = b0, w1 = b1, w2 = b2, w3 = b3;
+          if (K.lag !== 0 && striking) { const c = inst._atkWeights(T - K.lag, striking, blend, _w41); w0 = c[0]; w1 = c[1]; w2 = c[2]; w3 = c[3]; }
+          const ch = K.ch, v = _v41v;
+          for (let j = 0; j < 7; j++) { const a = ch[j]; v[j] = a ? a[0] * w0 + a[1] * w1 + a[2] * w2 + a[3] * w3 : 0; }
+          rot41(K.n, v[0], v[1], v[2], v[3], K.h);
+          if (K.pos && (v[4] || v[5] || v[6])) { const p = K.n.position; p.x += v[4] * H; p.y += v[5] * H; p.z += v[6] * H; }
+        }
+        if (V.sq) A.sq += V.sq[0] * b0 + V.sq[1] * b1 + V.sq[2] * b2 + V.sq[3] * b3;
+        if (striking && T >= at.tin && T < at.tin + at.hold + 0.04) {
+          // hit stop tremble (heavy units), decays fast
+          const W = inst.def.anim.weight || 0, tr = 0.012 * W * Math.sin(A.rt * 90) * (1 - A.lodK);
+          if (tr && V.rig.body) V.rig.body.position.x += tr * H;
+        }
+      }
+    }
+    // hurt: short jerk of the upper body away from the hit (on top of the kit's spine flinch)
+    if (V.hurt && A.flinch !== 0 && !A.dying) {
+      const f = A.flinch, sd = A.flS, R = V.rig;
+      rot41(R.chest, 0.24 * f, 0.12 * sd * f, 0.08 * sd * f, 0, null);
+      rot41(R.neck, 0.18 * f, 0, 0.1 * sd * f, 0, null);
+      rot41(R.hips, -0.06 * f, -0.05 * sd * f, 0, 0, null);
+      rot41(R.shoulderL, 0, 0, 0.18 * f, 0, null); rot41(R.shoulderR, 0, 0, -0.18 * f, 0, null);
+      if (R.root) R.root.position.z += 0.025 * f * H;
+    }
+    if (A.dying && V.death) v41DeathPose(inst, V);
+  }
+  // death (no Death clip): recoil -> knees buckle (hips drop, torso slumps, arms go limp) ->
+  // the body tips over with gravity (back, or sideways for some units / four-legged bodies) ->
+  // impact (thud, dust, limbs and head flop) -> lies still -> the kit's poof / fade
+  const K41 = { recoil: 0.11, buckle0: 0.05, buckle1: 0.3, fall0: 0.25, fall1: 0.6 };
+  function v41DeathPose(inst, V) {
+    const A = inst.A, R = V.rig, k = Math.min(1, A.deathT / inst.deathTime), D = inst.deathTime;
+    const rc = k < K41.recoil ? Math.sin(k / K41.recoil * Math.PI) : 0;
+    const bk = env01((k - K41.buckle0) / (K41.buckle1 - K41.buckle0));
+    const fl = Math.max(0, Math.min(1, (k - K41.fall0) / (K41.fall1 - K41.fall0)));
+    const ti = (k - K41.fall1) * D;   // s since the impact
+    const imp = ti > 0 ? Math.exp(-ti * 9) * Math.cos(ti * 26) : 0;   // flop: spike + one rebound
+    const land = ti > 0 ? 1 : 0;
+    const side = V.quad && !V.fall ? 1 : V.fall;   // 0 back, +1 / -1 to the right / left
+    const s = side || 0;
+    if (V.quad) {
+      // four-legged / horse bodies: legs fold, head droops, then the flop onto the side
+      rot41(R.head, -0.25 * bk + 0.3 * imp, 0, 0.2 * s * fl, 0, null);
+      rot41(R.neck, -0.2 * bk, 0, 0, 0, null);
+      for (const n of ['legL', 'legR', 'armL', 'armR']) rot41(R[n], 0.25 * bk - 0.35 * fl * land, 0, 0, 0, null);
+      return;
+    }
+    // recoil: chest / head snap back, arms fly out; the slump straightens out as the body lands
+    const sl = bk * (1 - fl);
+    rot41(R.chest || R.body, 0.3 * rc - 0.2 * sl + 0.06 * fl - 0.12 * imp, 0, 0.12 * s * fl, 0, null);
+    if (R.chest) rot41(R.body, 0.12 * rc - 0.22 * sl + 0.04 * fl, 0, 0.08 * s * fl, 0, null);
+    rot41(R.neck, 0.15 * rc - 0.2 * sl, 0, 0, 0, null);
+    rot41(R.head, 0.28 * rc - 0.34 * sl + (land ? 0.22 - 0.45 * imp : -0.1 * fl), 0, (land ? 0.4 : 0.12 * fl) * (s || (A.seed > 0.5 ? 1 : -1)), 0, null);
+    // knees buckle: hips drop, thighs forward, shins back, feet flat; in the fall the legs stretch
+    // out again so the body lies flat (one knee stays a little bent)
+    if (R.hips) R.hips.position.y -= 0.24 * V.hipY * sl;
+    rot41(R.legL, 0.75 * sl + 0.32 * fl - 0.12 * imp, 0, -0.1 * fl, 0, null);
+    rot41(R.legR, 0.6 * sl + 0.12 * fl - 0.1 * imp, 0, 0.12 * fl, 0, null);
+    rot41(R.legL2, -1.35 * sl - 0.55 * fl, 0, 0, 0, null); rot41(R.legR2, -1.15 * sl - 0.15 * fl, 0, 0, 0, null);
+    rot41(R.footL, 0.55 * sl + 0.2 * fl, 0, 0, 0, null); rot41(R.footR, 0.5 * sl + 0.3 * fl, 0, 0, 0, null);
+    // arms: fling out (recoil), go limp (buckle), swing up / forward in the fall (inertia), slap
+    // down to the ground on the impact
+    const up = fl * (1 - land), out = 0.35 * rc + 0.2 * bk + 0.55 * fl + (land ? 0.55 : 0) + 0.25 * imp;
+    rot41(R.armL, -0.15 * rc + 0.1 * bk + 1.0 * up + (land ? 0.25 : 0), 0, -out, 0, null);
+    rot41(R.armR, -0.15 * rc + 0.1 * bk + 1.0 * up + (land ? 0.25 : 0), 0, out, 0, null);
+    rot41(R.armL2, 0, 0, 0, 0.35 * bk + 0.25 * up - 0.3 * imp, V.hinge.armL2);
+    rot41(R.armR2, 0, 0, 0, 0.35 * bk + 0.25 * up - 0.3 * imp, V.hinge.armR2);
+  }
+  // whole-body transform of the procedural death (replaces the kit's tip-over on liftNode)
+  function v41DeathXf(inst, V) {
+    const A = inst.A, k = Math.min(1, A.deathT / inst.deathTime), D = inst.deathTime, S = inst.scale, H = V.H * S, ln = inst.liftNode;
+    const W = inst.def.anim.weight || 0.5;
+    const fl = Math.max(0, Math.min(1, (k - K41.fall0) / (K41.fall1 - K41.fall0)));
+    const ti = (k - K41.fall1) * D;
+    const bounce = ti > 0 ? 0.09 * Math.exp(-ti * 10) * Math.abs(Math.sin(ti * 15)) : 0;
+    const ang = (V.quad ? 1.32 : 1.42) * fl * fl - bounce;   // gravity: the tip accelerates
+    const sd = V.quad && !V.fall ? 1 : V.fall;
+    const thud = ti > 0 && ti < 0.3 ? Math.sin(Math.min(1, ti / 0.06) * Math.PI / 2) * Math.exp(-ti * 9) : 0;
+    const shr = 1 - Math.pow(Math.max(0, Math.min(1, (k - 0.74) / 0.26)), 2);
+    // the body's depth behind / beside the feet line would sink into the ground: lift it out
+    const depth = (V.quad ? 0.28 : sd ? 0.17 : 0.13) * H, sa = Math.sin(ang);
+    const bk = env01((k - K41.buckle0) / (K41.buckle1 - K41.buckle0));
+    const slide = (V.quad ? 0.05 : 0.14) * H * fl * (1 - 0.4 * W) + 0.04 * H * bk;
+    ln.rotation.set(sd ? 0 : ang, 0, sd ? -sd * ang : 0);
+    ln.position.set(sd ? sd * slide : 0, A.deathLift + depth * sa, sd ? 0 : slide);
+    const sag = V.rig.hips || V.quad ? 0 : 0.1 * bk * (1 - fl);   // (auto-rig bodies have no knees: a short sag instead)
+    const sy = S * (1 - (0.14 + 0.08 * W) * thud - sag) * shr, sx = S * (1 + (0.1 + 0.05 * W) * thud) * shr;
+    ln.scale.set(Math.max(1e-3, sx), Math.max(1e-3, sy), Math.max(1e-3, sx));
+    inst.top = ln.position.y + inst.tpl.height * Math.max(0, sy) * (1 - 0.6 * fl);
+    if (ti > 0 && !V.landed) { V.landed = true; try { G.hooks.land(inst, 0.8 + 0.6 * W); } catch (e) { /* ignore */ } }
+  }
+  GLB.v41Layer = v41Layer;
+
   // ---- kit hooks: template swap, textured material, stone tint (any unit) -------------------
   let IPP = null;
   function hookProto(inst) {
     const IP = Object.getPrototypeOf(inst);
     if (!IP || IPP === IP) return;
     IPP = IP;
-    const setMat = IP._setMaterial, setLod = IP.setLod, upd = IP.update, pose = IP._pose, death = IP._death;
+    const setMat = IP._setMaterial, setLod = IP.setLod, upd = IP.update, pose = IP._pose, death = IP._death, atk = IP._attack, ko = IP._koPose;
+    // v41: the procedural body layer replaces the kit's role-key attack / KO pose on GLB units
+    if (typeof atk === 'function') IP._attack = function (d) { const V = this._v41; if (V && V.atk) return; return atk.call(this, d); };
+    if (typeof ko === 'function') IP._koPose = function (d) { const V = this._v41; if (V && V.death) return; return ko.call(this, d); };
     IP._setMaterial = function (flash, tint, amt, opacity) {
       const k = this._stoneK || 0;
       if (k > 0.004) { const a2 = 0.85 * k; if (a2 > amt) { tint = STONE_HEX; amt = a2; } flash *= 1 - 0.75 * k; }
@@ -118765,12 +119193,17 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     // v38 rigged models: the kit pose runs WITHOUT its procedural walk (the clips walk), then the clip
     // layer (mxLayer) composes the baked / converted Mixamo clips with the procedural pose
     if (typeof pose === 'function') IP._pose = function (st, d, attacking) {
-      const X = this._mx;
-      if (!X) return pose.call(this, st, d, attacking);
+      const X = this._mx, V = this._v41;
+      if (!X) {
+        const r0 = pose.call(this, st, d, attacking);
+        if (V) { try { v41Layer(this, V); } catch (e) { warn41(this, e); } }
+        return r0;
+      }
       const A = this.A, mv = A.move;
       A.move = 0;
       let r;
       try { r = pose.call(this, st, d, attacking); } finally { A.move = mv; }
+      if (V) { try { v41Layer(this, V); } catch (e) { warn41(this, e); } }
       try { mxLayer(this, X, st || this._st); } catch (e) { if (!X.warned) { X.warned = true; if (globalThis.console) console.warn('[CR.GLB] clip layer ' + this.modelId, e); } }
       return r;
     };
@@ -118779,6 +119212,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       const r = death.call(this, dt);
       const X = this._mx;
       if (X && X.M.rig.clips.Death && this.A.dying && !this.isFlyer) { this.liftNode.rotation.x = 0; this.liftNode.position.z *= 0.3; }
+      const V = this._v41;
+      if (V && V.death && this.A.dying) { try { v41DeathXf(this, V); } catch (e) { warn41(this, e); } }
       return r;
     };
     IP.update = function (dt, st) {
@@ -118800,6 +119235,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       return upd.call(this, dt, st);
     };
   }
+  function warn41(inst, e) { if (!inst._v41w) { inst._v41w = true; if (globalThis.console) console.warn('[CR.GLB] v41 layer ' + inst.modelId, e); } }
   const STONE_HEX = GLB.STONE;
   const GHOST_HEX = 0xa6f5e4, CLOAK_HEX = 0xd9e4ff;
   const createInstance = G.createInstance;
@@ -118820,6 +119256,12 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     // v38 rigged: clip state (pooled instances keep theirs, reset here)
     if (tpl && tpl._glb && tpl._glb.rigged) mxInit(inst, tpl._glb);
     else if (inst._mx) inst._mx = null;
+    // v41 body layer (per template; pooled instances keep it, the fall side is rolled per unit)
+    if (tpl && tpl._glb) {
+      if (!inst._v41 || inst._v41.M !== tpl._glb || inst._v41.rig !== inst.rig) inst._v41 = v41Setup(inst);
+      const V = inst._v41;
+      if (V) { const r = Math.random(); V.fall = V.quad ? (r < 0.5 ? -1 : 1) : r < 0.62 ? 0 : r < 0.81 ? 1 : -1; V.landed = false; }
+    } else if (inst._v41) inst._v41 = null;
     return inst;
   };
   // portraits (card art) wait for the texture of GLB models
@@ -119072,7 +119514,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.954)</script>
+</script><script>__crBP(0.947)</script>
 <script>
 /* src/45-i18n.js */
 /* 45-i18n.js – v35 "english": second language (English) with a language switch.
@@ -119400,7 +119842,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.957)</script>
+</script><script>__crBP(0.950)</script>
 <script>
 /* src/46-i18n-en.js */
 /* 46-i18n-en.js – v35 "english": parallel English table keyed by the German display text
@@ -122554,10 +122996,59 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Er ruft bis zu drei Gefallene auf einmal und führt bis zu vier Geister gleichzeitig.": "He calls up to three of the fallen at once and leads up to four ghosts at the same time.",
     "Starke Schatten": "Strong Shades",
     "Seine Geister haben 70 % statt 35 % Trefferpunkte und bleiben 12 s statt 8 s.": "His ghosts have 70% instead of 35% hitpoints and stay 12 s instead of 8 s.",
+    // v41 Frost-Fest (src/48-frost-fest.js, src/39-events.js)
+    "Titel": "Title",
+    "Kartenrahmen": "Card frame",
+    "Truppen-Spur": "Troop trail",
+    "Schneeflocke": "Snowflake",
+    "Winternacht": "Winter Night",
+    "Schneespur": "Snow Trail",
+    "Lebkuchen-Held": "Gingerbread Hero",
+    "Zuckerstange": "Candy Cane",
+    "Frostfaust": "Frost Fist",
+    "Sternenstaub": "Stardust",
+    "Polarlicht": "Northern Lights",
+    "Eiszapfen": "Icicle",
+    "Tannengrün": "Fir Green",
+    "Schneeball-Profi": "Snowball Pro",
+    "Lichterkette": "Fairy Lights",
+    "Goldglitzer": "Gold Glitter",
+    "Rentierflüsterer": "Reindeer Whisperer",
+    "Eiskristall": "Ice Crystal",
+    "Tannenwald": "Fir Forest",
+    "Plätzchenbäcker": "Cookie Baker",
+    "Schneesturm": "Blizzard",
+    "Wichtel": "Elf",
+    "Sternenhimmel": "Starry Sky",
+    "Goldstern": "Gold Star",
+    "Frost-Legende": "Frost Legend",
+    "Frost-Fest": "Frost Fest",
+    "Adventskalender": "Advent calendar",
+    "Testmodus: Alle Türchen lassen sich sofort öffnen.": "Test mode: every door opens right away.",
+    "Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.": "One door every day – from December 1 to 24. Cosmetics only, no gold.",
+    "Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.": "The advent calendar opens on December 1. Here is a preview of the rewards.",
+    "Öffnen": "Open",
+    "ab {*}. Dez.": "from Dec {*}",
+    "Türchen {*}": "Door {*}",
+    "Neu:": "New:",
+    "ausgerüstet!": "equipped!",
+    "Keine": "None",
+    "Titel ({*})": "Title ({*})",
+    "Kartenrahmen ({*})": "Card frame ({*})",
+    "Truppen-Spur ({*})": "Troop trail ({*})",
+    "Banner-Design": "Banner design",
+    "Banner-Design ({*})": "Banner design ({*})",
+    "Deine Frost-Belohnungen": "Your Frost rewards",
+    "Winter-Thema": "Winter theme",
+    "Auto = vom 1. bis 31. Dezember: Schnee, Lichterketten und Adventskalender. An = sofort (zum Testen und für Videos). Aus = nie.": "Auto = December 1 to 31: snow, fairy lights and the advent calendar. On = right now (for testing and videos). Off = never.",
+    "Schneeballschlacht": "Snowball Fight",
+    "Frost-Fest: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – wirf alles, was du hast!": "Frost Fest: Crystals twice as fast and only cards up to 4 Crystals – throw everything you've got!",
+    "Frost-Fest-Event": "Frost Fest event",
+    "Wöchentliches Event": "Weekly event",
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.998)</script>
+</script><script>__crBP(0.991)</script>
 <script>
 /* src/47-late.js */
 /* src/47-late.js - v36 "loading": the big data files stream in AFTER the menu.
@@ -122814,6 +123305,910 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     G.setTimeout(function () { idle(next, 0); }, delayMs > 0 ? delayMs : 1200);
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script><script>__crBP(0.993)</script>
+<script>
+/* src/48-frost-fest.js */
+/* 48-frost-fest.js - v41 "Frost-Fest" (docs/V41-FROSTFEST.md): the winter theme for December.
+ *
+ * Graphics + UI only. The simulation, the AI, the network and the determinism are untouched; the one
+ * gameplay-side piece is the seasonal event "Schneeballschlacht" in 39-events.js (existing event
+ * options elixirBoost + maxElixir, outside the weekly rotation).
+ *
+ *  CR.FrostFest
+ *    mode() / setMode('auto' | 'on' | 'off')   settings "Frost-Fest: Auto/An/Aus" (UI.store 'frostFest');
+ *                                              auto = 1.-31. December (local date), on = at once (tests, videos)
+ *    active(nowMs?)                            the theme is on (menu, arena, event)
+ *    REWARDS, TYPES                            the 24 advent calendar rewards (cosmetic only, never gold)
+ *    doorState(day, nowMs?)                    'open' | 'ready' | 'locked' | 'preview'
+ *    openDoor(day, nowMs?)                     -> reward | null (stored in UI.store 'frostCal', equips it)
+ *    owned(type) / equipped(type) / equip(type, id)
+ *    openCalendar(app)                         the calendar sheet (menu gift button, settings row)
+ *
+ *  Arena (CR.Render3D, all maps, siege + classic tower layout, built lazily on the first frame of an
+ *  arena; dropped with it): snow on every up-facing surface of the arena scenery (ground, walls, roofs,
+ *  banks - a shader patch of the arena's own materials, switched by one shared uniform, so "Aus"
+ *  costs nothing), falling snowflakes (one Points draw, animated in the vertex shader), string lights
+ *  (one Points draw + one line draw: siege walls + gate arches, classic tower crowns), a fir tree by
+ *  the well (siege) / in the back corners (classic), a wreath on the town hall / king tower.
+ *  Cosmetic troop trails (calendar reward) puff behind the own moving ground troops (CR.VFX).
+ *  Hooks (outermost, this file loads last): Render3D.prototype.draw / _disposeArena, UI.MenuScreen,
+ *  UI.openSettings. Must not throw without THREE / DOM (jsc).
+ */
+(function (CR) {
+  'use strict';
+  const G = globalThis;
+  const FF = CR.FrostFest = CR.FrostFest || {};
+  const MODES = ['auto', 'on', 'off'];
+  const K_MODE = 'frostFest', K_CAL = 'frostCal';
+  const DAYS = 24;
+
+  // ------------------------------------------------------------------ state (UI.store, else memory)
+  const mem = Object.create(null);
+  function sget(k, d) {
+    const S = CR.UI && CR.UI.store;
+    if (S && typeof S.get === 'function') return S.get(k, d);
+    return k in mem ? mem[k] : d;
+  }
+  function sset(k, v) {
+    const S = CR.UI && CR.UI.store;
+    if (S && typeof S.set === 'function') S.set(k, v); else mem[k] = v;
+  }
+  function nowOf(n) { return typeof n === 'number' ? n : Date.now(); }
+  const listeners = [];
+  function notify() {
+    for (let i = 0; i < listeners.length; i++) { try { listeners[i](); } catch (e) { /* ignore */ } }
+  }
+  FF.onChange = function (fn) { if (typeof fn === 'function') listeners.push(fn); };
+
+  FF.MODES = MODES;
+  FF.mode = function () { const m = sget(K_MODE, 'auto'); return MODES.indexOf(m) >= 0 ? m : 'auto'; };
+  FF.inSeason = function (n) { return new Date(nowOf(n)).getMonth() === 11; };
+  FF.active = function (n) { const m = FF.mode(); return m === 'on' || (m === 'auto' && FF.inSeason(n)); };
+  FF.setMode = function (m) {
+    if (MODES.indexOf(m) < 0) m = 'auto';
+    sset(K_MODE, m);
+    actT = 0;
+    applyDom();
+    notify();
+    return m;
+  };
+  // per-frame callers: the date is read at most twice a second
+  let actT = 0, actV = false;
+  function activeNow() {
+    const t = Date.now();
+    if (t - actT > 500 || t < actT) { actT = t; actV = FF.active(t); }
+    return actV;
+  }
+
+  // ------------------------------------------------------------------ advent calendar (cosmetic)
+  const TYPES = FF.TYPES = { title: 'Titel', frame: 'Kartenrahmen', trail: 'Truppen-Spur', banner: 'Banner-Design' };
+  const TYPE_IDS = ['title', 'frame', 'trail', 'banner'];
+  const REWARDS = FF.REWARDS = [
+    { t: 'title', id: 'snowflake', name: 'Schneeflocke' },
+    { t: 'frame', id: 'frost', name: 'Frost' },
+    { t: 'banner', id: 'night', name: 'Winternacht' },
+    { t: 'trail', id: 'snow', name: 'Schneespur' },
+    { t: 'title', id: 'gingerbread', name: 'Lebkuchen-Held' },
+    { t: 'banner', id: 'candy', name: 'Zuckerstange' },
+    { t: 'frame', id: 'candy', name: 'Zuckerstange' },
+    { t: 'title', id: 'frostfist', name: 'Frostfaust' },
+    { t: 'trail', id: 'stardust', name: 'Sternenstaub' },
+    { t: 'banner', id: 'aurora', name: 'Polarlicht' },
+    { t: 'title', id: 'icicle', name: 'Eiszapfen' },
+    { t: 'frame', id: 'fir', name: 'Tannengrün' },
+    { t: 'title', id: 'snowballer', name: 'Schneeball-Profi' },
+    { t: 'banner', id: 'lights', name: 'Lichterkette' },
+    { t: 'trail', id: 'glitter', name: 'Goldglitzer' },
+    { t: 'title', id: 'reindeer', name: 'Rentierflüsterer' },
+    { t: 'frame', id: 'crystal', name: 'Eiskristall' },
+    { t: 'banner', id: 'forest', name: 'Tannenwald' },
+    { t: 'title', id: 'baker', name: 'Plätzchenbäcker' },
+    { t: 'trail', id: 'blizzard', name: 'Schneesturm' },
+    { t: 'title', id: 'elf', name: 'Wichtel' },
+    { t: 'banner', id: 'stars', name: 'Sternenhimmel' },
+    { t: 'frame', id: 'gold', name: 'Goldstern' },
+    { t: 'title', id: 'legend', name: 'Frost-Legende' },
+  ];
+  function rewardOf(t, id) {
+    for (let i = 0; i < REWARDS.length; i++) if (REWARDS[i].t === t && REWARDS[i].id === id) return REWARDS[i];
+    return null;
+  }
+  FF.rewardOf = rewardOf;
+  function load() {
+    let c = sget(K_CAL, null);
+    if (!c || typeof c !== 'object') c = {};
+    const open = Array.isArray(c.open) ? c.open.filter(function (d) { return d >= 1 && d <= DAYS && (d | 0) === d; }) : [];
+    const owned = Array.isArray(c.owned) ? c.owned.filter(function (k) { const p = String(k).split(':'); return !!rewardOf(p[0], p[1]); }) : [];
+    const eq = {};
+    const e0 = c.eq && typeof c.eq === 'object' ? c.eq : {};
+    for (let i = 0; i < TYPE_IDS.length; i++) { const t = TYPE_IDS[i]; eq[t] = typeof e0[t] === 'string' && owned.indexOf(t + ':' + e0[t]) >= 0 ? e0[t] : ''; }
+    return { y: typeof c.y === 'number' ? c.y : 0, open: open, owned: owned, eq: eq };
+  }
+  function save(c) { sset(K_CAL, { y: c.y, open: c.open, owned: c.owned, eq: c.eq }); }
+  /** The calendar of this season (a new year closes the doors again; rewards stay owned). */
+  function calNow(n) {
+    const c = load(), y = new Date(nowOf(n)).getFullYear();
+    if (c.y !== y) { c.y = y; c.open = []; }
+    return c;
+  }
+  FF.state = function (n) { return calNow(n); };
+  /** 'open' (reward taken) | 'ready' (tap to open) | 'locked' (a later day) | 'preview' (not December) */
+  FF.doorState = function (day, n) {
+    const c = calNow(n);
+    if (c.open.indexOf(day) >= 0) return 'open';
+    if (FF.mode() === 'on') return 'ready';   // test / video mode: every door
+    if (!FF.active(n)) return 'preview';
+    return new Date(nowOf(n)).getDate() >= day ? 'ready' : 'locked';
+  };
+  /** Doors that can be opened now. */
+  FF.readyCount = function (n) {
+    let k = 0;
+    for (let d = 1; d <= DAYS; d++) if (FF.doorState(d, n) === 'ready') k++;
+    return k;
+  };
+  FF.openDoor = function (day, n) {
+    if (FF.doorState(day, n) !== 'ready') return null;
+    const c = calNow(n), rw = REWARDS[day - 1];
+    c.open.push(day);
+    const key = rw.t + ':' + rw.id;
+    if (c.owned.indexOf(key) < 0) c.owned.push(key);
+    c.eq[rw.t] = rw.id;   // a new reward is worn at once
+    save(c);
+    applyDom();
+    notify();
+    return rw;
+  };
+  FF.owned = function (t) {
+    return load().owned.filter(function (k) { return k.split(':')[0] === t; }).map(function (k) { return k.split(':')[1]; });
+  };
+  FF.equipped = function (t) { return load().eq[t] || ''; };
+  FF.equip = function (t, id) {
+    const c = load();
+    if (TYPE_IDS.indexOf(t) < 0) return false;
+    if (id && c.owned.indexOf(t + ':' + id) < 0) return false;
+    c.eq[t] = id || '';
+    save(c);
+    applyDom();
+    notify();
+    return true;
+  };
+
+  // ------------------------------------------------------------------ DOM (menu, settings, calendar)
+  const SNOWFLAKE_SVG = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none">' +
+    '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6"/><path d="M9.3 4.2L12 6.6l2.7-2.4M9.3 19.8L12 17.4l2.7 2.4M4.6 10.7l3.4-.6-1.2-3.4M19.4 13.3l-3.4.6 1.2 3.4M4.6 13.3l3.4.6-1.2 3.4M19.4 10.7l-3.4-.6 1.2-3.4"/></g></svg>';
+  const GIFT_SVG = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="3.5" y="9" width="17" height="12" rx="1.6" fill="#e8413a" stroke="#241603" stroke-width="1.5"/>' +
+    '<rect x="2.5" y="6.5" width="19" height="4" rx="1.2" fill="#ff5d52" stroke="#241603" stroke-width="1.5"/><path d="M10.4 6.5h3.2v14.5h-3.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/>' +
+    '<path d="M12 6.4C10.6 3.2 7 3 7.3 5.2 7.6 6.8 10.6 6.6 12 6.4zM12 6.4c1.4-3.2 5-3.4 4.7-1.2-.3 1.6-3.3 1.4-4.7 1.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/></svg>';
+  const HAT_SVG = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 38C14 18 30 4 48 8c6 1.4 9 7 7 13-2-4-6-6-10-5-8 3-12 13-13 24z" fill="#e3322c" stroke="#3a0b08" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M44 16c2-3 7-4 9 0" fill="none" stroke="#ff8a7a" stroke-width="2" stroke-linecap="round" opacity=".7"/>' +
+    '<rect x="2" y="34" width="38" height="11" rx="5.5" fill="#fff" stroke="#3a0b08" stroke-width="2.5" transform="rotate(-8 21 39)"/><circle cx="56" cy="22" r="6.5" fill="#fff" stroke="#3a0b08" stroke-width="2.5"/></svg>';
+  const TYPE_ICO = {
+    title: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 7h16v10H4z" fill="#ffd34a" stroke="#241603" stroke-width="1.6"/><path d="M7 11h10M7 14h6" stroke="#241603" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    frame: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="#2a4a8a" stroke="#bfe9ff" stroke-width="2.6"/><path d="M8 7h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    trail: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><circle cx="17" cy="7" r="3" fill="#fff" stroke="#241603" stroke-width="1.4"/><circle cx="11" cy="12" r="2.3" fill="#e6f4ff" stroke="#241603" stroke-width="1.3"/><circle cx="6.5" cy="16.5" r="1.7" fill="#cfe8ff" stroke="#241603" stroke-width="1.2"/><circle cx="3.5" cy="20" r="1.1" fill="#b8dcff"/></svg>',
+    banner: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M6 3h12v17l-6-4-6 4z" fill="#3a8ae0" stroke="#241603" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v6M9.4 8l5.2 3M9.4 11l5.2-3" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  };
+
+  const CSS = [
+    // menu snow overlay: three tiled layers moved by exactly one tile (compositor only)
+    '.ff-snow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6}',
+    '.ff-snow i{position:absolute;left:0;right:0;will-change:transform;animation:ff-fall linear infinite}',
+    '.ff-snow i:nth-child(1){top:-170px;height:calc(100% + 170px);--ffd:170px;animation-duration:11s;opacity:.85;background-size:150px 170px;background-image:radial-gradient(circle at 22px 30px,#fff 0 1.9px,transparent 2.8px),radial-gradient(circle at 96px 92px,#fff 0 1.5px,transparent 2.4px),radial-gradient(circle at 60px 148px,#fff 0 2.2px,transparent 3.1px),radial-gradient(circle at 128px 18px,#f0f8ff 0 1.3px,transparent 2.2px)}',
+    '.ff-snow i:nth-child(2){top:-230px;height:calc(100% + 230px);--ffd:230px;animation-duration:17s;opacity:.6;background-size:210px 230px;background-image:radial-gradient(circle at 40px 60px,#fff 0 1.2px,transparent 2px),radial-gradient(circle at 150px 130px,#fff 0 1px,transparent 1.8px),radial-gradient(circle at 100px 200px,#eaf6ff 0 1.3px,transparent 2.1px),radial-gradient(circle at 190px 30px,#fff 0 .9px,transparent 1.7px)}',
+    '.ff-snow i:nth-child(3){top:-120px;height:calc(100% + 120px);--ffd:120px;animation-duration:7.5s;opacity:.9;background-size:190px 120px;background-image:radial-gradient(circle at 30px 80px,#fff 0 2.6px,transparent 3.6px),radial-gradient(circle at 140px 20px,#fff 0 2.2px,transparent 3.2px)}',
+    '@keyframes ff-fall{from{transform:translate3d(0,0,0)}to{transform:translate3d(-14px,var(--ffd),0)}}',
+    '@media (prefers-reduced-motion:reduce){.ff-snow i{animation:none}}',
+    '.ff-menu .mm-top{position:relative}',
+    '.ff-menu .mm-top::after{content:"";position:absolute;left:-14px;right:-14px;bottom:-7px;height:10px;pointer-events:none;background:radial-gradient(ellipse at 10% 0,#fff 0 55%,transparent 58%) 0 0/34px 10px repeat-x;opacity:.9;filter:drop-shadow(0 1px 0 rgba(120,170,220,.6))}',
+    '.ff-logo{position:relative}',
+    '.ff-hat{position:absolute;left:-.34em;top:-.52em;width:.95em;height:.72em;transform:rotate(-14deg);pointer-events:none;z-index:2;-webkit-text-fill-color:initial}',
+    '.ff-hat svg{width:100%;height:100%;display:block}',
+    '.mm-brand .ff-hat{left:-.42em;top:-.5em;width:1.05em;height:.8em}',
+    '.ff-gift{position:relative}',
+    '.ff-gift .ff-dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e8413a;color:#fff;font:900 10.5px/16px var(--font-ui,sans-serif);box-shadow:0 0 0 2px #241603;text-align:center}',
+    // event chip of the season
+    '.ev-chip.ev-frost{background:linear-gradient(180deg,#5fb7f0,#2a6fc0);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 3px 0 #173f78}',
+    '.ev-chip.ev-frost .ev-tag{background:linear-gradient(180deg,#fff,#cfe9ff);color:#1d4a80}',
+    '.ev-strip.is-three .ev-name{font-size:12px}',
+    // player plate (title + banner design)
+    '.ff-plate{position:absolute;left:0;top:2px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 12px 9px 10px;min-width:96px;max-width:58%;color:#fff;border-radius:6px 6px 2px 2px;clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);pointer-events:none;background:linear-gradient(180deg,#3d5f9e,#22386a)}',
+    '.ff-plate b{font:900 12.5px/1.15 var(--font-ui,sans-serif);text-shadow:0 1px 0 rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}',
+    '.ff-plate span{font:700 10px/1.1 var(--font-ui,sans-serif);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}',
+    '.ff-bn-night{background:radial-gradient(circle at 80% 25%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 30% 60%,#fff6 0 1.5px,transparent 2.5px),linear-gradient(180deg,#24366e,#0d1838)}',
+    '.ff-bn-candy{background:repeating-linear-gradient(135deg,#e8413a 0 9px,#fff 9px 18px);color:#5a0d08}',
+    '.ff-bn-candy b,.ff-bn-candy span{text-shadow:0 0 3px #fff,0 0 2px #fff;color:#5a0d08}',
+    '.ff-bn-aurora{background:linear-gradient(160deg,#16305e 10%,#1fa58a 45%,#6a3fc0 80%,#16305e)}',
+    '.ff-bn-lights{background:radial-gradient(circle at 10px 4px,#ffd34a 0 2.5px,transparent 3.5px) 0 0/24px 10px repeat-x,radial-gradient(circle at 22px 5px,#e8413a 0 2.5px,transparent 3.5px) 0 0/24px 10px repeat-x,linear-gradient(180deg,#1d5a33,#0e3320)}',
+    '.ff-bn-forest{background:linear-gradient(135deg,transparent 60%,#0c3a22 60%) 0 100%/16px 14px repeat-x,linear-gradient(225deg,transparent 60%,#0c3a22 60%) 0 100%/16px 14px repeat-x,linear-gradient(180deg,#4a8ac8,#1d4f7c)}',
+    '.ff-bn-stars{background:radial-gradient(circle at 20% 30%,#ffd34a 0 2px,transparent 3px),radial-gradient(circle at 70% 20%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 85% 70%,#ffd34a 0 1.5px,transparent 2.5px),radial-gradient(circle at 45% 75%,#fff 0 1.2px,transparent 2px),linear-gradient(180deg,#2a1d5e,#120b30)}',
+    // card frames (keep the rarity border, add a ring outside)
+    '.ff-fr-frost .card{box-shadow:0 0 0 2px #bfe9ff,0 0 9px 1px rgba(150,215,255,.85),0 4px 0 rgba(4,10,30,.6)!important}',
+    '.ff-fr-candy .card{box-shadow:0 0 0 2.5px #fff,0 0 0 4.5px #e8413a,0 4px 0 rgba(4,10,30,.6)!important}',
+    '.ff-fr-fir .card{box-shadow:0 0 0 2.5px #2f8a4a,0 0 0 4px #ffd34a,0 4px 0 rgba(4,10,30,.6)!important}',
+    '.ff-fr-crystal .card{box-shadow:0 0 0 2px #e6f6ff,0 0 0 3.5px #5ab2ff,0 0 12px 2px rgba(110,190,255,.8),0 4px 0 rgba(4,10,30,.6)!important}',
+    '.ff-fr-gold .card{box-shadow:0 0 0 2.5px #ffe27a,0 0 12px 2px rgba(255,205,80,.85),0 4px 0 rgba(4,10,30,.6)!important}',
+    // calendar sheet
+    '.ff-cal .mm-sheet-body,.ff-cal .ff-cal-body{overflow-y:auto;max-height:calc(var(--vh,1vh)*100 - 170px)}',
+    '.ff-cal-note{margin:2px 2px 8px;font-size:13px;color:rgba(255,255,255,.85)}',
+    '.ff-cal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}',
+    '.ff-door{position:relative;min-height:66px;border-radius:10px;border:0;padding:6px 5px 5px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;font:inherit;background:linear-gradient(180deg,#2f5a9a,#1c3766);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #0d1d3c;overflow:hidden}',
+    '.ff-door .ff-n{position:absolute;left:6px;top:3px;font:900 17px/1 var(--font-display,sans-serif);color:#fff;text-shadow:0 2px 0 #0d1d3c}',
+    '.ff-door .ico{width:24px;height:24px}',
+    '.ff-door .ff-rw{font-size:10.5px;line-height:1.1;font-weight:800;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.ff-door .ff-rt{font-size:9px;opacity:.75;line-height:1}',
+    '.ff-door.is-ready{background:linear-gradient(180deg,#e8413a,#a51d18);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 3px 0 #5a0d08,0 0 12px rgba(255,210,80,.7);animation:ff-pulse 1.4s ease-in-out infinite}',
+    '.ff-door.is-ready::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:7px;margin-left:-3.5px;background:#ffd34a;box-shadow:0 0 0 1px #6a3a00}',
+    '.ff-door.is-ready .ff-rw{position:relative;z-index:1;background:#ffd34a;color:#4a2a00;border-radius:5px;padding:1px 5px}',
+    '.ff-door.is-open{background:linear-gradient(180deg,#e9f4ff,#bcd8f2);color:#173a66;box-shadow:inset 0 2px 0 #fff,0 3px 0 #6a8fb8}',
+    '.ff-door.is-open .ff-n{color:#2a5a96;text-shadow:none;font-size:13px}',
+    '.ff-door.is-locked,.ff-door.is-preview{opacity:.62}',
+    '.ff-door.is-new{animation:ff-pop .5s cubic-bezier(.2,.9,.3,1.4)}',
+    '@keyframes ff-pulse{50%{transform:translateY(-2px)}}',
+    '@keyframes ff-pop{from{transform:scale(.6) rotate(-6deg)}}',
+    '.ff-cal-msg{min-height:20px;margin:8px 2px 4px;font-weight:800;color:#ffd34a;font-size:13.5px}',
+    '.ff-cal-sect{margin:10px 2px 6px;font-weight:900;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.75)}',
+    '.ff-eq{display:grid;grid-template-columns:1fr 1fr;gap:7px}',
+    '.ff-eq button{display:flex;align-items:center;gap:7px;min-height:46px;padding:5px 8px;border-radius:10px;border:0;font:inherit;color:#fff;text-align:left;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.18)}',
+    '.ff-eq button[disabled]{opacity:.45}',
+    '.ff-eq .ico{width:22px;height:22px;flex:0 0 auto}',
+    '.ff-eq small{display:block;font-size:10px;opacity:.7;line-height:1.1}',
+    '.ff-eq b{display:block;font-size:12.5px;line-height:1.15}',
+    '.ff-cal-prev{position:relative;height:46px;margin:4px 0 2px}',
+    '.ff-cal-prev .ff-plate{max-width:100%}',
+    '.set-frost .seg{margin-bottom:6px}',
+  ].join('\n');
+
+  let cssDone = false;
+  function ensureCss() {
+    if (cssDone || !G.document || !G.document.head) return;
+    cssDone = true;
+    const st = G.document.createElement('style');
+    st.id = 'ff-css';
+    st.textContent = CSS;
+    G.document.head.appendChild(st);
+  }
+  /** Root classes: ff-on (theme active), ff-fr-<frame> (equipped card frame). */
+  function applyDom() {
+    if (!G.document || !G.document.documentElement || !G.document.documentElement.classList) return;
+    ensureCss();
+    const cl = G.document.documentElement.classList;
+    cl.toggle('ff-on', FF.active());
+    const fr = FF.equipped('frame');
+    ['frost', 'candy', 'fir', 'crystal', 'gold'].forEach(function (id) { cl.toggle('ff-fr-' + id, fr === id); });
+    try { refreshMenu(); } catch (e) { /* the menu works without the decoration */ }
+  }
+  FF.applyDom = applyDom;
+
+  function P() { return (CR.UI && CR.UI.__parts) || {}; }
+  function hh(tag, attrs, kids) {
+    const h = CR.UI && CR.UI.h;
+    if (typeof h === 'function') return h(tag, attrs, kids);
+    const e = G.document.createElement(tag);
+    if (attrs) for (const k in attrs) if (attrs[k] != null) { if (k === 'class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); }
+    (Array.isArray(kids) ? kids : [kids]).forEach(function (c) { if (c == null) return; e.appendChild(typeof c === 'string' ? G.document.createTextNode(c) : c); });
+    return e;
+  }
+  function svgEl(markup) {
+    const s = G.document.createElement('span');
+    s.className = 'ff-svg';
+    s.style.display = 'contents';
+    s.innerHTML = markup;
+    return s;
+  }
+  function tr(s) { const I = CR.I18n; return I && I.lang !== 'de' && typeof I.tr === 'function' ? I.tr(s) : s; }
+
+  /** The player plate: banner design + title (null when nothing is equipped). */
+  function plate(name) {
+    const t = FF.equipped('title'), b = FF.equipped('banner');
+    if (!t && !b) return null;
+    const rt = t ? rewardOf('title', t) : null;
+    return hh('div', { class: 'ff-plate ff-node' + (b ? ' ff-bn-' + b : ''), 'aria-label': 'Titel' }, [
+      hh('b', null, rt ? rt.name : 'Frost-Fest'),
+      name ? hh('span', null, name) : null,
+    ]);
+  }
+
+  function ownName(app) {
+    const n = app && app.settings && app.settings.name;
+    return n && !(CR.UI && CR.UI.isDefaultName && CR.UI.isDefaultName(n)) ? n : '';
+  }
+  let curApp = null;
+  function decorateMenu(app, scr) {
+    if (!scr || !G.document) return;
+    curApp = app || curApp;
+    const el = scr.menuEl || scr.el;
+    if (!el || !el.querySelector) return;
+    ensureCss();
+    const old = el.querySelectorAll('.ff-node');
+    for (let i = 0; i < old.length; i++) if (old[i].parentNode) old[i].parentNode.removeChild(old[i]);
+    const logos = el.querySelectorAll('.logo');
+    const on = FF.active();
+    el.classList.toggle('ff-menu', on);
+    for (let i = 0; i < logos.length; i++) logos[i].classList.toggle('ff-logo', on);
+    const name = ownName(app);
+    const hero = el.querySelector('.mm-hero');
+    const pl = plate(name);
+    if (pl && hero) hero.appendChild(pl);
+    if (!on) return;
+    const snow = hh('div', { class: 'ff-snow ff-node', 'aria-hidden': 'true' }, [hh('i'), hh('i'), hh('i')]);
+    el.appendChild(snow);
+    for (let i = 0; i < logos.length; i++) {
+      const hat = hh('span', { class: 'ff-hat ff-node', 'aria-hidden': 'true' });
+      hat.innerHTML = HAT_SVG;
+      logos[i].insertBefore(hat, logos[i].firstChild);
+    }
+    const icons = el.querySelector('.mm-icons');
+    if (icons) {
+      const n = FF.readyCount();
+      const b = hh('button', { type: 'button', class: 'btn btn-icon btn-gold ff-gift ff-node', 'aria-label': 'Adventskalender' });
+      b.appendChild(svgEl(GIFT_SVG));
+      if (n > 0) b.appendChild(hh('span', { class: 'ff-dot', 'aria-hidden': 'true' }, String(n)));
+      b.addEventListener('click', function () { FF.openCalendar(app); });
+      icons.insertBefore(b, icons.firstChild);
+    }
+  }
+  function refreshMenu() {
+    const app = curApp || (CR.App && CR.App.state);
+    const scr = app && app.screen;
+    if (scr && scr.menuEl && scr.menuEl.isConnected !== false) decorateMenu(app, scr);
+  }
+
+  // ---- calendar sheet
+  let calOpen = null;
+  FF.openCalendar = function (app, n) {
+    if (!G.document) return null;
+    ensureCss();
+    if (calOpen) calOpen.close();
+    app = app || curApp || (CR.App && CR.App.state);
+    const host = (app && app.stage) || G.document.querySelector('.stage') || G.document.body;
+    const msg = hh('div', { class: 'ff-cal-msg', role: 'status' });
+    const grid = hh('div', { class: 'ff-cal-grid' });
+    const eq = hh('div', { class: 'ff-eq' });
+    const prev = hh('div', { class: 'ff-cal-prev' });
+    const note = hh('p', { class: 'ff-cal-note' },
+      FF.mode() === 'on' && !FF.inSeason(n) ? 'Testmodus: Alle Türchen lassen sich sofort öffnen.'
+        : (FF.active(n) ? 'Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.'
+          : 'Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.'));
+    function door(d) {
+      const st = FF.doorState(d, n), rw = REWARDS[d - 1];
+      const kids = [hh('span', { class: 'ff-n' }, String(d))];
+      if (st === 'open' || st === 'preview') {
+        kids.push(svgEl(TYPE_ICO[rw.t]));
+        kids.push(hh('span', { class: 'ff-rw' }, rw.name));
+        kids.push(hh('span', { class: 'ff-rt' }, TYPES[rw.t]));
+      } else if (st === 'ready') kids.push(hh('span', { class: 'ff-rw' }, 'Öffnen'));
+      else kids.push(hh('span', { class: 'ff-rt' }, 'ab ' + d + '. Dez.'));
+      const b = hh('button', { type: 'button', class: 'ff-door is-' + st, 'aria-label': 'Türchen ' + d }, kids);
+      if (st === 'ready') b.addEventListener('click', function () {
+        const got = FF.openDoor(d, n);
+        if (!got) return;
+        msg.textContent = tr('Neu:') + ' ' + tr(TYPES[got.t]) + ' „' + tr(got.name) + '“ – ' + tr('ausgerüstet!');
+        render(d);
+      });
+      return b;
+    }
+    function eqBtn(t) {
+      const own = FF.owned(t), cur = FF.equipped(t);
+      const rw = cur ? rewardOf(t, cur) : null;
+      const b = hh('button', { type: 'button', 'aria-label': TYPES[t] }, [
+        hh('span', null, [hh('small', null, TYPES[t] + ' (' + own.length + ')'), hh('b', null, rw ? rw.name : 'Keine')]),
+      ]);
+      b.insertBefore(svgEl(TYPE_ICO[t]), b.firstChild);
+      if (!own.length) b.disabled = true;
+      b.addEventListener('click', function () {
+        const list = [''].concat(own);
+        const i = list.indexOf(cur);
+        FF.equip(t, list[(i + 1) % list.length]);
+        render(0);
+      });
+      return b;
+    }
+    function render(fresh) {
+      grid.textContent = '';
+      for (let d = 1; d <= DAYS; d++) { const b = door(d); if (d === fresh) b.classList.add('is-new'); grid.appendChild(b); }
+      eq.textContent = '';
+      TYPE_IDS.forEach(function (t) { eq.appendChild(eqBtn(t)); });
+      prev.textContent = '';
+      const pl = plate(ownName(app));
+      if (pl) prev.appendChild(pl);
+    }
+    render(0);
+    const done = hh('button', { class: 'btn btn-blue btn-block mm-sheet-done', type: 'button' }, 'Fertig');
+    const title = hh('div', { class: 'sheet-title' }, ['Adventskalender']);
+    title.insertBefore(svgEl(SNOWFLAKE_SVG), title.firstChild);
+    const sh = hh('div', { class: 'sheet mm-sheet ff-cal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Adventskalender' }, [
+      hh('div', { class: 'sheet-grip', 'aria-hidden': 'true' }),
+      title,
+      hh('div', { class: 'ff-cal-body' }, [note, grid, msg, hh('div', { class: 'ff-cal-sect' }, 'Deine Frost-Belohnungen'), prev, eq]),
+      done,
+    ]);
+    const back = hh('div', { class: 'sheet-backdrop mm-sheet-back ff-cal-back' }, sh);
+    const api = {
+      el: back,
+      close: function () {
+        if (calOpen === api) calOpen = null;
+        if (back.parentNode) back.parentNode.removeChild(back);
+        try { refreshMenu(); } catch (e) { /* ignore */ }
+      },
+    };
+    done.addEventListener('click', api.close);
+    back.addEventListener('click', function (e) { if (e.target === back) api.close(); });
+    host.appendChild(back);
+    calOpen = api;
+    return api;
+  };
+
+  // ---- settings row "Frost-Fest: Auto / An / Aus" + calendar button
+  function addSettingsRow(app, res) {
+    const back = res && res.el;
+    const sheet = back && back.querySelector ? back.querySelector('.sheet-settings') || back.querySelector('.sheet') : null;
+    if (!sheet) return;
+    const seg = P().segmented;
+    const sect = hh('div', { class: 'set-sect' }, 'Frost-Fest');
+    let ctl;
+    if (typeof seg === 'function') {
+      ctl = seg([{ id: 'auto', label: 'Auto' }, { id: 'on', label: 'An' }, { id: 'off', label: 'Aus' }], FF.mode(),
+        function (id) { FF.setMode(id); }, 'seg seg-sm seg-frost').el;
+    } else ctl = hh('span');
+    const cal = hh('button', { type: 'button', class: 'btn btn-blue btn-sm ff-set-cal' }, 'Adventskalender');
+    cal.addEventListener('click', function () {
+      try { if (res && typeof res.close === 'function') res.close(); } catch (e) { /* ignore */ }
+      FF.openCalendar(app);
+    });
+    const lab = hh('div', { class: 'set-label' }, ['Winter-Thema']);
+    lab.insertBefore(svgEl(SNOWFLAKE_SVG), lab.firstChild);
+    const row = hh('div', { class: 'set-row set-frost' }, [
+      lab,
+      ctl,
+      cal,
+      hh('div', { class: 'hint set-note' }, 'Auto = vom 1. bis 31. Dezember: Schnee, Lichterketten und Adventskalender. An = sofort (zum Testen und für Videos). Aus = nie.'),
+    ]);
+    const sects = sheet.querySelectorAll('.set-sect');
+    let anchor = null;
+    for (let i = 0; i < sects.length; i++) if (/Hilfe|Help/.test(sects[i].textContent)) anchor = sects[i];
+    if (!anchor) { const bs = sheet.querySelectorAll(':scope > .btn'); anchor = bs.length ? bs[bs.length - 1] : null; }
+    if (anchor && anchor.parentNode) { anchor.parentNode.insertBefore(sect, anchor); anchor.parentNode.insertBefore(row, anchor); }
+    else { sheet.appendChild(sect); sheet.appendChild(row); }
+  }
+
+  function installUi() {
+    const UI = CR.UI;
+    if (!UI || UI._ffHooked || !G.document) return;
+    UI._ffHooked = true;
+    if (typeof UI.MenuScreen === 'function') {
+      const ms0 = UI.MenuScreen;
+      const wrapped = function (app) {
+        const scr = ms0.apply(this, arguments);
+        try { decorateMenu(app, scr); } catch (e) { /* the menu works without the decoration */ }
+        return scr;
+      };
+      for (const k in ms0) if (Object.prototype.hasOwnProperty.call(ms0, k)) wrapped[k] = ms0[k];
+      UI.MenuScreen = wrapped;
+    }
+    if (typeof UI.openSettings === 'function') {
+      const os0 = UI.openSettings;
+      UI.openSettings = function (app) {
+        const res = os0.apply(this, arguments);
+        try { addSettingsRow(app, res); } catch (e) { /* ignore */ }
+        return res;
+      };
+    }
+    applyDom();
+  }
+
+  // ------------------------------------------------------------------ 3D arena
+  const U = { on: { value: 0 }, t: { value: 0 }, px: { value: 600 } };
+  FF.uniforms = U;
+  const SNOW_VS = 'vec4 crFfP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\ncrFfP = instanceMatrix * crFfP;\n#endif\ncrFfW = (modelMatrix * crFfP).xyz;';
+  const SNOW_FC = 'varying vec3 crFfW;\nuniform float crFfOn;\n' +
+    'float crFfH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
+    'float crFfN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);\n' +
+    '  return mix(mix(crFfH(i), crFfH(i + vec2(1.0, 0.0)), f.x), mix(crFfH(i + vec2(0.0, 1.0)), crFfH(i + vec2(1.0, 1.0)), f.x), f.y); }\n' +
+    // ground (y ~ 0): soft drifts on about a third of the field; raised surfaces (wall tops, roofs): nearly full
+    'float crFfSnow(float up) { vec2 p = mat2(0.8, -0.6, 0.6, 0.8) * crFfW.xz;\n' +
+    '  float n = crFfN(p * 0.42) * 0.55 + crFfN(p * 1.15 + 7.3) * 0.3 + crFfN(p * 3.3 + 1.7) * 0.15;\n' +
+    '  float g = smoothstep(0.15, 0.6, crFfW.y);\n' +
+    '  float th = mix(0.55, 0.3, g);\n' +
+    '  return smoothstep(0.55, 0.85, up) * smoothstep(th, th + 0.1, n) * mix(0.72, 0.95, g); }';
+  const SNOW_LIT = 'if (crFfOn > 0.5) { float crUp = dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz));\n' +
+    '  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), crFfSnow(crUp)); }';
+  const SNOW_FLAT = 'if (crFfOn > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 1.0), crFfSnow(1.0));';
+
+  function snowKind(m) {
+    if (!m || m.isShaderMaterial || m.isRawShaderMaterial || m.userData.crFfNo) return '';
+    if (m.transparent || m.blending !== 1) return '';
+    const X = CR.GFX;
+    if (X && X.toonMaterial === m) return '';   // shared with the troops
+    if (m.isMeshToonMaterial || m.isMeshStandardMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial) return 'lit';
+    if (m.isMeshBasicMaterial && m.map) return 'flat';
+    return '';
+  }
+  function snowify(m, kind) {
+    if (m.userData.crFf) return;
+    m.userData.crFf = kind;
+    const prev = m.onBeforeCompile;
+    const ownKey = Object.prototype.hasOwnProperty.call(m, 'customProgramCacheKey') ? m.customProgramCacheKey : null;
+    const prevSrc = typeof prev === 'function' ? String(prev) : '';
+    m.onBeforeCompile = function (sh, rr) {
+      if (typeof prev === 'function') prev.call(this, sh, rr);
+      if (sh.vertexShader.indexOf('#include <project_vertex>') < 0 || sh.fragmentShader.indexOf('#include <common>') < 0) return;
+      const anchor = kind === 'lit' ? '#include <normal_fragment_maps>' : '#include <color_fragment>';
+      if (sh.fragmentShader.indexOf(anchor) < 0) return;
+      sh.uniforms.crFfOn = U.on;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 crFfW;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\n' + SNOW_VS);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + SNOW_FC)
+        .replace(anchor, anchor + '\n' + (kind === 'lit' ? SNOW_LIT : SNOW_FLAT));
+    };
+    m.customProgramCacheKey = function () { return (ownKey ? ownKey.call(this) : prevSrc) + '|crff1' + kind; };
+    m.needsUpdate = true;
+  }
+  function snowArena(r) {
+    if (!r.arena) return;
+    r.arena.traverse(function (o) {
+      if (!o.isMesh || o.isSkinnedMesh) return;
+      const ms = Array.isArray(o.material) ? o.material : [o.material];
+      for (let i = 0; i < ms.length; i++) { const k = snowKind(ms[i]); if (k) snowify(ms[i], k); }
+    });
+  }
+
+  // ---- points (snowflakes, bulbs): one shader, per-point colour / phase / size
+  const PT_VS = 'attribute vec3 color; attribute vec2 aP; uniform float uT, uPx, uSize, uFall, uH; varying vec3 vC; varying float vA;\n' +
+    'void main() { vec3 p = position;\n' +
+    '  if (uFall > 0.5) { p.y = mod(aP.x * uH - uT * aP.y, uH); p.x += sin(uT * 0.8 + aP.x * 40.0) * 0.35; p.z += cos(uT * 0.6 + aP.x * 23.0) * 0.25; vA = 0.55 + 0.45 * fract(aP.x * 7.0); }\n' +
+    '  else vA = 0.55 + 0.45 * sin(uT * 2.2 + aP.x);\n' +
+    '  vC = color; vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;\n' +
+    '  gl_PointSize = max(1.5, uSize * (uFall > 0.5 ? 0.6 + fract(aP.x * 5.0) * 0.8 : aP.y) * uPx / -mv.z); }';
+  const PT_FS = 'uniform float uOn, uFall; varying vec3 vC; varying float vA;\n' +
+    'void main() { vec2 c = gl_PointCoord - 0.5; float d = length(c); if (d > 0.5 || uOn < 0.5) discard;\n' +
+    '  float core = smoothstep(0.5, 0.18, d);\n' +
+    '  if (uFall > 0.5) { gl_FragColor = vec4(1.0, 1.0, 1.0, core * vA * 0.9); return; }\n' +
+    '  float hot = smoothstep(0.26, 0.0, d); vec3 c3 = mix(vC * (0.55 + 0.6 * vA), vec3(1.0, 0.98, 0.9), hot * vA);\n' +
+    '  gl_FragColor = vec4(c3, max(hot, core * 0.55 * vA)); }';
+  function pointsMat(T, fall, size) {
+    return new T.ShaderMaterial({
+      uniforms: { uOn: U.on, uT: U.t, uPx: U.px, uSize: { value: size }, uFall: { value: fall ? 1 : 0 }, uH: { value: 12 } },
+      vertexShader: PT_VS, fragmentShader: PT_FS, transparent: true, depthWrite: false,
+    });
+  }
+  function pointsObj(T, st, pos, col, ph, fall, size) {
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+    g.setAttribute('aP', new T.Float32BufferAttribute(ph, 2));
+    const m = pointsMat(T, fall, size);
+    st.geos.push(g); st.mats.push(m);
+    const p = new T.Points(g, m);
+    p.frustumCulled = false;
+    p.renderOrder = fall ? 9 : 5;
+    return p;
+  }
+  function rnd(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  const WREATH_Y = 0.36;
+  const BULB = [[1, 0.25, 0.22], [1, 0.8, 0.25], [0.25, 1, 0.45], [0.3, 0.7, 1], [1, 0.95, 0.8]];
+  /** String lights collector: wire segments + bulbs along sagging chains. */
+  function Lights() { this.wire = []; this.pos = []; this.col = []; this.ph = []; this.k = 0; }
+  Lights.prototype.bulb = function (x, y, z, sz) {
+    const c = BULB[this.k % BULB.length];
+    this.pos.push(x, y, z); this.col.push(c[0], c[1], c[2]); this.ph.push((this.k * 2.39) % 6.283, sz || 1);
+    this.k++;
+  };
+  /** Chain from a to b with sag (world units) and a bulb every `step`. */
+  Lights.prototype.chain = function (ax, ay, az, bx, by, bz, sag, step) {
+    const len = Math.hypot(bx - ax, bz - az, by - ay);
+    const n = Math.max(2, Math.round(len / (step || 0.45)));
+    let px = ax, py = ay, pz = az;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t, y = ay + (by - ay) * t - sag * 4 * t * (1 - t);
+      this.wire.push(px, py, pz, x, y, z);
+      if (i < n) this.bulb(x, y - 0.03, z);
+      px = x; py = y; pz = z;
+    }
+  };
+  /** Chain along a list of anchor points (each span sags). */
+  Lights.prototype.path = function (pts, sag, step) {
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const a = pts[i], b = pts[i + 1];
+      this.bulb(a[0], a[1] - 0.02, a[2], 1.15);
+      this.chain(a[0], a[1], a[2], b[0], b[1], b[2], sag, step);
+    }
+    const e = pts[pts.length - 1];
+    if (e) this.bulb(e[0], e[1] - 0.02, e[2], 1.15);
+  };
+  Lights.prototype.build = function (T, st, group) {
+    if (!this.pos.length) return;
+    const wg = new T.BufferGeometry();
+    wg.setAttribute('position', new T.Float32BufferAttribute(this.wire, 3));
+    const wm = new T.LineBasicMaterial({ color: 0x1b3a20 });
+    st.geos.push(wg); st.mats.push(wm);
+    const wire = new T.LineSegments(wg, wm);
+    wire.frustumCulled = false;
+    group.add(wire);
+    group.add(pointsObj(T, st, this.pos, this.col, this.ph, false, 0.42));
+  };
+
+  /** Merged toon mesh from primitive parts [{ geo, color, x, y, z, ry, sx, sy, sz }]. */
+  function mergeParts(T, parts) {
+    const pos = [], nor = [], col = [];
+    const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), s = new T.Vector3(), nm = new T.Matrix3(), c = new T.Color();
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const g = p.geo.index ? p.geo.toNonIndexed() : p.geo;
+      e.set(p.rx || 0, p.ry || 0, p.rz || 0);
+      q.setFromEuler(e);
+      m4.compose(v.set(p.x || 0, p.y || 0, p.z || 0), q, s.set(p.sx || 1, p.sy || 1, p.sz || 1));
+      nm.getNormalMatrix(m4);
+      c.setHex(p.color);
+      const pa = g.attributes.position, na = g.attributes.normal;
+      const a = new T.Vector3(), b = new T.Vector3();
+      for (let k = 0; k < pa.count; k++) {
+        a.fromBufferAttribute(pa, k).applyMatrix4(m4);
+        b.fromBufferAttribute(na, k).applyMatrix3(nm).normalize();
+        pos.push(a.x, a.y, a.z); nor.push(b.x, b.y, b.z); col.push(c.r, c.g, c.b);
+      }
+      if (g !== p.geo) g.dispose();
+      p.geo.dispose();
+    }
+    const out = new T.BufferGeometry();
+    out.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+    out.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+    out.computeBoundingSphere();
+    return out;
+  }
+  function toonMat(r, st) {
+    const T = r.T;
+    if (st.toon) return st.toon;
+    const m = new T.MeshToonMaterial({ vertexColors: true, gradientMap: r.gradient || null });
+    st.mats.push(m);
+    st.toon = m;
+    return m;
+  }
+
+  /** A fir tree (three tiers + trunk + star) with bulbs, base at (x, y, z), height ~ 1.9 * s. */
+  function tree(r, st, L, x, y, z, s) {
+    const T = r.T;
+    const parts = [
+      { geo: new T.CylinderGeometry(0.09, 0.12, 0.35, 7), color: 0x6b4325, x: x, y: y + 0.17 * s, z: z, sx: s, sy: s, sz: s },
+      { geo: new T.ConeGeometry(0.62, 0.8, 9), color: 0x1f6b3a, x: x, y: y + 0.65 * s, z: z, sx: s, sy: s, sz: s },
+      { geo: new T.ConeGeometry(0.48, 0.66, 9), color: 0x25804a, x: x, y: y + 1.05 * s, z: z, ry: 0.3, sx: s, sy: s, sz: s },
+      { geo: new T.ConeGeometry(0.32, 0.55, 9), color: 0x2c9455, x: x, y: y + 1.4 * s, z: z, ry: 0.6, sx: s, sy: s, sz: s },
+      { geo: new T.OctahedronGeometry(0.12), color: 0xffd34a, x: x, y: y + 1.74 * s, z: z, ry: 0.4, sx: s, sy: s * 1.2, sz: s * 0.5 },
+    ];
+    const g = mergeParts(T, parts);
+    st.geos.push(g);
+    const mesh = new T.Mesh(g, toonMat(r, st));
+    st.group.add(mesh);
+    // bulbs spiralling down the tiers
+    const R = [[0.55, 0.38], [0.42, 0.8], [0.28, 1.15]];
+    for (let t = 0; t < R.length; t++) {
+      for (let i = 0; i < 7 - t * 2; i++) {
+        const a = i / (7 - t * 2) * Math.PI * 2 + t;
+        L.bulb(x + Math.cos(a) * R[t][0] * s, y + R[t][1] * s, z + Math.sin(a) * R[t][0] * s, 0.8);
+      }
+    }
+    L.bulb(x, y + 1.76 * s, z, 1.6);
+  }
+  /** A wreath facing world direction fz (+1 = +z) at centre (x, y, z), radius ~0.42 * s. */
+  function wreath(r, st, L, x, y, z, fz, s) {
+    const T = r.T, ry = fz > 0 ? 0 : Math.PI;
+    const parts = [
+      { geo: new T.TorusGeometry(0.36, 0.13, 7, 18), color: 0x1f6b3a, x: x, y: y, z: z, ry: ry, sx: s, sy: s, sz: s },
+      { geo: new T.BoxGeometry(0.2, 0.16, 0.08), color: 0xd8302a, x: x - 0.1 * s, y: y - 0.33 * s, z: z + fz * 0.1 * s, ry: ry, rz: 0.5, sx: s, sy: s, sz: s },
+      { geo: new T.BoxGeometry(0.2, 0.16, 0.08), color: 0xd8302a, x: x + 0.1 * s, y: y - 0.33 * s, z: z + fz * 0.1 * s, ry: ry, rz: -0.5, sx: s, sy: s, sz: s },
+      { geo: new T.BoxGeometry(0.09, 0.09, 0.1), color: 0xb81f1a, x: x, y: y - 0.33 * s, z: z + fz * 0.12 * s, ry: ry, sx: s, sy: s, sz: s },
+    ];
+    const g = mergeParts(T, parts);
+    st.geos.push(g);
+    st.group.add(new T.Mesh(g, toonMat(r, st)));
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2 + 0.3;
+      L.bulb(x + Math.cos(a) * 0.36 * s * (fz > 0 ? 1 : -1), y + Math.sin(a) * 0.36 * s, z + fz * 0.13 * s, 0.7);
+    }
+  }
+
+  function towerBox(r, tm) {
+    if (!tm || !tm.group || tm.absent) return null;
+    const T = r.T;
+    try { tm.group.updateMatrixWorld(true); } catch (e) { return null; }
+    const b = new T.Box3().setFromObject(tm.group);
+    if (b.isEmpty() || b.max.y < 0.8) return null;
+    return b;
+  }
+
+  /** Builds the winter decoration of the current arena (lazily, on a frame of it). */
+  function buildFF(r) {
+    const T = r.T;
+    const st = r._ff = { arena: r.arena, group: new T.Group(), geos: [], mats: [], toon: null, towersDone: false, tries: 0 };
+    st.group.name = 'frostFest';
+    snowArena(r);
+    const lq = !!(r._lq || r._weak);
+    // snowflakes in a box over the whole arena (+ the scenery around it)
+    const N = lq ? 150 : 360, R = rnd(4141), hw = r.hw || 9, hh = r.hh || 16;
+    const pos = [], col = [], ph = [];
+    for (let i = 0; i < N; i++) {
+      pos.push((R() * 2 - 1) * (hw + 3), 0, (R() * 2 - 1) * (hh + 4));
+      col.push(1, 1, 1);
+      ph.push(R(), 0.7 + R() * 0.9);
+    }
+    st.group.add(pointsObj(T, st, pos, col, ph, true, 0.2));
+    r.arena.add(st.group);
+    st.group.traverse(function (o) { o.matrixAutoUpdate = false; o.updateMatrix(); });
+  }
+  /** The parts that need the tower models (hall / king box): lights, wreath, trees. */
+  function buildTowerDecor(r, st) {
+    const T = r.T, A = CR.Arena, L = new Lights();
+    const hw = r.hw, hh = r.hh, gh = function (x, y) { return typeof r._ghs === 'function' ? (+r._ghs(x, y) || 0) : 0; };
+    const list = r._towerList || [];
+    const S = !r.td && A && A.SIEGE && r._sg ? A.SIEGE : null;
+    const grp = new T.Group();
+    const cf = st.ls === 1 ? -1 : 1;   // world z direction towards the camera (the local back line)
+    const st2 = { group: grp, geos: st.geos, mats: st.mats, toon: st.toon };
+    // every tower box first: wait until all models are dressed (a few frames after the arena)
+    const boxes = [];
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].absent) continue;
+      const b = towerBox(r, list[i]);
+      if (!b) return false;
+      boxes.push({ tm: list[i], b: b });
+    }
+    if (S) {
+      const H = S.height || 1.7;
+      for (let s = 0; s < 2; s++) {
+        const w = S.walls[s];
+        // wall: a garland under the merlons between the gatehouses, on the face the camera sees
+        {
+          const fy = cf > 0 ? w.y0 : w.y1, zL = hh - fy + cf * 0.1;
+          for (let i = 0; i < w.segs.length; i++) {
+            const sg = w.segs[i];
+            const x0 = sg.x0 - hw + 0.15, x1 = sg.x1 - hw - 0.15;
+            const n = Math.max(1, Math.round((x1 - x0) / 1.6));
+            const pts = [];
+            for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n; pts.push([x, gh(x + hw, fy) + H * 0.86, zL]); }
+            L.path(pts, 0.2, 0.4);
+          }
+        }
+      }
+      // gates: an arch over the gateway on the field side (from the gatehouse box)
+      for (let i = 0; i < boxes.length; i++) {
+        const tm = boxes[i].tm, b = boxes[i].b;
+        if (!tm.sg) continue;
+        {
+          const dz = cf, zf = (dz < 0 ? b.min.z : b.max.z) + dz * 0.06;
+          if (tm.king) {
+            // town hall: a wreath on the camera side, a garland along the eaves
+            const cx = (b.min.x + b.max.x) / 2, top = b.max.y;
+            wreath(r, st2, L, cx, top * WREATH_Y, zf + dz * 0.05, dz, 1.1);
+            L.path([[b.min.x + 0.1, top * 0.62, zf], [cx, top * 0.66, zf], [b.max.x - 0.1, top * 0.62, zf]], 0.16, 0.34);
+            continue;
+          }
+          const x0 = b.min.x + 0.2, x1 = b.max.x - 0.2, top = b.max.y, cx = (x0 + x1) / 2;
+          const pts = [];
+          for (let k = 0; k <= 8; k++) { const a = Math.PI * k / 8; pts.push([cx - Math.cos(a) * (x1 - x0) / 2, top * 0.62 + Math.sin(a) * top * 0.16, zf]); }
+          L.path(pts, 0.05, 0.3);
+        }
+      }
+      // a fir tree by the well of each town
+      for (let s = 0; s < 2; s++) {
+        const wl = S.walls[s].town && S.walls[s].town.well;
+        if (!wl) continue;
+        // behind the well as seen from the camera (the local player's back line)
+        const sx = wl.x < 9 ? 1 : -1, far = st.ls === 1 ? -1 : 1;
+        const tx = wl.x - 0.3 * sx, ty = wl.y + 0.95 * far;
+        tree(r, st2, L, tx - hw, gh(tx, ty), hh - ty, 0.78);
+      }
+    } else if (!r.td) {
+      // classic towers: a garland around every crown, a wreath on the king tower
+      for (let i = 0; i < boxes.length; i++) {
+        const tm = boxes[i].tm, b = boxes[i].b;
+        const y = (tm.topY > 0.5 ? tm.topY : b.max.y * 0.8) - 0.12;
+        // a swag across the face the camera sees, under the crown
+        const hx = Math.min((b.max.x - b.min.x) / 2, (tm.size || 3) * 0.5) - 0.05, cx = (b.min.x + b.max.x) / 2;
+        const hz = Math.min((b.max.z - b.min.z) / 2, (tm.size || 3) * 0.5) + 0.04, cz = (b.min.z + b.max.z) / 2;
+        L.path([[cx - hx, y, cz + cf * hz], [cx, y - 0.05, cz + cf * hz], [cx + hx, y, cz + cf * hz]], 0.2, 0.32);
+        if (tm.king) wreath(r, st2, L, cx, y * 0.55, cz + cf * (hz + 0.06), cf, 1.0);
+      }
+      // two fir trees beside the king towers (point-symmetric)
+      const K = boxes.filter(function (o) { return o.tm.king; });
+      for (let i = 0; i < K.length; i++) {
+        const b = K[i].b, dz = K[i].tm.side === 0 ? -1 : 1, sx = K[i].tm.side === 0 ? -1 : 1;
+        const tx = (sx < 0 ? b.min.x : b.max.x) + sx * 0.9, tz = (b.min.z + b.max.z) / 2 - dz * 0.4;
+        tree(r, st2, L, tx, r._gh ? +r._gh(tx, tz) || 0 : 0, tz, 0.7);
+      }
+    }
+    L.build(T, st2, grp);
+    if (st2.toon && !st.toon) st.toon = st2.toon;
+    snowArenaMats(st2);
+    st.group.add(grp);
+    grp.traverse(function (o) { o.matrixAutoUpdate = false; o.updateMatrix(); });
+    return true;
+  }
+  function snowArenaMats(st) { if (st.toon) snowify(st.toon, 'lit'); }
+
+  function disposeFF(r) {
+    const st = r._ff;
+    if (!st) return;
+    r._ff = null;
+    if (st.group.parent) st.group.parent.remove(st.group);
+    for (let i = 0; i < st.geos.length; i++) { try { st.geos[i].dispose(); } catch (e) { /* ignore */ } }
+    for (let i = 0; i < st.mats.length; i++) { try { st.mats[i].dispose(); } catch (e) { /* ignore */ } }
+  }
+
+  // ---- cosmetic troop trail (calendar reward)
+  const TRAIL = {
+    snow: { k: 'dust', s: 0.32, c0: 0xffffff, c1: 0xdcecff },
+    stardust: { k: 'sparkle', s: 0.55, c0: 0xffffff, c1: 0x9fd2ff },
+    glitter: { k: 'sparkle', s: 0.6, c0: 0xffe27a, c1: 0xffb020 },
+    blizzard: { k: 'dust', s: 0.45, c0: 0xeef6ff, c1: 0xa8ccf0 },
+  };
+  let trailId = '', trailT = 0;
+  function trail(r, cur, opts) {
+    const now = Date.now();
+    if (now - trailT > 1000 || now < trailT) { trailT = now; trailId = FF.equipped('trail'); }
+    const TR = trailId && TRAIL[trailId];
+    if (!TR || !r.fx || typeof r.fx.emit !== 'function' || !cur || !cur.units) return;
+    const P0 = CR.UI && CR.UI.CardPreview;
+    if (P0 && P0.r === r) return;
+    const lq = !!(r._lq || r._weak);
+    const t = (G.performance && G.performance.now) ? G.performance.now() : now;
+    if (r._ffTrail !== undefined && t - r._ffTrail < (lq ? 240 : 130) && t >= r._ffTrail) return;
+    r._ffTrail = t;
+    const side = opts && opts.localSide === 1 ? 1 : 0;
+    let k = 0;
+    for (let i = 0; i < cur.units.length && k < 14; i++) {
+      const u = cur.units[i];
+      if (!u || u.side !== side || u.air || u.building || u.state !== 'moving') continue;
+      k++;
+      const gy = typeof r._ghs === 'function' ? (+r._ghs(u.x, u.y) || 0) : 0;
+      r.fx.emit(TR.k, u.x - r.hw, gy + 0.08, r.hh - u.y, TR.s, 1, TR.c0, TR.c1);
+    }
+  }
+
+  function frame(r, cur, opts) {
+    const ls = opts && opts.localSide === 1 ? 1 : 0;
+    const on = activeNow();
+    U.on.value = on ? 1 : 0;
+    U.t.value = (((G.performance && G.performance.now) ? G.performance.now() : Date.now()) / 1000) % 3600;
+    if (on && r.T && r.arena) {
+      if (r._ff && (r._ff.arena !== r.arena || r._ff.ls !== ls)) disposeFF(r);
+      if (!r._ff) { buildFF(r); r._ff.ls = ls; }
+      const st = r._ff;
+      if (st && !st.towersDone && st.tries < 400 && (st.tries++ % 10) === 0) st.towersDone = buildTowerDecor(r, st);
+    }
+    if (r._ff) {
+      r._ff.group.visible = on;
+      const cam = r.camera, cv = r.gl && r.gl.domElement;
+      if (cam && cv) U.px.value = cv.height / (2 * Math.tan((cam.fov || 1) * Math.PI / 360));
+    }
+    trail(r, cur, opts);
+  }
+
+  function install3d() {
+    const R3 = CR.Render3D;
+    if (!R3 || !R3.prototype || R3._ffWrapped) return;
+    R3._ffWrapped = true;
+    const P3 = R3.prototype;
+    const d0 = P3.draw;
+    if (typeof d0 === 'function') {
+      P3.draw = function (prev, cur, alpha, opts) {
+        try { frame(this, cur, opts); } catch (e) { if (!this._ffErr) { this._ffErr = true; try { G.console.warn('[frost] frame', e); } catch (e2) { /* ignore */ } } }
+        return d0.apply(this, arguments);
+      };
+    }
+    const da0 = P3._disposeArena;
+    if (typeof da0 === 'function') {
+      P3._disposeArena = function () {
+        try { disposeFF(this); } catch (e) { this._ff = null; }
+        return da0.apply(this, arguments);
+      };
+    }
+  }
+
+  install3d();
+  installUi();
+})(globalThis.CR || (globalThis.CR = {}));
 
 </script><script>__crBP(1.000)</script>
 <script>
