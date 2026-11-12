@@ -47,7 +47,7 @@
   window.CR = window.CR || {};
   window.CR.MODEL_DATA = window.CR.MODEL_DATA || {};
   window.__crLate = { models: 1, audio: 1 };
-  window.__crBuild = '8f5cf52f637f';   /* content hash of the single-file build (tools/build.py); '' = dev page */
+  window.__crBuild = '2457de7cfad0';   /* content hash of the single-file build (tools/build.py); '' = dev page */
   window.__crBP = function (f) {
     var e = document.getElementById('boot-fill');
     if (e) e.style.transform = 'scaleX(' + Math.max(0, Math.min(1, f)) + ')';
@@ -6491,6 +6491,137 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 /* ===== v36 loading: Kampf! pressed while the battle is being built ===== */
 .btn-fight.is-starting { transform: translateY(2px) scale(0.97); filter: brightness(1.12); transition: none; }
+
+/* ================================================================ v42 Weihnachten (docs/V42-XMAS.md)
+   The Christmas event is always on: night sky with snowfall and warm bokeh lights, Santa hat + snow
+   cap on the logo, snow caps / icicles on tiles, panels and buttons, a festive fight button, a fir
+   garland with fairy lights under the top bar, a wintry tab bar, a red / green / gold event banner,
+   a festive deck frame, and a light touch on splash, battle HUD and result. CSS + inline SVG only. */
+:root {
+  --ff-snow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='14'%3E%3Cpath d='M0 0h44v6c-3 0-4 3-7 3s-3-2-6-2-3 5-6 5-3-4-6-4-3 2-6 2-3-3-6-3-4 1-7 1z' fill='%23fff'/%3E%3Cpath d='M0 7c3 0 4 1 7 1s3 3 6 3 3-2 6-2 3 4 6 4 3-5 6-5 3 2 6 2 4-3 7-3' fill='none' stroke='%23a9c9ea' stroke-width='1.3'/%3E%3C/svg%3E");
+  --ff-ice: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='12'%3E%3Cpath d='M4 0l2 8 2-8zM14 0l1.4 5 1.4-5zM22 0l2.2 11 2.2-11z' fill='%23eaf7ff' stroke='%239cc4e6' stroke-width='.7'/%3E%3C/svg%3E");
+  --ff-gar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='26'%3E%3Cpath d='M0 3Q36 24 72 3' fill='none' stroke='%23123f22' stroke-width='9' stroke-linecap='round'/%3E%3Cpath d='M0 3Q36 24 72 3' fill='none' stroke='%232f8a4a' stroke-width='6' stroke-dasharray='2 3'/%3E%3Cpath d='M0 2Q36 21 72 2' fill='none' stroke='%2366c27a' stroke-width='1.6' stroke-dasharray='1 4'/%3E%3Ccircle cx='18' cy='14' r='3.4' fill='%23ff4a3d'/%3E%3Ccircle cx='36' cy='18' r='3.4' fill='%23ffd34a'/%3E%3Ccircle cx='54' cy='14' r='3.4' fill='%2360b8ff'/%3E%3Ccircle cx='17' cy='13' r='1.2' fill='%23fff' opacity='.8'/%3E%3Ccircle cx='35' cy='17' r='1.2' fill='%23fff' opacity='.8'/%3E%3Ccircle cx='53' cy='13' r='1.2' fill='%23fff' opacity='.8'/%3E%3C/svg%3E");
+  --ff-glow: radial-gradient(circle at 18px 14px, rgba(255, 90, 70, 0.75), transparent 9px), radial-gradient(circle at 36px 18px, rgba(255, 215, 90, 0.8), transparent 9px), radial-gradient(circle at 54px 14px, rgba(110, 190, 255, 0.75), transparent 9px);
+  --ff-hat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48'%3E%3Cpath d='M8 38C14 18 30 4 48 8c6 1.4 9 7 7 13-2-4-6-6-10-5-8 3-12 13-13 24z' fill='%23e3322c' stroke='%233a0b08' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M44 16c2-3 7-4 9 0' fill='none' stroke='%23ff8a7a' stroke-width='2' stroke-linecap='round' opacity='.7'/%3E%3Crect x='2' y='34' width='38' height='11' rx='5.5' fill='%23fff' stroke='%233a0b08' stroke-width='2.5' transform='rotate(-8 21 39)'/%3E%3Ccircle cx='56' cy='22' r='6.5' fill='%23fff' stroke='%233a0b08' stroke-width='2.5'/%3E%3C/svg%3E");
+  --ff-holly: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 22'%3E%3Cpath d='M15 13C11 5 5 4 1 6c2 1 2 3 1 4 2 0 3 2 2 3 3-1 4 1 4 3 2-2 5-2 7-3zM17 13c4-8 10-9 14-7-2 1-2 3-1 4-2 0-3 2-2 3-3-1-4 1-4 3-2-2-5-2-7-3z' fill='%23238a43' stroke='%230b3519' stroke-width='1.3' stroke-linejoin='round'/%3E%3Ccircle cx='13' cy='15' r='3' fill='%23e3322c' stroke='%235a0b08' stroke-width='1.1'/%3E%3Ccircle cx='19' cy='15' r='3' fill='%23e3322c' stroke='%235a0b08' stroke-width='1.1'/%3E%3Ccircle cx='16' cy='18.5' r='3' fill='%23ff4a3d' stroke='%235a0b08' stroke-width='1.1'/%3E%3C/svg%3E");
+}
+/* night sky: deep blue, warm bokeh of distant lights, a moon glow, stars + falling snow */
+.stage {
+  background:
+    radial-gradient(26% 14% at 80% 9%, rgba(255, 246, 214, 0.2), transparent 70%),
+    radial-gradient(70% 30% at 50% 104%, rgba(140, 200, 255, 0.3), transparent 70%),
+    linear-gradient(180deg, #06102c 0%, #0c2152 40%, #173a77 74%, #1f4a8a 100%);
+}
+.stage-rays {
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 30%, rgba(255, 190, 90, 0.3) 0 5px, transparent 16px),
+    radial-gradient(circle at 88% 24%, rgba(255, 80, 70, 0.26) 0 6px, transparent 18px),
+    radial-gradient(circle at 22% 56%, rgba(90, 220, 120, 0.2) 0 5px, transparent 15px),
+    radial-gradient(circle at 76% 62%, rgba(255, 210, 110, 0.26) 0 7px, transparent 20px),
+    radial-gradient(circle at 50% 18%, rgba(255, 225, 150, 0.18) 0 4px, transparent 13px),
+    radial-gradient(circle at 6% 78%, rgba(255, 90, 80, 0.22) 0 6px, transparent 17px),
+    radial-gradient(circle at 94% 84%, rgba(120, 190, 255, 0.24) 0 6px, transparent 17px),
+    radial-gradient(1px 1px at 30% 12%, #fff, transparent), radial-gradient(1px 1px at 64% 7%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 8% 15%, #fff, transparent), radial-gradient(1px 1px at 92% 46%, #fff, transparent);
+  filter: blur(0.5px);
+  animation: ff-bokeh 5s ease-in-out infinite alternate;
+}
+@keyframes ff-bokeh { to { opacity: 0.65; } }
+.stage-bg::after {
+  opacity: 0.85;
+  background-image:
+    radial-gradient(2.2px 2.2px at 12% 8%, #fff, transparent), radial-gradient(1.5px 1.5px at 31% 22%, #eaf4ff, transparent),
+    radial-gradient(2.6px 2.6px at 58% 12%, #fff, transparent), radial-gradient(1.6px 1.6px at 77% 31%, #fff, transparent),
+    radial-gradient(2px 2px at 90% 6%, #f2f8ff, transparent), radial-gradient(1.4px 1.4px at 45% 40%, #fff, transparent),
+    radial-gradient(2.4px 2.4px at 21% 44%, #fff, transparent), radial-gradient(1.3px 1.3px at 66% 46%, #fff, transparent);
+  animation: ff-snowfall 22s linear infinite;
+}
+@keyframes ff-snowfall { from { transform: translate3d(0, -50%, 0); } to { transform: translate3d(-18px, 0, 0); } }
+/* snowy hills with fir silhouettes along the bottom (splash / loading / gaps of the menu) */
+.stage-bg::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 150px; pointer-events: none;
+  background:
+    radial-gradient(60% 46px at 22% 100%, #3d629b 98%, transparent 100%) bottom / 100% 60px no-repeat,
+    radial-gradient(70% 60px at 82% 100%, #33578f 98%, transparent 100%) bottom / 100% 72px no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Cpath d='M20 18l12 22h-6l10 18h-7l11 20H0l11-20H4l10-18H8zM86 4l14 26h-7l12 22h-8l13 24H68l13-24h-8l12-22h-7z' fill='%230a1d44'/%3E%3Cpath d='M20 18l4 8-5 1zM86 4l5 9-6 1z' fill='%23b9cfe8'/%3E%3C/svg%3E") 0 100% / 120px 90px repeat-x;
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion:reduce) { .stage-rays, .stage-bg::after, .mm26 .mm-top::before { animation: none; } }
+/* logo: Santa hat (menu, loading screen and the static splash) */
+.logo { position: relative; }
+.logo::before {
+  content: ""; position: absolute; left: -0.3em; top: -0.5em; width: 0.95em; height: 0.72em; z-index: 2; pointer-events: none;
+  background: var(--ff-hat) center / contain no-repeat; transform: rotate(-14deg);
+}
+.mm26 .mm-brand .logo::before { left: -0.42em; top: -0.48em; width: 1.05em; height: 0.8em; }
+/* garland with fairy lights under the top bar (lights twinkle in two groups) */
+.mm26 .mm-top { position: relative; }
+.mm26 .mm-top::before, .mm26 .mm-top::after {
+  content: ""; position: absolute; left: -12px; right: -12px; bottom: -24px; height: 26px; pointer-events: none; z-index: 4;
+  background: var(--ff-gar) 0 0 / 72px 26px repeat-x;
+}
+.mm26 .mm-top::before { background: var(--ff-glow); background-size: 72px 26px; z-index: 5; animation: ff-tw 1.4s steps(2) infinite; }
+@keyframes ff-tw { 50% { opacity: 0.15; } }
+/* snow caps + icicles: tiles, panels, the deck box, event chips */
+.mm-tile::before, .menu-panel::before, .mm26 .deck-box::before, .ev-chip::before, .tb-timer::before, .res-board::before, .ff-cap::before {
+  content: ""; position: absolute; left: 5px; right: 5px; top: -5px; height: 12px; pointer-events: none; z-index: 3;
+  background: var(--ff-snow) 0 0 / 44px 12px repeat-x; border-radius: 7px 7px 0 0;
+  filter: drop-shadow(0 1px 0 rgba(20, 50, 100, 0.35));
+}
+.mm-tile::after, .menu-panel::after, .ff-cap::after {
+  content: ""; position: absolute; left: 14px; right: 14px; top: 5px; height: 11px; pointer-events: none; z-index: 3;
+  background: var(--ff-ice) 0 0 / 30px 11px repeat-x; opacity: 0.85;
+}
+.menu-panel, .mm26 .deck-box, .ev-chip, .tb-timer, .res-board { position: relative; }
+.mm-tile::after { left: auto; right: 10px; width: 60px; }
+/* deck: a gold / red festive frame with holly in the corner */
+.mm26 .deck-box {
+  box-shadow: inset 0 0 0 1.5px #ffd34a, inset 0 0 0 4px rgba(200, 30, 30, 0.55), 0 0 0 2px var(--board-edge), 0 4px 0 2px var(--board-edge), 0 0 18px rgba(255, 200, 80, 0.25), 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+.mm26 .deck-box::after {
+  content: ""; position: absolute; left: -9px; top: -11px; width: 34px; height: 24px; z-index: 4; pointer-events: none;
+  background: var(--ff-holly) center / contain no-repeat; transform: rotate(-16deg);
+}
+/* the season's event: red / green / gold */
+.ev-chip.ev-frost {
+  background: radial-gradient(circle at 88% 50%, rgba(255, 220, 120, 0.35), transparent 40%), linear-gradient(180deg, #ef4b3e, #b3171c 60%, #8f0f15);
+  box-shadow: inset 0 0 0 1.5px #ffd34a, inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #0e4f27, 0 0 0 1.5px #0e4f27;
+}
+.ev-chip.ev-frost .ev-tag { background: repeating-linear-gradient(135deg, #fff 0 4px, #e3322c 4px 8px); color: #5a0d08; text-shadow: 0 0 2px #fff, 0 0 2px #fff; }
+.ev-chip.ev-frost .ev-left { color: #ffe9a8; }
+/* fight button: festive red with gold rim, snow cap and a holly sprig */
+.btn-fight { --rim: #6e0c10; --fill: linear-gradient(180deg, #ff8b78 0%, #ee3b2e 42%, #c01a1e 72%, #9c1016 100%); --glow: rgba(255, 90, 60, 0.45); text-shadow: 0 2px 0 #4a0608, 1px 0 0 #4a0608, -1px 0 0 #4a0608, 0 -1px 0 #4a0608; }
+.btn-fight::before { box-shadow: 0 0 0 2px #071028, 0 0 0 4px #ffd34a, 0 0 0 5.5px #6a3a00; }
+.btn-fight .btn-sub { text-shadow: 0 1px 0 #4a0608, 0 0 2px rgba(60, 0, 0, 0.6); }
+.ff-cap { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.ff-cap::before { left: 10px; right: 10px; top: -6px; height: 14px; background-size: 44px 14px; }
+.ff-cap::after { left: auto; right: 6px; top: -14px; width: 46px; height: 32px; opacity: 1; background: var(--ff-holly) center / contain no-repeat; transform: rotate(14deg); }
+/* tab bar: icy blue with a snow edge */
+.cr-root .mp-tabs { background: linear-gradient(180deg, #3a73c0 0%, #1d4688 50%, #0f2756 100%); }
+.cr-root .mp-tabs::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 14px; pointer-events: none; z-index: 2;
+  background: var(--ff-snow) 0 0 / 44px 14px repeat-x; filter: drop-shadow(0 1px 0 rgba(20, 50, 100, 0.45));
+}
+/* splash / loading: a gold glow behind the crest, garland lights on the bar */
+.screen-loading .load-crest { filter: drop-shadow(0 0 14px rgba(255, 210, 110, 0.55)); }
+.load-bar::after {
+  content: ""; position: absolute; left: 8px; right: 8px; top: -10px; height: 12px; pointer-events: none;
+  background: var(--ff-snow) 0 0 / 44px 12px repeat-x;
+}
+.load-bar { position: relative; }
+/* battle HUD: snow on the hand's top edge and on the timer */
+.hand::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -9px; height: 14px; pointer-events: none; z-index: 1;
+  background: var(--ff-snow) 0 0 / 44px 14px repeat-x; filter: drop-shadow(0 -1px 1px rgba(0, 20, 60, 0.4));
+}
+.tb-timer::before { left: 3px; right: 3px; top: -4px; height: 9px; background-size: 30px 9px; }
+/* result: garland across the top, snow on the board */
+.screen-result::before {
+  content: ""; position: absolute; left: 0; right: 0; top: calc(var(--safe-t, 0px) + 2px); height: 26px; pointer-events: none; z-index: 1;
+  background: var(--ff-gar) 0 0 / 72px 26px repeat-x;
+}
+.res-board::before { top: -6px; }
 
 </style>
 </head>
@@ -23710,7 +23841,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.AI = AI;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.142)</script>
+</script><script>__crBP(0.141)</script>
 <script>
 /* src/08-net.js */
 /* Bust War - 08-net.js (net)
@@ -30525,7 +30656,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.187)</script>
+</script><script>__crBP(0.186)</script>
 <script>
 /* src/09-render.js */
 /* Chaos Royale - 09-render.js (render)
@@ -38554,7 +38685,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.242)</script>
+</script><script>__crBP(0.241)</script>
 <script>
 /* src/10b-ui-menu.js */
 /* 10b-ui-menu.js – Bust War app shell UI, part 2 of 5 (v36 split of the former src/10-ui.js; same
@@ -39737,7 +39868,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.251)</script>
+</script><script>__crBP(0.250)</script>
 <script>
 /* src/10c-ui-deck.js */
 /* 10c-ui-deck.js – Bust War app shell UI, part 3 of 5 (v36 split of the former src/10-ui.js; same
@@ -42120,7 +42251,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.269)</script>
+</script><script>__crBP(0.268)</script>
 <script>
 /* src/10e-ui-battle.js */
 /* 10e-ui-battle.js – Bust War app shell UI, part 5 of 5 (v36 split of the former src/10-ui.js; same
@@ -51787,7 +51918,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   A.UNIT_SFX = UNIT_SFX;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.339)</script>
+</script><script>__crBP(0.338)</script>
 <script>
 /* src/14-draft.js */
 /* Bust War - 14-draft.js (draft): the Touchdown DRAFT before the battle (v7).
@@ -52264,7 +52395,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.342)</script>
+</script><script>__crBP(0.341)</script>
 <script>
 /* src/15-buildmode.js */
 /* 15-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): before the battle every player
@@ -55180,7 +55311,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.366)</script>
+</script><script>__crBP(0.365)</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
 <script>
 /* src/20-gfx-core.js */
@@ -61782,7 +61913,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.423)</script>
+</script><script>__crBP(0.422)</script>
 <script>
 /* src/21-gfx-chars-a.js */
 /* Chaos Royale - 21-gfx-chars-a.js (designer A, v16 FACES on v15 ROYALE, gfx kit v4.3)
@@ -65850,7 +65981,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.charsA = { scallop, tatter, FACE, MOUTH, GRIM, grimace, faceRig, exprTarget, exprOf, browAmp, BROW_AMP, version: 'v16' };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.466)</script>
+</script><script>__crBP(0.465)</script>
 <script>
 /* src/22-gfx-chars-b.js */
 /* Chaos Royale - 22-gfx-chars-b.js (designer B)
@@ -69391,7 +69522,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.504)</script>
+</script><script>__crBP(0.503)</script>
 <script>
 /* src/23-gfx-chars-c.js */
 /* Chaos Royale - 23-gfx-chars-c.js (designer C: air units, creatures, tower crews)
@@ -71433,7 +71564,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.525)</script>
+</script><script>__crBP(0.524)</script>
 <script>
 /* src/24-gfx-props.js */
 /* Chaos Royale - 24-gfx-props.js (props designer)
@@ -75862,7 +75993,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.572)</script>
+</script><script>__crBP(0.571)</script>
 <script>
 /* src/25-gfx-vfx.js */
 /* Chaos Royale - 25-gfx-vfx.js (render3d)
@@ -79767,7 +79898,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   VFX.System = System;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.603)</script>
+</script><script>__crBP(0.602)</script>
 <script>
 /* src/26a-gfx-render3d-core.js */
 /* Chaos Royale - 26a-gfx-render3d-core.js (render3d; logical module "26-gfx-render3d")
@@ -83813,7 +83944,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.636)</script>
+</script><script>__crBP(0.635)</script>
 <script>
 /* src/26b-gfx-render3d-arena.js */
 /* 26b-gfx-render3d-arena.js – Bust War 3D battle renderer, part 2 of 4 (v36 split of the former
@@ -86564,7 +86695,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DArena);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.659)</script>
+</script><script>__crBP(0.658)</script>
 <script>
 /* src/26c-gfx-render3d-frame.js */
 /* 26c-gfx-render3d-frame.js – Bust War 3D battle renderer, part 3 of 4 (v36 split of the former
@@ -88449,7 +88580,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   addMethods(Render3D, Render3DFrame);
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.672)</script>
+</script><script>__crBP(0.671)</script>
 <script>
 /* src/26d-gfx-render3d-fx.js */
 /* 26d-gfx-render3d-fx.js – Bust War 3D battle renderer, part 4 of 4 (v36 split of the former
@@ -89835,7 +89966,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.Render3D = Render3D;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.682)</script>
+</script><script>__crBP(0.681)</script>
 <script>
 /* src/27-gfx-chars-d.js */
 /* Chaos Royale - 27-gfx-chars-d.js (render3d / graphics owner v6 + v7: new cards)
@@ -92373,7 +92504,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__cdV11 = { heroHead, heroEye, strand, lock, flatLock, headFrontZ, fierceEye, sculptHead, bodyPlan, limb, fist, hand, palm, shoe, pauldron, hood, cape, armBoot, bracer, bladePart, along, sheet, deform, spike, ribbon };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.709)</script>
+</script><script>__crBP(0.708)</script>
 <script>
 /* src/28-card-art.js */
 /* 28-card-art.js – hand-made card art (v17).
@@ -92880,7 +93011,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   CR.CardArt = V19;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.712)</script>
+</script><script>__crBP(0.711)</script>
 <script>
 /* src/29-hero-blackblade.js */
 /* 29-hero-blackblade.js - v18 hero model override: 'black-blade-master' ("Schwarzklingen-Meister").
@@ -93384,7 +93515,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.717)</script>
+</script><script>__crBP(0.716)</script>
 <script>
 /* src/29-hero-cyborg.js */
 /* 29-hero-cyborg.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94164,7 +94295,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.725)</script>
+</script><script>__crBP(0.723)</script>
 <script>
 /* src/29-hero-kungfu.js */
 /* 29-hero-kungfu.js – v18 hero model override (clean CR-like 3D, built to match the user's reference).
@@ -94645,7 +94776,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.729)</script>
+</script><script>__crBP(0.728)</script>
 <script>
 /* src/29-hero-ninja.js */
 /* 29-hero-ninja.js - v18 hero model override: 'spiral-ninja' ("Wirbel-Ninja").
@@ -95064,7 +95195,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.733)</script>
+</script><script>__crBP(0.732)</script>
 <script>
 /* src/30-gfx-buildmode.js */
 /* 30-gfx-buildmode.js – "Bau-Modus" (docs/V23-BUILDMODE.md, v24 section): models, battle effects,
@@ -96819,7 +96950,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.746)</script>
+</script><script>__crBP(0.745)</script>
 <script>
 /* src/31-style-a.js */
 /* 31-style-a.js - v23 character restyle, group A (hero quality like src/29-hero-*.js).
@@ -98407,7 +98538,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.764)</script>
+</script><script>__crBP(0.762)</script>
 <script>
 /* src/31-style-b.js */
 /* 31-style-b.js – v23 character restyle, group B (big units) at the quality of the src/29-hero-*.js heroes.
@@ -99343,7 +99474,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.772)</script>
+</script><script>__crBP(0.771)</script>
 <script>
 /* src/31-style-c.js */
 /* 31-style-c.js – v23 character restyle, group c (hero quality like src/29-hero-*.js).
@@ -101196,7 +101327,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.792)</script>
+</script><script>__crBP(0.791)</script>
 <script>
 /* src/31-style-d.js */
 /* 31-style-d.js – v23 character restyle, group d (small / swarm units at hero quality).
@@ -102459,7 +102590,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   G.__styleD = { ids: IDS, reverted: REVERTED };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.805)</script>
+</script><script>__crBP(0.804)</script>
 <script>
 /* src/31-style-e.js */
 /* 31-style-e.js – v23 character restyle, group e (riders / vehicles / brutes) on the quality bar of
@@ -103364,7 +103495,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   function lerp3(a, b, t) { return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.814)</script>
+</script><script>__crBP(0.813)</script>
 <script>
 /* src/31-style-f.js */
 /* 31-style-f.js - v23 character restyle, group f: the AIR units (hero quality like src/29-hero-*.js).
@@ -104592,7 +104723,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }, { body: 'blob', walk: 'hop', attack: 'none', weight: 0.55 });
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.827)</script>
+</script><script>__crBP(0.826)</script>
 <script>
 /* src/32-gfx-maps.js */
 /* 32-gfx-maps.js - v24 hazard maps (docs/V24-MAPS.md): 3D scenery + animations and the 2D fallback
@@ -106675,7 +106806,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.toon = toon; M24.shaderMat = shaderMat; M24.own = own; M24.wx = wx; M24.wz = wz; M24.sstep = sstep; M24.NOISE = NOISE; M24.FALL_VS = FALL_VS; M24.PCOL = PCOL; M24.rect2d = rect2d;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.844)</script>
+</script><script>__crBP(0.842)</script>
 <script>
 /* src/33-story-ui.js */
 /* 33-story-ui.js – Story-Modus screens (v25, redesigned in v33 – docs/V25-STORY.md). Data / progress:
@@ -107964,7 +108095,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.857)</script>
+</script><script>__crBP(0.856)</script>
 <script>
 /* src/34-gfx-combo.js */
 /* 34-gfx-combo.js - v25 map 'citadel' ("Chaos-Zitadelle", docs/V25-COMBO.md): the scenery that the
@@ -108191,7 +108322,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.citadel = { build: build, update: update, paint2d: paint2d };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.859)</script>
+</script><script>__crBP(0.857)</script>
 <script>
 /* src/35-gfx-jungle.js */
 /* 35-gfx-jungle.js - v27 map 'jungle' ("Chaos-Dschungel", docs/V27-JUNGLE.md): the 3D scenery +
@@ -109043,7 +109174,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   M24.jungle = { build: build, update: update, dispose: dispose, paint2d: paint2d, draw2d: draw2d, geo: geo, PC: PC };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.866)</script>
+</script><script>__crBP(0.864)</script>
 <script>
 /* src/36-gfx-siege.js */
 /* 36-gfx-siege.js - tower layout "Belagerung" (siege, docs/V28-SIEGE.md v28 + v29): the 3D models,
@@ -111433,7 +111564,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   S3.gateUpdate = gateUpdate; S3.drawStrands = drawStrands; S3.onSg = onSg; S3.onLaunch = onLaunch;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.887)</script>
+</script><script>__crBP(0.886)</script>
 <script>
 /* src/37-tutorial.js */
 /* 37-tutorial.js – onboarding tutorial + deck help (v31, agent "onboard").
@@ -112568,7 +112699,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.895)</script>
+</script><script>__crBP(0.893)</script>
 <script>
 /* src/38-replay.js */
 /* 38-replay.js – replays + clip export (v31, owner: "replay").
@@ -114358,7 +114489,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   install();
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.907)</script>
+</script><script>__crBP(0.906)</script>
 <script>
 /* src/39-events.js */
 /* 39-events.js – rotating weekly events (v31, agent "postmatch"; docs/V31-POSTMATCH.md).
@@ -114414,8 +114545,9 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   // forWeek stay unchanged); current() adds one while its season is on (CR.FrostFest.active, else the
   // UTC month). Same option mechanics as every weekly event.
   const SEASONAL = [
-    { id: 'snowball', code: 'sn', name: 'Schneeballschlacht', short: 'Schneeballschlacht', mode: 'classic', map: null, season: 'frost',
-      desc: 'Frost-Fest: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – wirf alles, was du hast!', options: { elixirBoost: 2, maxElixir: 4 } },
+    // v42: the Christmas event (CR.FrostFest.active() is always true -> always the first chip)
+    { id: 'snowball', code: 'sn', name: 'Weihnachtsschlacht', short: 'Weihnachtsschlacht', mode: 'classic', map: 'classic', season: 'frost',
+      desc: 'Weihnachts-Event in der verschneiten Arena: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – pack alle Geschenke aus!', options: { elixirBoost: 2, maxElixir: 4 } },
   ];
   const BY_ID = Object.create(null);
   for (let i = 0; i < LIST.length; i++) BY_ID[LIST[i].id] = LIST[i];
@@ -114541,7 +114673,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     buttons.push({ label: 'Zurück', value: null, cls: 'btn-grey' });
     const body = el('div', 'ev-dlg');
     body.appendChild(el('p', 'ev-dlg-desc', ev.desc));
-    body.appendChild(el('p', 'ev-dlg-left', (ev.season ? 'Frost-Fest-Event' : 'Wöchentliches Event') + ' · ' + item.left));
+    body.appendChild(el('p', 'ev-dlg-left', (ev.season ? 'Weihnachts-Event' : 'Wöchentliches Event') + ' · ' + item.left));
     const d = typeof app.dialog === 'function' ? app.dialog({ title: ev.name, body: body, buttons: buttons }) : null;
     if (!d) { start(app, ev.id, 'ai'); return; }
     d.then(function (v) { if (v === 'ai' || v === 'online') start(app, ev.id, v); });
@@ -114594,7 +114726,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.909)</script>
+</script><script>__crBP(0.907)</script>
 <script>
 /* src/40-feat-a.js */
 /* 40-feat-a.js - v31 map features A (docs/V31-FEAT-A.md): new neutral map features, each on its
@@ -115821,7 +115953,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FA.version = 1;
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.918)</script>
+</script><script>__crBP(0.917)</script>
 <script>
 /* src/41-feat-b.js */
 /* 41-feat-b.js - v31 map features B (agent "feat-b", docs/V31-FEAT-B.md):
@@ -117247,7 +117379,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FB.gfx = { build: build, update: update, dispose: dispose, draw2d: draw2d, paintIce2d: paintIce2d, ICE_FS: ICE_FS, FUN_VS: FUN_VS };
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.928)</script>
+</script><script>__crBP(0.927)</script>
 <script>
 /* src/43-glb-models.js */
 /* 43-glb-models.js - v34 GLB models (owner: agent "models"). Contract: docs/V34-MODELS.md.
@@ -119514,7 +119646,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(globalThis.CR || (globalThis.CR = {}));
 
-</script><script>__crBP(0.947)</script>
+</script><script>__crBP(0.946)</script>
 <script>
 /* src/45-i18n.js */
 /* 45-i18n.js – v35 "english": second language (English) with a language switch.
@@ -119842,7 +119974,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.950)</script>
+</script><script>__crBP(0.948)</script>
 <script>
 /* src/46-i18n-en.js */
 /* 46-i18n-en.js – v35 "english": parallel English table keyed by the German display text
@@ -123022,9 +123154,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Sternenhimmel": "Starry Sky",
     "Goldstern": "Gold Star",
     "Frost-Legende": "Frost Legend",
-    "Frost-Fest": "Frost Fest",
     "Adventskalender": "Advent calendar",
-    "Testmodus: Alle Türchen lassen sich sofort öffnen.": "Test mode: every door opens right away.",
     "Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.": "One door every day – from December 1 to 24. Cosmetics only, no gold.",
     "Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.": "The advent calendar opens on December 1. Here is a preview of the rewards.",
     "Öffnen": "Open",
@@ -123038,17 +123168,18 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     "Truppen-Spur ({*})": "Troop trail ({*})",
     "Banner-Design": "Banner design",
     "Banner-Design ({*})": "Banner design ({*})",
-    "Deine Frost-Belohnungen": "Your Frost rewards",
-    "Winter-Thema": "Winter theme",
-    "Auto = vom 1. bis 31. Dezember: Schnee, Lichterketten und Adventskalender. An = sofort (zum Testen und für Videos). Aus = nie.": "Auto = December 1 to 31: snow, fairy lights and the advent calendar. On = right now (for testing and videos). Off = never.",
-    "Schneeballschlacht": "Snowball Fight",
-    "Frost-Fest: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – wirf alles, was du hast!": "Frost Fest: Crystals twice as fast and only cards up to 4 Crystals – throw everything you've got!",
-    "Frost-Fest-Event": "Frost Fest event",
     "Wöchentliches Event": "Weekly event",
+    // v42 Christmas event (src/48-frost-fest.js, src/39-events.js)
+    "Weihnachtsschlacht": "Christmas Battle",
+    "Weihnachts-Event in der verschneiten Arena: doppelt so schnelle Kristalle und nur Karten bis 4 Kristalle – pack alle Geschenke aus!": "Christmas event in the snowy arena: Crystals twice as fast and only cards up to 4 Crystals – unwrap every present!",
+    "Weihnachts-Event": "Christmas event",
+    "Weihnachten": "Christmas",
+    "Deine Weihnachts-Belohnungen": "Your Christmas rewards",
+    "Jeden Tag im Dezember (1. bis 24.) ein Türchen mit Weihnachts-Deko.": "One door with Christmas decorations every day in December (1st to 24th).",
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.991)</script>
+</script><script>__crBP(0.990)</script>
 <script>
 /* src/47-late.js */
 /* src/47-late.js - v36 "loading": the big data files stream in AFTER the menu.
@@ -123306,41 +123437,43 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
-</script><script>__crBP(0.993)</script>
+</script><script>__crBP(0.991)</script>
 <script>
 /* src/48-frost-fest.js */
-/* 48-frost-fest.js - v41 "Frost-Fest" (docs/V41-FROSTFEST.md): the winter theme for December.
+/* 48-frost-fest.js - v41 "Frost-Fest", v42 the Christmas event (docs/V41-FROSTFEST.md, docs/V42-XMAS.md).
  *
  * Graphics + UI only. The simulation, the AI, the network and the determinism are untouched; the one
- * gameplay-side piece is the seasonal event "Schneeballschlacht" in 39-events.js (existing event
+ * gameplay-side piece is the seasonal event "Weihnachtsschlacht" in 39-events.js (existing event
  * options elixirBoost + maxElixir, outside the weekly rotation).
  *
  *  CR.FrostFest
- *    mode() / setMode('auto' | 'on' | 'off')   settings "Frost-Fest: Auto/An/Aus" (UI.store 'frostFest');
- *                                              auto = 1.-31. December (local date), on = at once (tests, videos)
- *    active(nowMs?)                            the theme is on (menu, arena, event)
+ *    active()                                  v42: always true (no switch, no date; stored 'off' is ignored)
+ *    inSeason(nowMs?)                          December (local date): the calendar doors open
+ *    devAll(on)                                internal (tests / screenshots): every door ready; not stored
  *    REWARDS, TYPES                            the 24 advent calendar rewards (cosmetic only, never gold)
  *    doorState(day, nowMs?)                    'open' | 'ready' | 'locked' | 'preview'
  *    openDoor(day, nowMs?)                     -> reward | null (stored in UI.store 'frostCal', equips it)
  *    owned(type) / equipped(type) / equip(type, id)
  *    openCalendar(app)                         the calendar sheet (menu gift button, settings row)
  *
- *  Arena (CR.Render3D, all maps, siege + classic tower layout, built lazily on the first frame of an
- *  arena; dropped with it): snow on every up-facing surface of the arena scenery (ground, walls, roofs,
- *  banks - a shader patch of the arena's own materials, switched by one shared uniform, so "Aus"
- *  costs nothing), falling snowflakes (one Points draw, animated in the vertex shader), string lights
- *  (one Points draw + one line draw: siege walls + gate arches, classic tower crowns), a fir tree by
- *  the well (siege) / in the back corners (classic), a wreath on the town hall / king tower.
- *  Cosmetic troop trails (calendar reward) puff behind the own moving ground troops (CR.VFX).
+ *  Arena (CR.Render3D, built lazily on the first frame of an arena; dropped with it): v42 classic map
+ *  (river field, siege + classic tower layout) = the Christmas arena: a closed snow cover (field
+ *  texture re-coloured in the shader: grass -> snow tiles, lanes -> packed snow), snow on every
+ *  up-facing scenery surface and on the tower models (a snowy copy of the shared tower material,
+ *  swapped on the tower body meshes only - never on troops / crews), drifting ice floes on the river,
+ *  falling snow, string lights + fir garlands (walls, gates, crowns, side curbs), fir trees with
+ *  presents, candy canes at the bridges, a wreath on the town hall / king towers, warm house windows.
+ *  The other maps keep the v41 winter look (soft drifts). Cosmetic troop trails (calendar reward) puff
+ *  behind the own moving ground troops (CR.VFX).
  *  Hooks (outermost, this file loads last): Render3D.prototype.draw / _disposeArena, UI.MenuScreen,
- *  UI.openSettings. Must not throw without THREE / DOM (jsc).
+ *  UI.openSettings. The menu / HUD / splash look is plain CSS (src/styles.css, "v42 Weihnachten").
+ *  Must not throw without THREE / DOM (jsc).
  */
 (function (CR) {
   'use strict';
   const G = globalThis;
   const FF = CR.FrostFest = CR.FrostFest || {};
-  const MODES = ['auto', 'on', 'off'];
-  const K_MODE = 'frostFest', K_CAL = 'frostCal';
+  const K_CAL = 'frostCal';
   const DAYS = 24;
 
   // ------------------------------------------------------------------ state (UI.store, else memory)
@@ -123361,25 +123494,10 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
   FF.onChange = function (fn) { if (typeof fn === 'function') listeners.push(fn); };
 
-  FF.MODES = MODES;
-  FF.mode = function () { const m = sget(K_MODE, 'auto'); return MODES.indexOf(m) >= 0 ? m : 'auto'; };
   FF.inSeason = function (n) { return new Date(nowOf(n)).getMonth() === 11; };
-  FF.active = function (n) { const m = FF.mode(); return m === 'on' || (m === 'auto' && FF.inSeason(n)); };
-  FF.setMode = function (m) {
-    if (MODES.indexOf(m) < 0) m = 'auto';
-    sset(K_MODE, m);
-    actT = 0;
-    applyDom();
-    notify();
-    return m;
-  };
-  // per-frame callers: the date is read at most twice a second
-  let actT = 0, actV = false;
-  function activeNow() {
-    const t = Date.now();
-    if (t - actT > 500 || t < actT) { actT = t; actV = FF.active(t); }
-    return actV;
-  }
+  FF.active = function () { return true; };   // v42: the Christmas theme is always on
+  let devAll = false;
+  FF.devAll = function (on) { devAll = !!on; applyDom(); notify(); return devAll; };
 
   // ------------------------------------------------------------------ advent calendar (cosmetic)
   const TYPES = FF.TYPES = { title: 'Titel', frame: 'Kartenrahmen', trail: 'Truppen-Spur', banner: 'Banner-Design' };
@@ -123437,8 +123555,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   FF.doorState = function (day, n) {
     const c = calNow(n);
     if (c.open.indexOf(day) >= 0) return 'open';
-    if (FF.mode() === 'on') return 'ready';   // test / video mode: every door
-    if (!FF.active(n)) return 'preview';
+    if (devAll) return 'ready';   // internal test hook (FF.devAll), never a player setting
+    if (!FF.inSeason(n)) return 'preview';
     return new Date(nowOf(n)).getDate() >= day ? 'ready' : 'locked';
   };
   /** Doors that can be opened now. */
@@ -123480,9 +123598,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   const GIFT_SVG = '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="3.5" y="9" width="17" height="12" rx="1.6" fill="#e8413a" stroke="#241603" stroke-width="1.5"/>' +
     '<rect x="2.5" y="6.5" width="19" height="4" rx="1.2" fill="#ff5d52" stroke="#241603" stroke-width="1.5"/><path d="M10.4 6.5h3.2v14.5h-3.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/>' +
     '<path d="M12 6.4C10.6 3.2 7 3 7.3 5.2 7.6 6.8 10.6 6.6 12 6.4zM12 6.4c1.4-3.2 5-3.4 4.7-1.2-.3 1.6-3.3 1.4-4.7 1.2z" fill="#ffd34a" stroke="#241603" stroke-width="1.2"/></svg>';
-  const HAT_SVG = '<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 38C14 18 30 4 48 8c6 1.4 9 7 7 13-2-4-6-6-10-5-8 3-12 13-13 24z" fill="#e3322c" stroke="#3a0b08" stroke-width="2.5" stroke-linejoin="round"/>' +
-    '<path d="M44 16c2-3 7-4 9 0" fill="none" stroke="#ff8a7a" stroke-width="2" stroke-linecap="round" opacity=".7"/>' +
-    '<rect x="2" y="34" width="38" height="11" rx="5.5" fill="#fff" stroke="#3a0b08" stroke-width="2.5" transform="rotate(-8 21 39)"/><circle cx="56" cy="22" r="6.5" fill="#fff" stroke="#3a0b08" stroke-width="2.5"/></svg>';
   const TYPE_ICO = {
     title: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 7h16v10H4z" fill="#ffd34a" stroke="#241603" stroke-width="1.6"/><path d="M7 11h10M7 14h6" stroke="#241603" stroke-width="1.6" stroke-linecap="round"/></svg>',
     frame: '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="#2a4a8a" stroke="#bfe9ff" stroke-width="2.6"/><path d="M8 7h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -123492,24 +123607,16 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
   const CSS = [
     // menu snow overlay: three tiled layers moved by exactly one tile (compositor only)
-    '.ff-snow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6}',
+    '.ff-snow{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6;opacity:.8}',
     '.ff-snow i{position:absolute;left:0;right:0;will-change:transform;animation:ff-fall linear infinite}',
     '.ff-snow i:nth-child(1){top:-170px;height:calc(100% + 170px);--ffd:170px;animation-duration:11s;opacity:.85;background-size:150px 170px;background-image:radial-gradient(circle at 22px 30px,#fff 0 1.9px,transparent 2.8px),radial-gradient(circle at 96px 92px,#fff 0 1.5px,transparent 2.4px),radial-gradient(circle at 60px 148px,#fff 0 2.2px,transparent 3.1px),radial-gradient(circle at 128px 18px,#f0f8ff 0 1.3px,transparent 2.2px)}',
     '.ff-snow i:nth-child(2){top:-230px;height:calc(100% + 230px);--ffd:230px;animation-duration:17s;opacity:.6;background-size:210px 230px;background-image:radial-gradient(circle at 40px 60px,#fff 0 1.2px,transparent 2px),radial-gradient(circle at 150px 130px,#fff 0 1px,transparent 1.8px),radial-gradient(circle at 100px 200px,#eaf6ff 0 1.3px,transparent 2.1px),radial-gradient(circle at 190px 30px,#fff 0 .9px,transparent 1.7px)}',
     '.ff-snow i:nth-child(3){top:-120px;height:calc(100% + 120px);--ffd:120px;animation-duration:7.5s;opacity:.9;background-size:190px 120px;background-image:radial-gradient(circle at 30px 80px,#fff 0 2.6px,transparent 3.6px),radial-gradient(circle at 140px 20px,#fff 0 2.2px,transparent 3.2px)}',
     '@keyframes ff-fall{from{transform:translate3d(0,0,0)}to{transform:translate3d(-14px,var(--ffd),0)}}',
     '@media (prefers-reduced-motion:reduce){.ff-snow i{animation:none}}',
-    '.ff-menu .mm-top{position:relative}',
-    '.ff-menu .mm-top::after{content:"";position:absolute;left:-14px;right:-14px;bottom:-7px;height:10px;pointer-events:none;background:radial-gradient(ellipse at 10% 0,#fff 0 55%,transparent 58%) 0 0/34px 10px repeat-x;opacity:.9;filter:drop-shadow(0 1px 0 rgba(120,170,220,.6))}',
-    '.ff-logo{position:relative}',
-    '.ff-hat{position:absolute;left:-.34em;top:-.52em;width:.95em;height:.72em;transform:rotate(-14deg);pointer-events:none;z-index:2;-webkit-text-fill-color:initial}',
-    '.ff-hat svg{width:100%;height:100%;display:block}',
-    '.mm-brand .ff-hat{left:-.42em;top:-.5em;width:1.05em;height:.8em}',
     '.ff-gift{position:relative}',
+    '.ff-vig{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(130% 75% at 50% 48%,transparent 52%,rgba(46,24,110,.4) 100%),linear-gradient(180deg,rgba(40,30,110,.3),transparent 20%,transparent 78%,rgba(40,30,110,.28))}',
     '.ff-gift .ff-dot{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e8413a;color:#fff;font:900 10.5px/16px var(--font-ui,sans-serif);box-shadow:0 0 0 2px #241603;text-align:center}',
-    // event chip of the season
-    '.ev-chip.ev-frost{background:linear-gradient(180deg,#5fb7f0,#2a6fc0);box-shadow:inset 0 2px 0 rgba(255,255,255,.45),0 3px 0 #173f78}',
-    '.ev-chip.ev-frost .ev-tag{background:linear-gradient(180deg,#fff,#cfe9ff);color:#1d4a80}',
     '.ev-strip.is-three .ev-name{font-size:12px}',
     // player plate (title + banner design)
     '.ff-plate{position:absolute;left:0;top:2px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 12px 9px 10px;min-width:96px;max-width:58%;color:#fff;border-radius:6px 6px 2px 2px;clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);pointer-events:none;background:linear-gradient(180deg,#3d5f9e,#22386a)}',
@@ -123532,17 +123639,23 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '.ff-cal .mm-sheet-body,.ff-cal .ff-cal-body{overflow-y:auto;max-height:calc(var(--vh,1vh)*100 - 170px)}',
     '.ff-cal-note{margin:2px 2px 8px;font-size:13px;color:rgba(255,255,255,.85)}',
     '.ff-cal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}',
-    '.ff-door{position:relative;min-height:66px;border-radius:10px;border:0;padding:6px 5px 5px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;font:inherit;background:linear-gradient(180deg,#2f5a9a,#1c3766);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #0d1d3c;overflow:hidden}',
-    '.ff-door .ff-n{position:absolute;left:6px;top:3px;font:900 17px/1 var(--font-display,sans-serif);color:#fff;text-shadow:0 2px 0 #0d1d3c}',
+    '.ff-door{position:relative;min-height:66px;border-radius:10px;border:0;padding:6px 5px 5px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;font:inherit;background:linear-gradient(180deg,#c22f2c,#7e1418);box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #3c0709;overflow:hidden}',
+    '.ff-door:nth-child(even){background:linear-gradient(180deg,#2a8a4e,#13502c);box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 rgba(255,255,255,.25),0 3px 0 #082a16}',
+    '.ff-door::before{content:"";position:absolute;left:3px;right:3px;top:-3px;height:9px;background:var(--ff-snow) 0 0/30px 9px repeat-x}',
+    '.ff-door .ff-n{position:absolute;left:6px;top:5px;font:900 17px/1 var(--font-display,sans-serif);color:#ffd96a;text-shadow:0 2px 0 #3a1a00}',
     '.ff-door .ico{width:24px;height:24px}',
     '.ff-door .ff-rw{font-size:10.5px;line-height:1.1;font-weight:800;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.ff-door .ff-rt{font-size:9px;opacity:.75;line-height:1}',
-    '.ff-door.is-ready{background:linear-gradient(180deg,#e8413a,#a51d18);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 3px 0 #5a0d08,0 0 12px rgba(255,210,80,.7);animation:ff-pulse 1.4s ease-in-out infinite}',
-    '.ff-door.is-ready::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:7px;margin-left:-3.5px;background:#ffd34a;box-shadow:0 0 0 1px #6a3a00}',
-    '.ff-door.is-ready .ff-rw{position:relative;z-index:1;background:#ffd34a;color:#4a2a00;border-radius:5px;padding:1px 5px}',
-    '.ff-door.is-open{background:linear-gradient(180deg,#e9f4ff,#bcd8f2);color:#173a66;box-shadow:inset 0 2px 0 #fff,0 3px 0 #6a8fb8}',
-    '.ff-door.is-open .ff-n{color:#2a5a96;text-shadow:none;font-size:13px}',
-    '.ff-door.is-locked,.ff-door.is-preview{opacity:.62}',
+    '.ff-door.is-ready{background:linear-gradient(180deg,#ffe48a,#e9a91f);color:#4a2a00;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #7a4a00,0 0 12px rgba(255,210,80,.8);animation:ff-pulse 1.4s ease-in-out infinite}',
+    '.ff-door.is-ready::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:7px;margin-left:-3.5px;background:#d8262a;box-shadow:0 0 0 1px #6a0a0a}',
+    '.ff-door.is-ready .ff-n{color:#8a1a12;text-shadow:0 1px 0 #fff3b0}',
+    '.ff-door.is-ready .ff-rw{position:relative;z-index:1;background:#d8262a;color:#fff;border-radius:5px;padding:1px 5px}',
+    '.ff-door.is-open{background:linear-gradient(180deg,#f4f9ff,#cfe2f5);color:#173a66;box-shadow:inset 0 0 0 1.5px #e9b949,inset 0 2px 0 #fff,0 3px 0 #6a8fb8}',
+    '.ff-door.is-open .ff-n{color:#b3262a;text-shadow:none;font-size:13px}',
+    '.ff-door.is-locked,.ff-door.is-preview{filter:saturate(.75) brightness(.9)}',
+    '.ff-door.is-locked::after,.ff-door.is-preview::after{content:"";position:absolute;right:5px;top:6px;width:11px;height:13px;opacity:.9;background:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 11 13%27%3E%3Cpath d=%27M2.5 6V4a3 3 0 016 0v2%27 fill=%27none%27 stroke=%27%23ffd96a%27 stroke-width=%271.6%27/%3E%3Crect x=%271%27 y=%276%27 width=%279%27 height=%276.5%27 rx=%271.4%27 fill=%27%23ffd96a%27/%3E%3C/svg%3E") center/contain no-repeat}',
+    '.ff-cal .sheet-title{position:relative;padding-bottom:16px}',
+    '.ff-cal .sheet-title::after{content:"";position:absolute;left:-14px;right:-14px;bottom:-12px;height:26px;background:var(--ff-gar) 0 0/72px 26px repeat-x;pointer-events:none}',
     '.ff-door.is-new{animation:ff-pop .5s cubic-bezier(.2,.9,.3,1.4)}',
     '@keyframes ff-pulse{50%{transform:translateY(-2px)}}',
     '@keyframes ff-pop{from{transform:scale(.6) rotate(-6deg)}}',
@@ -123556,7 +123669,6 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     '.ff-eq b{display:block;font-size:12.5px;line-height:1.15}',
     '.ff-cal-prev{position:relative;height:46px;margin:4px 0 2px}',
     '.ff-cal-prev .ff-plate{max-width:100%}',
-    '.set-frost .seg{margin-bottom:6px}',
   ].join('\n');
 
   let cssDone = false;
@@ -123604,7 +123716,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     if (!t && !b) return null;
     const rt = t ? rewardOf('title', t) : null;
     return hh('div', { class: 'ff-plate ff-node' + (b ? ' ff-bn-' + b : ''), 'aria-label': 'Titel' }, [
-      hh('b', null, rt ? rt.name : 'Frost-Fest'),
+      hh('b', null, rt ? rt.name : 'Weihnachten'),
       name ? hh('span', null, name) : null,
     ]);
   }
@@ -123622,22 +123734,13 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     ensureCss();
     const old = el.querySelectorAll('.ff-node');
     for (let i = 0; i < old.length; i++) if (old[i].parentNode) old[i].parentNode.removeChild(old[i]);
-    const logos = el.querySelectorAll('.logo');
-    const on = FF.active();
-    el.classList.toggle('ff-menu', on);
-    for (let i = 0; i < logos.length; i++) logos[i].classList.toggle('ff-logo', on);
-    const name = ownName(app);
+    el.classList.add('ff-menu');
+    const pl = plate(ownName(app));
     const hero = el.querySelector('.mm-hero');
-    const pl = plate(name);
     if (pl && hero) hero.appendChild(pl);
-    if (!on) return;
-    const snow = hh('div', { class: 'ff-snow ff-node', 'aria-hidden': 'true' }, [hh('i'), hh('i'), hh('i')]);
-    el.appendChild(snow);
-    for (let i = 0; i < logos.length; i++) {
-      const hat = hh('span', { class: 'ff-hat ff-node', 'aria-hidden': 'true' });
-      hat.innerHTML = HAT_SVG;
-      logos[i].insertBefore(hat, logos[i].firstChild);
-    }
+    el.appendChild(hh('div', { class: 'ff-snow ff-node', 'aria-hidden': 'true' }, [hh('i'), hh('i'), hh('i')]));
+    const fb = el.querySelector('.btn-fight');
+    if (fb) fb.appendChild(hh('span', { class: 'ff-cap ff-node', 'aria-hidden': 'true' }));
     const icons = el.querySelector('.mm-icons');
     if (icons) {
       const n = FF.readyCount();
@@ -123667,9 +123770,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const eq = hh('div', { class: 'ff-eq' });
     const prev = hh('div', { class: 'ff-cal-prev' });
     const note = hh('p', { class: 'ff-cal-note' },
-      FF.mode() === 'on' && !FF.inSeason(n) ? 'Testmodus: Alle Türchen lassen sich sofort öffnen.'
-        : (FF.active(n) ? 'Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.'
-          : 'Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.'));
+      FF.inSeason(n) ? 'Jeden Tag ein Türchen – vom 1. bis 24. Dezember. Nur Deko, kein Gold.'
+        : 'Der Adventskalender öffnet am 1. Dezember. Hier eine Vorschau der Belohnungen.');
     function door(d) {
       const st = FF.doorState(d, n), rw = REWARDS[d - 1];
       const kids = [hh('span', { class: 'ff-n' }, String(d))];
@@ -123720,7 +123822,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const sh = hh('div', { class: 'sheet mm-sheet ff-cal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Adventskalender' }, [
       hh('div', { class: 'sheet-grip', 'aria-hidden': 'true' }),
       title,
-      hh('div', { class: 'ff-cal-body' }, [note, grid, msg, hh('div', { class: 'ff-cal-sect' }, 'Deine Frost-Belohnungen'), prev, eq]),
+      hh('div', { class: 'ff-cal-body' }, [note, grid, msg, hh('div', { class: 'ff-cal-sect' }, 'Deine Weihnachts-Belohnungen'), prev, eq]),
       done,
     ]);
     const back = hh('div', { class: 'sheet-backdrop mm-sheet-back ff-cal-back' }, sh);
@@ -123739,31 +123841,21 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     return api;
   };
 
-  // ---- settings row "Frost-Fest: Auto / An / Aus" + calendar button
+  // ---- settings row: the advent calendar (v42: the "Frost-Fest: Auto / An / Aus" switch is gone)
   function addSettingsRow(app, res) {
     const back = res && res.el;
     const sheet = back && back.querySelector ? back.querySelector('.sheet-settings') || back.querySelector('.sheet') : null;
     if (!sheet) return;
-    const seg = P().segmented;
-    const sect = hh('div', { class: 'set-sect' }, 'Frost-Fest');
-    let ctl;
-    if (typeof seg === 'function') {
-      ctl = seg([{ id: 'auto', label: 'Auto' }, { id: 'on', label: 'An' }, { id: 'off', label: 'Aus' }], FF.mode(),
-        function (id) { FF.setMode(id); }, 'seg seg-sm seg-frost').el;
-    } else ctl = hh('span');
+    const sect = hh('div', { class: 'set-sect' }, 'Weihnachten');
     const cal = hh('button', { type: 'button', class: 'btn btn-blue btn-sm ff-set-cal' }, 'Adventskalender');
     cal.addEventListener('click', function () {
       try { if (res && typeof res.close === 'function') res.close(); } catch (e) { /* ignore */ }
       FF.openCalendar(app);
     });
-    const lab = hh('div', { class: 'set-label' }, ['Winter-Thema']);
+    const lab = hh('div', { class: 'set-label' }, ['Adventskalender']);
     lab.insertBefore(svgEl(SNOWFLAKE_SVG), lab.firstChild);
-    const row = hh('div', { class: 'set-row set-frost' }, [
-      lab,
-      ctl,
-      cal,
-      hh('div', { class: 'hint set-note' }, 'Auto = vom 1. bis 31. Dezember: Schnee, Lichterketten und Adventskalender. An = sofort (zum Testen und für Videos). Aus = nie.'),
-    ]);
+    const row = hh('div', { class: 'set-row set-frost' }, [lab, cal,
+      hh('div', { class: 'hint set-note' }, 'Jeden Tag im Dezember (1. bis 24.) ein Türchen mit Weihnachts-Deko.')]);
     const sects = sheet.querySelectorAll('.set-sect');
     let anchor = null;
     for (let i = 0; i < sects.length; i++) if (/Hilfe|Help/.test(sects[i].textContent)) anchor = sects[i];
@@ -123798,25 +123890,38 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 
   // ------------------------------------------------------------------ 3D arena
-  const U = { on: { value: 0 }, t: { value: 0 }, px: { value: 600 } };
+  // crFfX = 1: the classic map's Christmas arena (closed snow cover), 0: the v41 winter look (drifts)
+  const U = { on: { value: 0 }, t: { value: 0 }, px: { value: 600 }, x: { value: 0 } };
   FF.uniforms = U;
   const SNOW_VS = 'vec4 crFfP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\ncrFfP = instanceMatrix * crFfP;\n#endif\ncrFfW = (modelMatrix * crFfP).xyz;';
-  const SNOW_FC = 'varying vec3 crFfW;\nuniform float crFfOn;\n' +
-    'float crFfH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
+  const NOISE = 'float crFfH(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\n' +
     'float crFfN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);\n' +
-    '  return mix(mix(crFfH(i), crFfH(i + vec2(1.0, 0.0)), f.x), mix(crFfH(i + vec2(0.0, 1.0)), crFfH(i + vec2(1.0, 1.0)), f.x), f.y); }\n' +
-    // ground (y ~ 0): soft drifts on about a third of the field; raised surfaces (wall tops, roofs): nearly full
+    '  return mix(mix(crFfH(i), crFfH(i + vec2(1.0, 0.0)), f.x), mix(crFfH(i + vec2(0.0, 1.0)), crFfH(i + vec2(1.0, 1.0)), f.x), f.y); }\n';
+  const SNOW_FC = 'varying vec3 crFfW;\nuniform float crFfOn, crFfX;\n' + NOISE +
+    // v41 (other maps): soft drifts on about a third of the ground; raised surfaces nearly full
     'float crFfSnow(float up) { vec2 p = mat2(0.8, -0.6, 0.6, 0.8) * crFfW.xz;\n' +
     '  float n = crFfN(p * 0.42) * 0.55 + crFfN(p * 1.15 + 7.3) * 0.3 + crFfN(p * 3.3 + 1.7) * 0.15;\n' +
     '  float g = smoothstep(0.15, 0.6, crFfW.y);\n' +
     '  float th = mix(0.55, 0.3, g);\n' +
-    '  return smoothstep(0.55, 0.85, up) * smoothstep(th, th + 0.1, n) * mix(0.72, 0.95, g); }';
+    '  return smoothstep(0.55, 0.85, up) * smoothstep(th, th + 0.1, n) * mix(0.72, 0.95, g); }\n' +
+    // v42 (classic): grass (green-dominant) -> snow, keeps the tile checker; the rest -> packed snow
+    'float crFfG(vec3 c) { return smoothstep(0.012, 0.06, c.g - max(c.r * 0.9, c.b * 1.15)); }\n' +
+    'vec3 crFfS(vec3 c) { float n = crFfN(crFfW.xz * 0.28 + 3.1), m = crFfN(crFfW.xz * 1.3);\n' +
+    '  vec3 s = mix(vec3(0.43, 0.46, 0.72), vec3(0.62, 0.66, 0.86), smoothstep(0.2, 0.8, n));\n' +
+    '  return s * clamp(0.82 + 0.3 * c.g, 0.96, 1.02) * (0.97 + 0.06 * m) * (crFfW.z > 0.0 ? 1.0 : 0.95); }\n' +
+    'vec3 crFfK(vec3 c) { float l = dot(c, vec3(0.3, 0.59, 0.11)); return mix(c, vec3(l) * vec3(1.18, 0.98, 0.8) + vec3(0.04, 0.03, 0.03), 0.55) * vec3(0.86, 0.85, 0.97); }';
   const SNOW_LIT = 'if (crFfOn > 0.5) { float crUp = dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz));\n' +
-    '  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), crFfSnow(crUp)); }';
-  const SNOW_FLAT = 'if (crFfOn > 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 1.0), crFfSnow(1.0));';
+    '  if (crFfX > 0.5) { vec3 c0 = diffuseColor.rgb; float hi = smoothstep(0.1, 0.35, crFfW.y);\n' +
+    '    float a = max(smoothstep(0.86, 0.97, crUp) * hi, smoothstep(0.5, 0.8, crUp) * crFfG(c0) * (1.0 - smoothstep(0.1, 0.2, crFfW.y)));\n' +
+    '    a = max(a, smoothstep(0.55, 0.85, crUp) * hi * smoothstep(0.5, 0.7, crFfN(crFfW.xz * 1.6 + crFfW.y * 3.0)) * 0.8);\n' +
+    '    diffuseColor.rgb = mix(c0, vec3(0.6, 0.64, 0.8) + crFfN(crFfW.xz * 2.0) * 0.04, a * 0.94);\n' +
+    '#ifndef CR_FF_NODUSK\n    diffuseColor.rgb *= vec3(0.56, 0.58, 0.86);\n#endif\n  }\n' +
+    '  else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), crFfSnow(crUp)); }';
+  const SNOW_FLAT = 'if (crFfOn > 0.5) { if (crFfX > 0.5) { vec3 c0 = diffuseColor.rgb; diffuseColor.rgb = mix(crFfK(c0), crFfS(c0), crFfG(c0)); }\n' +
+    '  else diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.9, 0.94, 1.0), crFfSnow(1.0)); }';
 
   function snowKind(m) {
-    if (!m || m.isShaderMaterial || m.isRawShaderMaterial || m.userData.crFfNo) return '';
+    if (!m || m.isShaderMaterial || m.isRawShaderMaterial || m.userData.crFfNo || m.userData.crShared) return '';
     if (m.transparent || m.blending !== 1) return '';
     const X = CR.GFX;
     if (X && X.toonMaterial === m) return '';   // shared with the troops
@@ -123824,7 +123929,7 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     if (m.isMeshBasicMaterial && m.map) return 'flat';
     return '';
   }
-  function snowify(m, kind) {
+  function snowify(m, kind, noDusk) {
     if (m.userData.crFf) return;
     m.userData.crFf = kind;
     const prev = m.onBeforeCompile;
@@ -123836,12 +123941,13 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       const anchor = kind === 'lit' ? '#include <normal_fragment_maps>' : '#include <color_fragment>';
       if (sh.fragmentShader.indexOf(anchor) < 0) return;
       sh.uniforms.crFfOn = U.on;
+      sh.uniforms.crFfX = U.x;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 crFfW;')
         .replace('#include <project_vertex>', '#include <project_vertex>\n' + SNOW_VS);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + SNOW_FC)
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', (noDusk ? '#define CR_FF_NODUSK\n' : '') + '#include <common>\n' + SNOW_FC)
         .replace(anchor, anchor + '\n' + (kind === 'lit' ? SNOW_LIT : SNOW_FLAT));
     };
-    m.customProgramCacheKey = function () { return (ownKey ? ownKey.call(this) : prevSrc) + '|crff1' + kind; };
+    m.customProgramCacheKey = function () { return (ownKey ? ownKey.call(this) : prevSrc) + '|crff3' + kind + (noDusk ? 'n' : ''); };
     m.needsUpdate = true;
   }
   function snowArena(r) {
@@ -123852,48 +123958,116 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
       for (let i = 0; i < ms.length; i++) { const k = snowKind(ms[i]); if (k) snowify(ms[i], k); }
     });
   }
+  /** v42: a snowy twin of the shared model material (CR.GFX.material) for the tower BODY meshes of
+   *  the Christmas arena; same uniforms / shader patch / hurt-flash path, plus the snow. Troops and
+   *  tower crews keep the original material. */
+  let towerMat = null;
+  function snowTowerMat() {
+    const B = CR.GFX && CR.GFX.material;
+    if (towerMat || !B || typeof B.clone !== 'function') return towerMat;
+    const m = B.clone();
+    m.userData = { crU: B.userData.crU, crShared: true };
+    m.onBeforeCompile = B.onBeforeCompile;
+    m.customProgramCacheKey = B.customProgramCacheKey;
+    snowify(m, 'lit', true);
+    towerMat = m;
+    return m;
+  }
+  function towerMeshes(tm) {
+    const crew = new Set(), out = [];
+    const add = function (o, set) { if (o && typeof o.traverse === 'function') o.traverse(function (x) { if (x.isMesh) set.add(x); }); };
+    [tm.crewMeshes, tm.crew2Meshes].forEach(function (l) { if (l) for (let i = 0; i < l.length; i++) crew.add(l[i]); });
+    [tm.crew, tm.crew2, tm.crewInst && tm.crewInst.object3d, tm.crew2Inst && tm.crew2Inst.object3d].forEach(function (o) { add(o, crew); });
+    const body = new Set();
+    if (tm.bodyMeshes) for (let i = 0; i < tm.bodyMeshes.length; i++) body.add(tm.bodyMeshes[i]);
+    add(tm.body, body); add(tm.bodyInst && tm.bodyInst.object3d, body);
+    body.forEach(function (x) { if (!crew.has(x)) out.push(x); });
+    return out;
+  }
+  /** Keeps the snowy material on the tower bodies (a hurt flash swaps in its own material and back). */
+  function snowTowers(r, st) {
+    const B = CR.GFX && CR.GFX.material, M = snowTowerMat();
+    if (!B || !M) return;
+    // (the siege town halls keep their team colours: no snow on them)
+    if (!st.tw) st.tw = (r._towerList || []).map(function (tm) { return tm.sg && tm.king ? [] : towerMeshes(tm); });
+    for (let i = 0; i < st.tw.length; i++) for (let k = 0; k < st.tw[i].length; k++) if (st.tw[i][k].material === B) st.tw[i][k].material = M;
+  }
+  function unsnowTowers(st) {
+    const B = CR.GFX && CR.GFX.material;
+    if (!st.tw || !B) return;
+    for (let i = 0; i < st.tw.length; i++) for (let k = 0; k < st.tw[i].length; k++) if (st.tw[i][k].material === towerMat) st.tw[i][k].material = B;
+  }
 
-  // ---- points (snowflakes, bulbs): one shader, per-point colour / phase / size
-  const PT_VS = 'attribute vec3 color; attribute vec2 aP; uniform float uT, uPx, uSize, uFall, uH; varying vec3 vC; varying float vA;\n' +
+  // ---- points: uM 0 = blinking bulbs, 1 = falling snow, 2 = fir garland (solid tufts), 3 = warm windows
+  const PT_VS = 'attribute vec3 color; attribute vec2 aP; uniform float uT, uPx, uSize, uM, uH; varying vec3 vC; varying float vA;\n' +
     'void main() { vec3 p = position;\n' +
-    '  if (uFall > 0.5) { p.y = mod(aP.x * uH - uT * aP.y, uH); p.x += sin(uT * 0.8 + aP.x * 40.0) * 0.35; p.z += cos(uT * 0.6 + aP.x * 23.0) * 0.25; vA = 0.55 + 0.45 * fract(aP.x * 7.0); }\n' +
+    '  if (uM == 1.0) { p.y = mod(aP.x * uH - uT * aP.y, uH); p.x += sin(uT * 0.8 + aP.x * 40.0) * 0.35; p.z += cos(uT * 0.6 + aP.x * 23.0) * 0.25; vA = 0.55 + 0.45 * fract(aP.x * 7.0); }\n' +
+    '  else if (uM == 3.0) vA = 0.86 + 0.14 * sin(uT * 1.3 + aP.x * 5.0);\n' +
     '  else vA = 0.55 + 0.45 * sin(uT * 2.2 + aP.x);\n' +
     '  vC = color; vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;\n' +
-    '  gl_PointSize = max(1.5, uSize * (uFall > 0.5 ? 0.6 + fract(aP.x * 5.0) * 0.8 : aP.y) * uPx / -mv.z); }';
-  const PT_FS = 'uniform float uOn, uFall; varying vec3 vC; varying float vA;\n' +
+    '  gl_PointSize = max(1.5, uSize * (uM == 1.0 ? 0.6 + fract(aP.x * 5.0) * 0.8 : aP.y) * uPx / -mv.z); }';
+  const PT_FS = 'uniform float uOn, uM; varying vec3 vC; varying float vA;\n' +
     'void main() { vec2 c = gl_PointCoord - 0.5; float d = length(c); if (d > 0.5 || uOn < 0.5) discard;\n' +
     '  float core = smoothstep(0.5, 0.18, d);\n' +
-    '  if (uFall > 0.5) { gl_FragColor = vec4(1.0, 1.0, 1.0, core * vA * 0.9); return; }\n' +
-    '  float hot = smoothstep(0.26, 0.0, d); vec3 c3 = mix(vC * (0.55 + 0.6 * vA), vec3(1.0, 0.98, 0.9), hot * vA);\n' +
-    '  gl_FragColor = vec4(c3, max(hot, core * 0.55 * vA)); }';
-  function pointsMat(T, fall, size) {
-    return new T.ShaderMaterial({
-      uniforms: { uOn: U.on, uT: U.t, uPx: U.px, uSize: { value: size }, uFall: { value: fall ? 1 : 0 }, uH: { value: 12 } },
-      vertexShader: PT_VS, fragmentShader: PT_FS, transparent: true, depthWrite: false,
-    });
-  }
-  function pointsObj(T, st, pos, col, ph, fall, size) {
+    '  if (uM == 1.0) { gl_FragColor = vec4(1.0, 1.0, 1.0, core * vA * 0.9); return; }\n' +
+    '  if (uM == 2.0) { if (d > 0.46) discard; gl_FragColor = vec4(vC * (1.05 - c.y * 0.9 - d * 0.5), 1.0); return; }\n' +
+    '  if (uM == 3.0) { float q = 1.0 - smoothstep(0.13, 0.17, max(abs(c.x), abs(c.y))); float h = (1.0 - 2.0 * d) * (1.0 - 2.0 * d);\n' +
+    '    gl_FragColor = vec4((vC * h * 0.5 + vC * vec3(1.0, 0.85, 0.6) * q) * vA, 1.0); return; }\n' +
+    '  float hot = smoothstep(0.2, 0.0, d), halo = (1.0 - 2.0 * d) * (1.0 - 2.0 * d);\n' +
+    '  gl_FragColor = vec4((vC * halo * 0.75 + mix(vC, vec3(1.0, 0.97, 0.85), 0.6) * hot) * (0.45 + 0.75 * vA), 1.0); }';
+  function pointsObj(T, st, pos, col, ph, mode, size) {
     const g = new T.BufferGeometry();
     g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
     g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
     g.setAttribute('aP', new T.Float32BufferAttribute(ph, 2));
-    const m = pointsMat(T, fall, size);
+    const m = new T.ShaderMaterial({
+      uniforms: { uOn: U.on, uT: U.t, uPx: U.px, uSize: { value: size }, uM: { value: mode }, uH: { value: 12 } },
+      vertexShader: PT_VS, fragmentShader: PT_FS, transparent: mode !== 2, depthWrite: mode === 2, blending: mode === 0 || mode === 3 ? T.AdditiveBlending : T.NormalBlending,
+    });
     st.geos.push(g); st.mats.push(m);
     const p = new T.Points(g, m);
     p.frustumCulled = false;
-    p.renderOrder = fall ? 9 : 5;
+    p.renderOrder = mode === 1 ? 9 : 5;
     return p;
   }
   function rnd(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
+  // ---- river ice (v42 classic): floes along both banks, open water in the middle, drifting slowly
+  const ICE_VS = 'varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }';
+  const ICE_FS = 'varying vec3 vW; uniform float uOn, uT, uZ0, uZ1;\n' + NOISE +
+    'void main() { if (uOn < 0.5) discard; float d = min(vW.z - uZ0, uZ1 - vW.z) / (uZ1 - uZ0);\n' +
+    '  vec2 p = vec2(vW.x * 0.8 + uT * 0.05, vW.z * 1.9);\n' +
+    '  float n = crFfN(p) * 0.62 + crFfN(p * 2.7 + 3.1) * 0.38;\n' +
+    '  float th = mix(0.2, 0.56, smoothstep(0.1, 0.46, d)); float a = smoothstep(th, th + 0.035, n);\n' +
+    '  if (a < 0.02) discard;\n' +
+    '  vec3 c = mix(vec3(0.66, 0.82, 0.95), vec3(0.9, 0.96, 1.0), smoothstep(th, th + 0.28, n));\n' +
+    '  c = mix(c, vec3(1.0), (1.0 - smoothstep(th + 0.035, th + 0.1, n)) * 0.55);\n' +
+    '  c *= 1.0 - 0.18 * smoothstep(0.035, 0.0, abs(crFfN(vW.xz * 4.3) - 0.5));\n' +
+    '  gl_FragColor = vec4(c, a * 0.96); }';
+  function iceObj(r, st) {
+    const T = r.T, z0 = r._zr0, z1 = r._zr1;
+    const g = new T.PlaneGeometry((r.W || 18) + 12, z1 - z0, 1, 1);
+    g.rotateX(-Math.PI / 2);
+    g.translate(0, -0.3, (z0 + z1) / 2);
+    const m = new T.ShaderMaterial({ uniforms: { uOn: U.on, uT: U.t, uZ0: { value: z0 }, uZ1: { value: z1 } }, vertexShader: ICE_VS, fragmentShader: ICE_FS, transparent: true, depthWrite: false });
+    st.geos.push(g); st.mats.push(m);
+    const o = new T.Mesh(g, m);
+    o.renderOrder = 2;
+    return o;
+  }
+
   const WREATH_Y = 0.36;
-  const BULB = [[1, 0.25, 0.22], [1, 0.8, 0.25], [0.25, 1, 0.45], [0.3, 0.7, 1], [1, 0.95, 0.8]];
-  /** String lights collector: wire segments + bulbs along sagging chains. */
-  function Lights() { this.wire = []; this.pos = []; this.col = []; this.ph = []; this.k = 0; }
+  const BULB = [[1, 0.18, 0.12], [1, 0.72, 0.1], [0.2, 1, 0.35], [0.25, 0.55, 1], [1, 0.45, 0.08]];
+  /** String lights collector: wire segments + bulbs along sagging chains (+ fir garland tufts). */
+  function Lights() { this.wire = []; this.pos = []; this.col = []; this.ph = []; this.k = 0; this.gp = []; this.gc = []; this.gs = []; this.gar = false; }
   Lights.prototype.bulb = function (x, y, z, sz) {
     const c = BULB[this.k % BULB.length];
     this.pos.push(x, y, z); this.col.push(c[0], c[1], c[2]); this.ph.push((this.k * 2.39) % 6.283, sz || 1);
     this.k++;
+  };
+  Lights.prototype.tuft = function (x, y, z) {
+    const v = (this.gp.length * 0.618) % 1;
+    this.gp.push(x, y, z); this.gc.push(0.08 + v * 0.05, 0.3 + v * 0.12, 0.13 + v * 0.05); this.gs.push(v * 6, 0.8 + v * 0.4);
   };
   /** Chain from a to b with sag (world units) and a bulb every `step`. */
   Lights.prototype.chain = function (ax, ay, az, bx, by, bz, sag, step) {
@@ -123903,14 +124077,19 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     for (let i = 1; i <= n; i++) {
       const t = i / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t, y = ay + (by - ay) * t - sag * 4 * t * (1 - t);
       this.wire.push(px, py, pz, x, y, z);
+      if (this.gar) for (let k = 0; k < 3; k++) { const f = k / 3; this.tuft(px + (x - px) * f, py + (y - py) * f + 0.02, pz + (z - pz) * f); }
       if (i < n) this.bulb(x, y - 0.03, z);
       px = x; py = y; pz = z;
     }
   };
   /** Chain along a list of anchor points (each span sags). */
+  Lights.prototype.bow = function (x, y, z) {
+    for (let k = 0; k < 4; k++) { this.gp.push(x + (k - 1.5) * 0.07, y + (k % 3 ? 0.03 : -0.06), z); this.gc.push(0.78, 0.06, 0.07); this.gs.push(0, k % 3 ? 1.1 : 0.8); }
+  };
   Lights.prototype.path = function (pts, sag, step) {
     for (let i = 0; i + 1 < pts.length; i++) {
       const a = pts[i], b = pts[i + 1];
+      if (this.gar) this.bow(a[0], a[1] + 0.03, a[2]);
       this.bulb(a[0], a[1] - 0.02, a[2], 1.15);
       this.chain(a[0], a[1], a[2], b[0], b[1], b[2], sag, step);
     }
@@ -123926,7 +124105,8 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     const wire = new T.LineSegments(wg, wm);
     wire.frustumCulled = false;
     group.add(wire);
-    group.add(pointsObj(T, st, this.pos, this.col, this.ph, false, 0.42));
+    if (this.gp.length) group.add(pointsObj(T, st, this.gp, this.gc, this.gs, 2, 0.2));
+    group.add(pointsObj(T, st, this.pos, this.col, this.ph, 0, this.gar ? 0.9 : 0.5));
   };
 
   /** Merged toon mesh from primitive parts [{ geo, color, x, y, z, ry, sx, sy, sz }]. */
@@ -123958,29 +124138,37 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     out.computeBoundingSphere();
     return out;
   }
-  function toonMat(r, st) {
-    const T = r.T;
-    if (st.toon) return st.toon;
+  /** Toon material of the decoration: snowy (trees, wreaths) or clean (presents, candy canes). */
+  function toonMat(r, st, clean) {
+    const T = r.T, k = clean ? 'toonC' : 'toon';
+    if (st[k]) return st[k];
     const m = new T.MeshToonMaterial({ vertexColors: true, gradientMap: r.gradient || null });
+    if (clean) m.userData.crFfNo = true;
     st.mats.push(m);
-    st.toon = m;
+    st[k] = m;
     return m;
+  }
+  function addMesh(r, st, parts, clean) {
+    if (!parts.length) return;
+    const g = mergeParts(r.T, parts);
+    st.geos.push(g);
+    st.group.add(new r.T.Mesh(g, toonMat(r, st, clean)));
   }
 
   /** A fir tree (three tiers + trunk + star) with bulbs, base at (x, y, z), height ~ 1.9 * s. */
   function tree(r, st, L, x, y, z, s) {
     const T = r.T;
-    const parts = [
+    const W = 0xeef4fb, P = [
       { geo: new T.CylinderGeometry(0.09, 0.12, 0.35, 7), color: 0x6b4325, x: x, y: y + 0.17 * s, z: z, sx: s, sy: s, sz: s },
-      { geo: new T.ConeGeometry(0.62, 0.8, 9), color: 0x1f6b3a, x: x, y: y + 0.65 * s, z: z, sx: s, sy: s, sz: s },
-      { geo: new T.ConeGeometry(0.48, 0.66, 9), color: 0x25804a, x: x, y: y + 1.05 * s, z: z, ry: 0.3, sx: s, sy: s, sz: s },
-      { geo: new T.ConeGeometry(0.32, 0.55, 9), color: 0x2c9455, x: x, y: y + 1.4 * s, z: z, ry: 0.6, sx: s, sy: s, sz: s },
       { geo: new T.OctahedronGeometry(0.12), color: 0xffd34a, x: x, y: y + 1.74 * s, z: z, ry: 0.4, sx: s, sy: s * 1.2, sz: s * 0.5 },
     ];
-    const g = mergeParts(T, parts);
-    st.geos.push(g);
-    const mesh = new T.Mesh(g, toonMat(r, st));
-    st.group.add(mesh);
+    const TI = [[0.62, 0.8, 0.65, 0x1f6b3a], [0.48, 0.66, 1.05, 0x25804a], [0.32, 0.55, 1.4, 0x2c9455]];
+    for (let i = 0; i < 3; i++) {
+      const t = TI[i];
+      P.push({ geo: new T.ConeGeometry(t[0], t[1], 9), color: t[3], x: x, y: y + t[2] * s, z: z, ry: i * 0.3, sx: s, sy: s, sz: s },
+        { geo: new T.ConeGeometry(t[0] * 0.55, t[1] * 0.5, 9), color: W, x: x, y: y + (t[2] + t[1] * 0.27) * s, z: z, ry: i * 0.3, sx: s, sy: s, sz: s });
+    }
+    addMesh(r, st, P, true);
     // bulbs spiralling down the tiers
     const R = [[0.55, 0.38], [0.42, 0.8], [0.28, 1.15]];
     for (let t = 0; t < R.length; t++) {
@@ -123994,18 +124182,44 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   /** A wreath facing world direction fz (+1 = +z) at centre (x, y, z), radius ~0.42 * s. */
   function wreath(r, st, L, x, y, z, fz, s) {
     const T = r.T, ry = fz > 0 ? 0 : Math.PI;
-    const parts = [
+    addMesh(r, st, [
       { geo: new T.TorusGeometry(0.36, 0.13, 7, 18), color: 0x1f6b3a, x: x, y: y, z: z, ry: ry, sx: s, sy: s, sz: s },
       { geo: new T.BoxGeometry(0.2, 0.16, 0.08), color: 0xd8302a, x: x - 0.1 * s, y: y - 0.33 * s, z: z + fz * 0.1 * s, ry: ry, rz: 0.5, sx: s, sy: s, sz: s },
       { geo: new T.BoxGeometry(0.2, 0.16, 0.08), color: 0xd8302a, x: x + 0.1 * s, y: y - 0.33 * s, z: z + fz * 0.1 * s, ry: ry, rz: -0.5, sx: s, sy: s, sz: s },
       { geo: new T.BoxGeometry(0.09, 0.09, 0.1), color: 0xb81f1a, x: x, y: y - 0.33 * s, z: z + fz * 0.12 * s, ry: ry, sx: s, sy: s, sz: s },
-    ];
-    const g = mergeParts(T, parts);
-    st.geos.push(g);
-    st.group.add(new T.Mesh(g, toonMat(r, st)));
+    ]);
     for (let i = 0; i < 10; i++) {
       const a = i / 10 * Math.PI * 2 + 0.3;
       L.bulb(x + Math.cos(a) * 0.36 * s * (fz > 0 ? 1 : -1), y + Math.sin(a) * 0.36 * s, z + fz * 0.13 * s, 0.7);
+    }
+  }
+  // presents: box colour, ribbon colour
+  const GIFTS = [[0xd8302a, 0xffd34a], [0x2f8a4a, 0xe8413a], [0x2f6fd0, 0xf4f4f4], [0xf2c230, 0xd8302a], [0xf2f2f2, 0xd8302a], [0x8a3fc0, 0xffd34a]];
+  /** A present (box, crossed ribbon, bow) into parts; base at (x, y, z), size s, rotation ry. */
+  function gift(T, P, x, y, z, s, ry, k) {
+    const c = GIFTS[k % GIFTS.length], h = s * (0.75 + (k % 3) * 0.15);
+    P.push({ geo: new T.BoxGeometry(s, h, s), color: c[0], x: x, y: y + h / 2, z: z, ry: ry },
+      { geo: new T.BoxGeometry(s * 1.03, h * 1.02, s * 0.2), color: c[1], x: x, y: y + h / 2, z: z, ry: ry },
+      { geo: new T.BoxGeometry(s * 0.2, h * 1.02, s * 1.03), color: c[1], x: x, y: y + h / 2, z: z, ry: ry },
+      { geo: new T.TorusGeometry(s * 0.17, s * 0.06, 4, 8), color: c[1], x: x, y: y + h + s * 0.12, z: z, ry: ry + 0.8, sz: 0.6 },
+      { geo: new T.TorusGeometry(s * 0.17, s * 0.06, 4, 8), color: c[1], x: x, y: y + h + s * 0.12, z: z, ry: ry - 0.8, sz: 0.6 });
+  }
+  /** A ring / pile of n presents around (x, z). */
+  function gifts(T, P, x, y, z, rad, n, s, seed) {
+    const R = rnd(seed);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + R() * 0.6;
+      gift(T, P, x + Math.cos(a) * rad, y, z + Math.sin(a) * rad, s * (0.75 + R() * 0.5), R() * 3, (seed + i) | 0);
+    }
+  }
+  /** A candy cane (red / white rings + hook) standing at (x, y, z), height ~0.95 * s, hook towards hx. */
+  function cane(T, P, x, y, z, s, hx) {
+    const N = 9, sh = 0.09 * s, rr = 0.055 * s;
+    for (let i = 0; i < N; i++) P.push({ geo: new T.CylinderGeometry(rr, rr, sh, 8), color: i & 1 ? 0xf6f2ee : 0xd8262a, x: x, y: y + sh * (i + 0.5), z: z, rz: (i & 1 ? 0.04 : -0.04) });
+    const top = y + sh * N, R0 = 0.13 * s;
+    for (let i = 0; i <= 6; i++) {
+      const a = Math.PI * i / 6;
+      P.push({ geo: new T.CylinderGeometry(rr, rr, sh * 0.85, 8), color: i & 1 ? 0xf6f2ee : 0xd8262a, x: x + hx * (R0 - Math.cos(a) * R0), y: top + Math.sin(a) * R0, z: z, rz: -hx * (Math.PI / 2 - a) });
     }
   }
 
@@ -124019,33 +124233,37 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
   }
 
   /** Builds the winter decoration of the current arena (lazily, on a frame of it). */
-  function buildFF(r) {
+  function buildFF(r, xm) {
     const T = r.T;
-    const st = r._ff = { arena: r.arena, group: new T.Group(), geos: [], mats: [], toon: null, towersDone: false, tries: 0 };
+    const st = r._ff = { arena: r.arena, group: new T.Group(), geos: [], mats: [], toon: null, toonC: null, towersDone: false, tries: 0, xm: xm, tw: null };
     st.group.name = 'frostFest';
     snowArena(r);
     const lq = !!(r._lq || r._weak);
-    // snowflakes in a box over the whole arena (+ the scenery around it)
-    const N = lq ? 150 : 360, R = rnd(4141), hw = r.hw || 9, hh = r.hh || 16;
+    // snowflakes in a box over the whole arena (+ the scenery around it); v42 classic: lighter fall
+    const N = (lq ? 150 : 360) * (xm ? 0.75 : 1), R = rnd(4141), hw = r.hw || 9, hh = r.hh || 16;
     const pos = [], col = [], ph = [];
     for (let i = 0; i < N; i++) {
       pos.push((R() * 2 - 1) * (hw + 3), 0, (R() * 2 - 1) * (hh + 4));
       col.push(1, 1, 1);
       ph.push(R(), 0.7 + R() * 0.9);
     }
-    st.group.add(pointsObj(T, st, pos, col, ph, true, 0.2));
+    st.group.add(pointsObj(T, st, pos, col, ph, 1, 0.2));
+    if (xm && typeof r._zr0 === 'number' && r._zr1 > r._zr0) st.group.add(iceObj(r, st));
+    const wu = xm && r._waterMat && r._waterMat.uniforms;
+    if (wu && wu.uDeep && wu.uMid) { wu.uDeep.value.set(0.07, 0.34, 0.8); wu.uMid.value.set(0.2, 0.56, 0.95); }
     r.arena.add(st.group);
     st.group.traverse(function (o) { o.matrixAutoUpdate = false; o.updateMatrix(); });
   }
-  /** The parts that need the tower models (hall / king box): lights, wreath, trees. */
+  /** The parts that need the tower models (hall / king box): lights, wreath, trees, presents. */
   function buildTowerDecor(r, st) {
-    const T = r.T, A = CR.Arena, L = new Lights();
+    const T = r.T, A = CR.Arena, L = new Lights(), xm = st.xm, P = [];
     const hw = r.hw, hh = r.hh, gh = function (x, y) { return typeof r._ghs === 'function' ? (+r._ghs(x, y) || 0) : 0; };
     const list = r._towerList || [];
     const S = !r.td && A && A.SIEGE && r._sg ? A.SIEGE : null;
     const grp = new T.Group();
     const cf = st.ls === 1 ? -1 : 1;   // world z direction towards the camera (the local back line)
-    const st2 = { group: grp, geos: st.geos, mats: st.mats, toon: st.toon };
+    const st2 = { group: grp, geos: st.geos, mats: st.mats, toon: st.toon, toonC: st.toonC };
+    L.gar = xm;
     // every tower box first: wait until all models are dressed (a few frames after the arena)
     const boxes = [];
     for (let i = 0; i < list.length; i++) {
@@ -124057,47 +124275,66 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
     if (S) {
       const H = S.height || 1.7;
       for (let s = 0; s < 2; s++) {
-        const w = S.walls[s];
         // wall: a garland under the merlons between the gatehouses, on the face the camera sees
-        {
-          const fy = cf > 0 ? w.y0 : w.y1, zL = hh - fy + cf * 0.1;
-          for (let i = 0; i < w.segs.length; i++) {
-            const sg = w.segs[i];
-            const x0 = sg.x0 - hw + 0.15, x1 = sg.x1 - hw - 0.15;
-            const n = Math.max(1, Math.round((x1 - x0) / 1.6));
-            const pts = [];
-            for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n; pts.push([x, gh(x + hw, fy) + H * 0.86, zL]); }
-            L.path(pts, 0.2, 0.4);
-          }
+        const w = S.walls[s], fy = cf > 0 ? w.y0 : w.y1, zL = hh - fy + cf * 0.1;
+        for (let i = 0; i < w.segs.length; i++) {
+          const sg = w.segs[i];
+          const x0 = sg.x0 - hw + 0.15, x1 = sg.x1 - hw - 0.15;
+          const n = Math.max(1, Math.round((x1 - x0) / 1.6));
+          const pts = [];
+          for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n; pts.push([x, gh(x + hw, fy) + H * 0.86, zL]); }
+          L.path(pts, 0.2, 0.4);
         }
       }
       // gates: an arch over the gateway on the field side (from the gatehouse box)
       for (let i = 0; i < boxes.length; i++) {
         const tm = boxes[i].tm, b = boxes[i].b;
         if (!tm.sg) continue;
-        {
-          const dz = cf, zf = (dz < 0 ? b.min.z : b.max.z) + dz * 0.06;
-          if (tm.king) {
-            // town hall: a wreath on the camera side, a garland along the eaves
-            const cx = (b.min.x + b.max.x) / 2, top = b.max.y;
-            wreath(r, st2, L, cx, top * WREATH_Y, zf + dz * 0.05, dz, 1.1);
-            L.path([[b.min.x + 0.1, top * 0.62, zf], [cx, top * 0.66, zf], [b.max.x - 0.1, top * 0.62, zf]], 0.16, 0.34);
-            continue;
-          }
-          const x0 = b.min.x + 0.2, x1 = b.max.x - 0.2, top = b.max.y, cx = (x0 + x1) / 2;
-          const pts = [];
-          for (let k = 0; k <= 8; k++) { const a = Math.PI * k / 8; pts.push([cx - Math.cos(a) * (x1 - x0) / 2, top * 0.62 + Math.sin(a) * top * 0.16, zf]); }
-          L.path(pts, 0.05, 0.3);
+        const dz = cf, zf = (dz < 0 ? b.min.z : b.max.z) + dz * 0.06;
+        if (tm.king) {
+          // town hall: a wreath on the camera side, a garland along the eaves
+          const cx = (b.min.x + b.max.x) / 2, top = b.max.y;
+          wreath(r, st2, L, cx, top * WREATH_Y, zf + dz * 0.05, dz, xm ? 1.3 : 1.1);
+          if (xm) for (let e = 0; e < 2; e++) gifts(T, P, e ? b.max.x + 0.3 : b.min.x - 0.3, 0, (b.min.z + b.max.z) / 2, 0.3, 3, 0.3, 51 + i * 2 + e);
+          L.path([[b.min.x + 0.1, top * 0.62, zf], [cx, top * 0.66, zf], [b.max.x - 0.1, top * 0.62, zf]], 0.16, 0.34);
+          continue;
         }
+        const x0 = b.min.x + 0.2, x1 = b.max.x - 0.2, top = b.max.y, cx = (x0 + x1) / 2;
+        const pts = [];
+        for (let k = 0; k <= 8; k++) { const a = Math.PI * k / 8; pts.push([cx - Math.cos(a) * (x1 - x0) / 2, top * 0.62 + Math.sin(a) * top * 0.16, zf]); }
+        L.path(pts, 0.05, 0.3);
       }
-      // a fir tree by the well of each town
+      // a (v42 classic: big) fir tree by the well of each town, presents under it
       for (let s = 0; s < 2; s++) {
         const wl = S.walls[s].town && S.walls[s].town.well;
         if (!wl) continue;
         // behind the well as seen from the camera (the local player's back line)
         const sx = wl.x < 9 ? 1 : -1, far = st.ls === 1 ? -1 : 1;
-        const tx = wl.x - 0.3 * sx, ty = wl.y + 0.95 * far;
-        tree(r, st2, L, tx - hw, gh(tx, ty), hh - ty, 0.78);
+        const tx = wl.x - 0.3 * sx, ty = wl.y + 0.95 * far, gy = gh(tx, ty);
+        tree(r, st2, L, tx - hw, gy, hh - ty, xm ? 1.45 : 0.78);
+        if (xm) gifts(T, P, tx - hw, gy, hh - ty, 0.95, 5, 0.34, 7 + s);
+      }
+      // v42 classic: warm windows in the village houses (a soft flicker)
+      const PL = xm && r._sg && r._sg.plan;
+      if (PL) {
+        const wp = [], wc = [], wa = [], fz = r._sg.fz || 1;
+        for (let s = 0; s < 2; s++) {
+          const hs = (PL.sides[s] && PL.sides[s].houses) || [];
+          for (let i = 0; i < hs.length; i++) {
+            const h = hs[i], X = h.x - hw, Z = hh - h.y, gy = gh(h.x, h.y), zf = Z + fz * (h.d / 2 + 0.03);
+            const nw = h.w > 1.2 ? 2 : 1;
+            for (let k = 0; k < nw; k++) {
+              wp.push(X + (nw > 1 ? (k ? 0.26 : -0.26) * h.w : 0), gy + Math.min(h.h * 0.4, 0.38), zf + fz * 0.04);
+              wc.push(1, 0.6, 0.16); wa.push(i * 1.7 + k, 1);
+            }
+          }
+        }
+        // lanterns of the village: a warm glow on every lamp post
+        for (let s = 0; s < 2; s++) {
+          const ls = (PL.sides[s] && PL.sides[s].lamps) || [];
+          for (let i = 0; i < ls.length; i++) { wp.push(ls[i].x - hw, gh(ls[i].x, ls[i].y) + 0.62, hh - ls[i].y); wc.push(1, 0.55, 0.12); wa.push(i * 2.3, 1.3); }
+        }
+        if (wp.length) grp.add(pointsObj(T, st, wp, wc, wa, 3, 0.95));
       }
     } else if (!r.td) {
       // classic towers: a garland around every crown, a wreath on the king tower
@@ -124108,29 +124345,77 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
         const hx = Math.min((b.max.x - b.min.x) / 2, (tm.size || 3) * 0.5) - 0.05, cx = (b.min.x + b.max.x) / 2;
         const hz = Math.min((b.max.z - b.min.z) / 2, (tm.size || 3) * 0.5) + 0.04, cz = (b.min.z + b.max.z) / 2;
         L.path([[cx - hx, y, cz + cf * hz], [cx, y - 0.05, cz + cf * hz], [cx + hx, y, cz + cf * hz]], 0.2, 0.32);
-        if (tm.king) wreath(r, st2, L, cx, y * 0.55, cz + cf * (hz + 0.06), cf, 1.0);
+        if (tm.king) wreath(r, st2, L, cx, y * 0.55, cz + cf * (hz + 0.06), cf, xm ? 1.15 : 1.0);
       }
-      // two fir trees beside the king towers (point-symmetric)
+      // two fir trees beside the king towers (point-symmetric); v42 classic: bigger, with presents
       const K = boxes.filter(function (o) { return o.tm.king; });
       for (let i = 0; i < K.length; i++) {
         const b = K[i].b, dz = K[i].tm.side === 0 ? -1 : 1, sx = K[i].tm.side === 0 ? -1 : 1;
         const tx = (sx < 0 ? b.min.x : b.max.x) + sx * 0.9, tz = (b.min.z + b.max.z) / 2 - dz * 0.4;
-        tree(r, st2, L, tx, r._gh ? +r._gh(tx, tz) || 0 : 0, tz, 0.7);
+        const ty = r._gh ? +r._gh(tx, tz) || 0 : 0;
+        tree(r, st2, L, tx, ty, tz, xm ? 0.95 : 0.7);
+        if (xm) gifts(T, P, tx, ty, tz, 0.68, 4, 0.3, 3 + i);
+      }
+      // v42 classic: string lights + garland along both side curbs (not over the river)
+      if (xm && typeof r._zr0 === 'number') {
+        for (let sx = -1; sx <= 1; sx += 2) {
+          for (let h = 0; h < 2; h++) {
+            const za = h ? r._zr1 + 0.5 : -hh + 0.4, zb = h ? hh - 0.4 : r._zr0 - 0.5, n = Math.max(1, Math.round((zb - za) / 2.4)), pts = [];
+            for (let k = 0; k <= n; k++) pts.push([sx * (hw + 0.12), 0.5, za + (zb - za) * k / n]);
+            L.path(pts, 0.14, 0.42);
+          }
+        }
       }
     }
+    if (xm) {
+      // candy canes at the bridge corners (on the banks, off the walkable tiles), hooks outwards
+      const br = r.bridges || [];
+      if (typeof r._zr0 === 'number') for (let i = 0; i < br.length; i++) {
+        for (let e = 0; e < 2; e++) {
+          const x = (e ? br[i].x1 + 0.1 : br[i].x0 - 0.1) - hw;
+          cane(T, P, x, 0, r._zr0 - 0.05, 1.15, e ? 1 : -1);
+          cane(T, P, x, 0, r._zr1 + 0.05, 1.15, e ? 1 : -1);
+        }
+      }
+      // presents behind both back lines (outside the field)
+      // classic towers: a fir with presents in every back corner (outside the field)
+      if (!S) for (let sd = -1; sd <= 1; sd += 2) for (let sx = -1; sx <= 1; sx += 2) {
+        const x = sx * (hw - 1.3), z = sd * (hh + 0.9);
+        tree(r, st2, L, x, 0, z, 0.85);
+        gifts(T, P, x, 0, z, 0.75, 4, 0.36, 11 + sd + sx * 3);
+      }
+    }
+    // classic towers: a row of lit firs with presents behind both back lines
+    if (xm && !S) for (let sd = -1; sd <= 1; sd += 2) for (let k = 0; k < 4; k++) {
+      const x = [-6.6, -4.3, 4.3, 6.6][k], z = sd * (hh + 1.7 + (k % 2) * 0.5);
+      tree(r, st2, L, x, 0, z, 1.05 + (k % 2) * 0.2);
+      gifts(T, P, x + (k < 2 ? 0.7 : -0.7), 0, z - sd * 0.3, 0.3, 3, 0.3, 41 + k + sd * 5);
+    }
+    // warm lanterns beside every tower door (they glow against the blue evening)
+    if (xm) {
+      const tp = [], tc = [], ta = [];
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i].b, tm = boxes[i].tm;
+        if (tm.sg && tm.king) continue;
+        const zf = (cf < 0 ? b.min.z : b.max.z) + cf * 0.08, cx = (b.min.x + b.max.x) / 2, hx = (b.max.x - b.min.x) * 0.3;
+        for (let e = -1; e <= 1; e += 2) { tp.push(cx + e * hx, Math.min(b.max.y * 0.32, 1.1), zf); tc.push(0.9, 0.42, 0.08); ta.push(i + e, 1.4); }
+      }
+      if (tp.length) grp.add(pointsObj(T, st, tp, tc, ta, 3, 1.0));
+    }
+    addMesh(r, st2, P, true);
     L.build(T, st2, grp);
-    if (st2.toon && !st.toon) st.toon = st2.toon;
-    snowArenaMats(st2);
+    if (st2.toon) snowify(st2.toon, 'lit');
+    st.toon = st2.toon; st.toonC = st2.toonC;
     st.group.add(grp);
     grp.traverse(function (o) { o.matrixAutoUpdate = false; o.updateMatrix(); });
     return true;
   }
-  function snowArenaMats(st) { if (st.toon) snowify(st.toon, 'lit'); }
 
   function disposeFF(r) {
     const st = r._ff;
     if (!st) return;
     r._ff = null;
+    unsnowTowers(st);
     if (st.group.parent) st.group.parent.remove(st.group);
     for (let i = 0; i < st.geos.length; i++) { try { st.geos[i].dispose(); } catch (e) { /* ignore */ } }
     for (let i = 0; i < st.mats.length; i++) { try { st.mats[i].dispose(); } catch (e) { /* ignore */ } }
@@ -124168,17 +124453,24 @@ html[lang="en"] .mm-tile.mapsel.is-any .mapsel-desc::before { content: "Search: 
 
   function frame(r, cur, opts) {
     const ls = opts && opts.localSide === 1 ? 1 : 0;
-    const on = activeNow();
-    U.on.value = on ? 1 : 0;
+    const xm = r.map === 'classic' && !r.td && !!r.riverOn;   // v42: the Christmas arena
+    U.on.value = 1;
+    U.x.value = xm ? 1 : 0;
     U.t.value = (((G.performance && G.performance.now) ? G.performance.now() : Date.now()) / 1000) % 3600;
-    if (on && r.T && r.arena) {
-      if (r._ff && (r._ff.arena !== r.arena || r._ff.ls !== ls)) disposeFF(r);
-      if (!r._ff) { buildFF(r); r._ff.ls = ls; }
+    if (r.T && r.arena) {
+      if (r._ff && (r._ff.arena !== r.arena || r._ff.ls !== ls || r._ff.xm !== xm)) disposeFF(r);
+      if (!r._ff) { buildFF(r, xm); r._ff.ls = ls; }
       const st = r._ff;
       if (st && !st.towersDone && st.tries < 400 && (st.tries++ % 10) === 0) st.towersDone = buildTowerDecor(r, st);
+      if (st && st.towersDone && xm) snowTowers(r, st);
+    }
+    const host = r.gl && r.gl.domElement && r.gl.domElement.parentNode;
+    if (host && host.appendChild && host._ffX !== xm && G.document) {   // evening vignette over the Christmas arena (CSS)
+      host._ffX = xm;
+      if (!host._ffV) { host._ffV = G.document.createElement('div'); host._ffV.className = 'ff-vig'; host._ffV.setAttribute('aria-hidden', 'true'); host.appendChild(host._ffV); }
+      host._ffV.hidden = !xm;
     }
     if (r._ff) {
-      r._ff.group.visible = on;
       const cam = r.camera, cv = r.gl && r.gl.domElement;
       if (cam && cv) U.px.value = cv.height / (2 * Math.tan((cam.fov || 1) * Math.PI / 360));
     }
